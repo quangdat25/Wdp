@@ -1,0 +1,147 @@
+/* ========================
+   Footer
+   ======================== */
+.footer {
+  position: relative;
+}
+
+.footer__top {
+  background: #1a1a2e;
+  color: #cbd5e1;
+  padding: 3rem 0 2rem;
+}
+
+.footer__grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: 3rem;
+}
+
+.footer__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.footer__brand strong {
+  color: #f1f5f9;
+  font-size: 1rem;
+  display: block;
+}
+
+.footer__brand p {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.footer__desc {
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: #94a3b8;
+}
+
+.footer__col-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 1rem;
+  position: relative;
+  padding-bottom: 0.5rem;
+}
+
+.footer__col-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 30px;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 1px;
+}
+
+.footer__links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.footer__links a {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  transition: var(--transition-fast);
+}
+
+.footer__links a:hover {
+  color: var(--primary);
+  padding-left: 4px;
+}
+
+.footer__contact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.footer__contact li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.footer__contact-icon {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+.footer__bottom {
+  background: #141425;
+  padding: 1rem 0;
+  text-align: center;
+}
+
+.footer__bottom p {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Back to top */
+.footer__back-to-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--white);
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: var(--shadow);
+  z-index: 99;
+}
+
+.footer__back-to-top:hover {
+  background: var(--primary);
+  color: var(--white);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 16px rgba(232, 96, 28, 0.3);
+}
+
+/* ========================
+   Responsive
+   ======================== */
+@media (max-width: 768px) {
+  .footer__grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}

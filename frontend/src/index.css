@@ -1,7 +1,119 @@
-/* Reset index.css to avoid conflicts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+/* ========================
+   CSS Variables / Design Tokens
+   ======================== */
 :root {
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  --primary: #e8601c;
+  --primary-hover: #d14e0f;
+  --primary-light: rgba(232, 96, 28, 0.08);
+  --primary-lighter: rgba(232, 96, 28, 0.04);
+
+  --white: #ffffff;
+  --black: #1a1a1a;
+
+  --bg: #ffffff;
+  --bg-section: #f8f9fa;
+  --bg-card: #ffffff;
+
+  --text: #333333;
+  --text-muted: #666666;
+  --text-heading: #1a1a1a;
+  --text-light: #999999;
+
+  --border: #e5e7eb;
+  --border-light: #f0f0f0;
+
+  --radius: 8px;
+  --radius-sm: 4px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.15);
+
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: all 0.15s ease;
+
+  --max-width: 1200px;
+  --header-height: 70px;
+}
+
+/* ========================
+   Reset & Base
+   ======================== */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+/* ========================
+   Utility Classes
+   ======================== */
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-heading);
+  text-align: center;
+  position: relative;
+  padding-bottom: 0.75rem;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: var(--primary);
+  border-radius: 2px;
 }
