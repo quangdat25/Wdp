@@ -1,60 +1,67 @@
 const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+const User = require("./user.model");
 
-const studentSchema = new Schema(
+const parentSchema = new mongoose.Schema(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      unique: true,
-    },
-    studentCode: {
+    username: {
       type: String,
       required: true,
-      unique: true,
-      trim: true,
     },
-    gender: {
-      type: String,
-      enum: ["Nam", "Nữ"],
-      required: true,
-    },
-    dateOfBirth: {
-      type: Date,
-      required: true,
-    },
-    address: {
+    passwordHash: {
       type: String,
       required: true,
-      trim: true,
     },
-    major: {
+    fullName: {
       type: String,
-      required: true,
-      trim: true,
+      default: "",
     },
-    academicYear: {
+    phone: {
       type: String,
-      default: null,
-      trim: true,
+      default: "",
     },
-    roomId: {
-      type: Schema.Types.ObjectId,
-      ref: "Room",
-      default: null,
-    },
-    parentId: {
-      type: Schema.Types.ObjectId,
-      ref: "Parent",
-      default: null,
+    relationship: {
+      type: String,
+      default: "parent",
     },
   },
-  { timestamps: true }
+  { _id: false }
 );
 
-// --- Indexes ---
-studentSchema.index({ roomId: 1 });
-studentSchema.index({ parentId: 1 });
+const studentSchema = new mongoose.Schema({
+  studentCode: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true,
+    trim: true,
+  },
 
-module.exports = mongoose.model("Student", studentSchema);
+  phone: {
+    type: String,
+    default: "",
+  },
+
+  gender: {
+    type: String,
+    enum: ["male", "female", "other", ""],
+    default: "",
+  },
+
+  dateOfBirth: {
+    type: Date,
+  },
+
+  major: {
+    type: String,
+    default: "",
+  },
+
+  address: {
+    type: String,
+    default: "",
+  },
+
+  parent: parentSchema,
+});
+
+module.exports = User.discriminator("Student", studentSchema);
