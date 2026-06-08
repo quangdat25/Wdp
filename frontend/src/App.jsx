@@ -6,12 +6,14 @@ import HomePage from "./pages/HomePage/HomePage";
 import Login from "./pages/Login/Login";
 import PageTransition from "./components/PageTransition/PageTransition";
 import StudentManagement from "./pages/Admin/StudentManagement";
+import ManagerDashboard from "./pages/Manager/ManagerDashboard";
 
 function App() {
   const location = useLocation();
   const isAdminRoute =
     location.pathname.startsWith("/staff-dashboard") ||
-    location.pathname.startsWith("/admin");
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/manager_dashbroad");
 
   return (
     <div className="app">
@@ -39,6 +41,7 @@ function App() {
             />
             <Route path="/staff-dashboard" element={<StudentManagement />} />
             <Route path="/admin/students" element={<StudentManagement />} />
+            <Route path="/manager_dashbroad" element={<ManagerDashboard />} />
           </Routes>
         </PageTransition>
       </main>
