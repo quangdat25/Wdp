@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Pagination } from "antd";
 import AdminSidebar from "./AdminSidebar";
 import { getAllStudents, importStudents } from "../../api/studentService";
-
+import { showError, showSuccess } from "../../components/alert";
 const statusColors = {
   active: { background: "#dcfce7", color: "#166534", label: "Đang hoạt động" },
   inactive: { background: "#fef3c7", color: "#92400e", label: "Tạm nghỉ" },
@@ -10,7 +11,7 @@ const statusColors = {
 
 function StudentManagement() {
   const inputRef = useRef(null);
-
+  const [importErrors, setImportErrors] = useState([]);
   const [students, setStudents] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [selectedParent, setSelectedParent] = useState(null);
@@ -19,6 +20,8 @@ function StudentManagement() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
 
   const fetchStudents = async () => {
     try {
@@ -27,7 +30,7 @@ function StudentManagement() {
       setStudents(res.data.data || []);
     } catch (error) {
       console.error(error);
-      alert("Lỗi khi tải danh sách sinh viên");
+      showError("Lỗi khi tải danh sách sinh viên");
     } finally {
       setLoading(false);
     }
@@ -54,12 +57,32 @@ function StudentManagement() {
       ]
         .join(" ")
         .toLowerCase()
-        .includes(keyword)
+        .includes(keyword),
     );
   }, [searchText, students]);
 
+  const paginatedStudents = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredStudents.slice(start, start + pageSize);
+  }, [currentPage, filteredStudents, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchText]);
+
+  useEffect(() => {
+    const totalPages = Math.max(
+      1,
+      Math.ceil(filteredStudents.length / pageSize),
+    );
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, filteredStudents.length, pageSize]);
+
   const openImportModal = () => {
     setImportError("");
+    setImportErrors([]);
     setSelectedFile(null);
     setIsImportModalOpen(true);
   };
@@ -69,18 +92,17 @@ function StudentManagement() {
 
     setIsImportModalOpen(false);
     setImportError("");
+    setImportErrors([]);
     setSelectedFile(null);
   };
 
   const handleFilePick = (event) => {
     const file = event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     setSelectedFile(file);
     setImportError("");
+    setImportErrors([]);
   };
 
   const handleConfirmImport = async () => {
@@ -95,17 +117,114 @@ function StudentManagement() {
     try {
       setImporting(true);
       await importStudents(formData);
-      alert("Import sinh viên thành công");
+      showSuccess("Import sinh viên thành công");
       setIsImportModalOpen(false);
       setSelectedFile(null);
       setImportError("");
       fetchStudents();
     } catch (error) {
-      console.error(error);
-      setImportError(error.response?.data?.message || "Import thất bại");
+      const data = error.response?.data;
+
+      if (data?.errors?.length > 0) {
+        setImportError(data.message);
+        setImportErrors(data.errors);
+        return;
+      }
+
+      showError(data?.message || "Import thất bại");
     } finally {
       setImporting(false);
     }
+  };
+
+  const getGenderLabel = (gender) => {
+    if (gender === "male") return "Nam";
+    if (gender === "female") return "Nữ";
+    return "Khác";
+  };
+
+  const renderStudentRows = () => {
+    if (loading) {
+      return (
+        <tr>
+          <td colSpan="9" style={{ padding: 20, textAlign: "center" }}>
+            Đang tải dữ liệu...
+          </td>
+        </tr>
+      );
+    }
+
+    if (paginatedStudents.length === 0) {
+      return (
+        <tr>
+          <td colSpan="9" style={{ padding: 20, textAlign: "center" }}>
+            Không có sinh viên nào
+          </td>
+        </tr>
+      );
+    }
+
+    return (
+      <>
+        {paginatedStudents.map((student) => {
+          const badge = statusColors[student.status] || statusColors.active;
+
+          return (
+            <tr key={student._id}>
+              <td style={tdStyle}>{student.studentCode}</td>
+              <td style={tdStyle}>{student.fullName}</td>
+              <td style={tdStyle}>{student.email}</td>
+              <td style={tdStyle}>{student.phone || "Chưa có"}</td>
+              <td style={tdStyle}>{getGenderLabel(student.gender)}</td>
+              <td style={tdStyle}>
+                {student.dateOfBirth
+                  ? new Date(student.dateOfBirth).toLocaleDateString("vi-VN")
+                  : "Chưa có"}
+              </td>
+              <td style={tdStyle}>{student.major || "Chưa có"}</td>
+              <td style={tdStyle}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    whiteSpace: "nowrap",
+                    minWidth: 118,
+                    padding: "7px 14px",
+                    borderRadius: 999,
+                    background: badge.background,
+                    color: badge.color,
+                    fontWeight: 700,
+                    fontSize: 13,
+                    lineHeight: 1,
+                  }}
+                >
+                  {badge.label}
+                </span>
+              </td>
+              <td style={tdStyle}>
+                <button
+                  onClick={() => setSelectedParent(student.parent)}
+                  style={{
+                    border: "none",
+                    background:
+                      "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
+                    color: "#fff",
+                    padding: "9px 12px",
+                    borderRadius: 10,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    boxShadow: "0 10px 20px rgba(37, 99, 235, 0.18)",
+                  }}
+                >
+                  Thông tin phụ huynh
+                </button>
+              </td>
+            </tr>
+          );
+        })}
+      </>
+    );
   };
 
   return (
@@ -182,12 +301,7 @@ function StudentManagement() {
             }}
           >
             <div>
-              <h2 style={{ margin: 0, fontSize: 22 }}>
-                Danh sách sinh viên
-              </h2>
-              <p style={{ color: "#64748b", marginTop: 6 }}>
-                Hiển thị {filteredStudents.length} sinh viên.
-              </p>
+              <h2 style={{ margin: 0, fontSize: 22 }}>Danh sách sinh viên</h2>
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
@@ -195,7 +309,8 @@ function StudentManagement() {
                 type="button"
                 onClick={openImportModal}
                 style={{
-                  background: "linear-gradient(135deg, #f59e0b 0%, #fb923c 100%)",
+                  background:
+                    "linear-gradient(135deg, #f59e0b 0%, #fb923c 100%)",
                   color: "#fff",
                   borderRadius: 14,
                   padding: "12px 16px",
@@ -227,7 +342,6 @@ function StudentManagement() {
                 boxShadow: "inset 0 1px 2px rgba(15, 23, 42, 0.02)",
               }}
             />
-
           </div>
 
           <div style={{ overflowX: "auto" }}>
@@ -270,88 +384,24 @@ function StudentManagement() {
                 </tr>
               </thead>
 
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan="9" style={{ padding: 20, textAlign: "center" }}>
-                      Đang tải dữ liệu...
-                    </td>
-                  </tr>
-                ) : filteredStudents.length === 0 ? (
-                  <tr>
-                    <td colSpan="9" style={{ padding: 20, textAlign: "center" }}>
-                      Không có sinh viên nào
-                    </td>
-                  </tr>
-                ) : (
-                  filteredStudents.map((student) => {
-                    const badge =
-                      statusColors[student.status] || statusColors.active;
-
-                    return (
-                      <tr key={student._id}>
-                        <td style={tdStyle}>{student.studentCode}</td>
-                        <td style={tdStyle}>{student.fullName}</td>
-                        <td style={tdStyle}>{student.email}</td>
-                        <td style={tdStyle}>{student.phone || "Chưa có"}</td>
-                        <td style={tdStyle}>
-                          {student.gender === "male"
-                            ? "Nam"
-                            : student.gender === "female"
-                            ? "Nữ"
-                            : "Khác"}
-                        </td>
-                        <td style={tdStyle}>
-                          {student.dateOfBirth
-                            ? new Date(student.dateOfBirth).toLocaleDateString(
-                                "vi-VN"
-                              )
-                            : "Chưa có"}
-                        </td>
-                        <td style={tdStyle}>{student.major || "Chưa có"}</td>
-                        <td style={tdStyle}>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              whiteSpace: "nowrap",
-                              minWidth: 118,
-                              padding: "7px 14px",
-                              borderRadius: 999,
-                              background: badge.background,
-                              color: badge.color,
-                              fontWeight: 700,
-                              fontSize: 13,
-                              lineHeight: 1,
-                            }}
-                          >
-                            {badge.label}
-                          </span>
-                        </td>
-                        <td style={tdStyle}>
-                          <button
-                            onClick={() => setSelectedParent(student.parent)}
-                            style={{
-                              border: "none",
-                              background: "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
-                              color: "#fff",
-                              padding: "9px 12px",
-                              borderRadius: 10,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                              boxShadow: "0 10px 20px rgba(37, 99, 235, 0.18)",
-                            }}
-                          >
-                            Thông tin phụ huynh
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
+              <tbody>{renderStudentRows()}</tbody>
             </table>
+          </div>
+
+          <div
+            style={{ display: "flex", justifyContent: "center", marginTop: 20 }}
+          >
+            <Pagination
+              current={currentPage}
+              total={filteredStudents.length}
+              pageSize={pageSize}
+              showSizeChanger
+              pageSizeOptions={["5", "10", "20", "50"]}
+              onChange={(page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              }}
+            />
           </div>
         </section>
       </main>
@@ -387,7 +437,14 @@ function StudentManagement() {
             }}
             onClick={(event) => event.stopPropagation()}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "start" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 16,
+                alignItems: "start",
+              }}
+            >
               <div>
                 <h2 style={{ margin: 0, fontSize: 24 }}>Thêm sinh viên</h2>
                 <p style={{ margin: "6px 0 0", color: "#64748b" }}>
@@ -426,13 +483,24 @@ function StudentManagement() {
                   cursor: "pointer",
                 }}
               >
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
+                <div
+                  style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}
+                >
                   Thêm file Excel
                 </div>
                 <div style={{ marginTop: 8, color: "#64748b", fontSize: 14 }}>
                   Hỗ trợ .xlsx, .xls, .csv
                 </div>
-                <div style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 10, color: "#2563eb", fontWeight: 700 }}>
+                <div
+                  style={{
+                    marginTop: 14,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 10,
+                    color: "#2563eb",
+                    fontWeight: 700,
+                  }}
+                >
                   Chọn file
                 </div>
               </label>
@@ -463,13 +531,69 @@ function StudentManagement() {
               </div>
 
               {importError && (
-                <div style={{ marginTop: 10, color: "#dc2626", fontSize: 14, fontWeight: 600 }}>
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: "12px 14px",
+                    borderRadius: 14,
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    color: "#b91c1c",
+                    fontSize: 14,
+                    fontWeight: 700,
+                  }}
+                >
                   {importError}
+                </div>
+              )}
+
+              {importErrors.length > 0 && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    maxHeight: 220,
+                    overflowY: "auto",
+                    borderRadius: 14,
+                    border: "1px solid #fecaca",
+                    background: "#fff7f7",
+                    padding: 12,
+                  }}
+                >
+                  {importErrors.map((err, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "80px 1fr",
+                        gap: 10,
+                        padding: "10px 8px",
+                        borderBottom:
+                          index === importErrors.length - 1
+                            ? "none"
+                            : "1px solid #fee2e2",
+                        color: "#7f1d1d",
+                        fontSize: 14,
+                      }}
+                    >
+                      <strong>Dòng {err.row}</strong>
+
+                      <span>
+                        <b>{err.column}</b>: {err.reason}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 12,
+                marginTop: 24,
+              }}
+            >
               <button
                 type="button"
                 onClick={closeImportModal}
@@ -523,7 +647,8 @@ function SummaryCard({ title, value }) {
   return (
     <div
       style={{
-        background: "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.96) 100%)",
+        background:
+          "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.96) 100%)",
         borderRadius: 20,
         padding: "20px 22px",
         boxShadow: "0 10px 30px rgba(15, 23, 42, 0.06)",
@@ -564,7 +689,6 @@ function ParentModal({ parent, onClose }) {
         <InfoRow label="Họ tên" value={parent.fullName || "Chưa có"} />
         <InfoRow label="Tài khoản" value={parent.username || "Chưa có"} />
         <InfoRow label="Số điện thoại" value={parent.phone || "Chưa có"} />
-        <InfoRow label="Quan hệ" value={parent.relationship || "parent"} />
         <button
           onClick={onClose}
           style={{

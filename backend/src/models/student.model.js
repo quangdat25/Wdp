@@ -7,18 +7,22 @@ const parentSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
     passwordHash: {
       type: String,
       required: true,
     },
+
     fullName: {
       type: String,
       default: "",
     },
+
     phone: {
       type: String,
       default: "",
     },
+
     relationship: {
       type: String,
       default: "parent",
@@ -47,9 +51,7 @@ const studentSchema = new mongoose.Schema({
     default: "",
   },
 
-  dateOfBirth: {
-    type: Date,
-  },
+  dateOfBirth: Date,
 
   major: {
     type: String,
@@ -64,4 +66,7 @@ const studentSchema = new mongoose.Schema({
   parent: parentSchema,
 });
 
-module.exports = User.discriminator("Student", studentSchema);
+module.exports = User.discriminator(
+  "student",
+  studentSchema
+);

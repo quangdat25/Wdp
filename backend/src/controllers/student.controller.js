@@ -65,11 +65,19 @@ exports.importStudents = async (req, res) => {
       defval: "",
     });
 
-    const importedStudents = [];
+    if (!rows || rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "File Excel không có dữ liệu",
+      });
+    }
+
+    const validStudents = [];
     const errorRows = [];
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
+      const rowNumber = i + 2;
 
       const studentCode = String(row["Mã sinh viên"] || "").trim();
       const fullName = String(row["Họ và tên"] || "").trim();
@@ -82,70 +90,155 @@ exports.importStudents = async (req, res) => {
 
       const dateOfBirth = parseExcelDate(row["Ngày sinh"]);
 
-      if (!studentCode || !fullName || !email) {
+      if (!studentCode) {
         errorRows.push({
-          row: i + 2,
+          row: rowNumber,
+          column: "Mã sinh viên",
           studentCode,
-          reason: "Thiếu mã sinh viên, họ tên hoặc email",
+          reason: "Thiếu mã sinh viên",
+        });
+        continue;
+      }
+
+      if (!fullName) {
+        errorRows.push({
+          row: rowNumber,
+          column: "Họ và tên",
+          studentCode,
+          reason: "Thiếu họ và tên",
+        });
+        continue;
+      }
+
+      if (!email) {
+        errorRows.push({
+          row: rowNumber,
+          column: "Email",
+          studentCode,
+          reason: "Thiếu email",
         });
         continue;
       }
 
       if (!dateOfBirth) {
         errorRows.push({
-          row: i + 2,
+          row: rowNumber,
+          column: "Ngày sinh",
           studentCode,
           reason: "Ngày sinh không hợp lệ",
         });
         continue;
       }
 
-      if (!parentUsername || !parentPassword) {
+      if (!parentUsername) {
         errorRows.push({
-          row: i + 2,
+          row: rowNumber,
+          column: "Tài khoản phụ huynh",
           studentCode,
-          reason: "Thiếu tài khoản hoặc mật khẩu phụ huynh",
+          reason: "Thiếu tài khoản phụ huynh",
         });
         continue;
       }
 
-      const existedStudent = await Student.findOne({
-        $or: [{ studentCode }, { email }],
-      });
-
-      if (existedStudent) {
+      if (!parentPassword) {
         errorRows.push({
-          row: i + 2,
+          row: rowNumber,
+          column: "Mật khẩu phụ huynh",
           studentCode,
-          reason: "Mã sinh viên hoặc email đã tồn tại",
+          reason: "Thiếu mật khẩu phụ huynh",
+        });
+        continue;
+      }
+      const existedByCode = await Student.findOne({ studentCode });
+      const existedByEmail = await Student.findOne({ email });
+
+      if (existedByCode && existedByEmail) {
+        errorRows.push({
+          row: rowNumber,
+          column: "Mã sinh viên / Email",
+          studentCode,
+          reason: "Mã sinh viên và email đã tồn tại",
         });
         continue;
       }
 
-      const passwordHash = await bcrypt.hash(parentPassword, 10);
+      if (existedByCode) {
+        errorRows.push({
+          row: rowNumber,
+          column: "Mã sinh viên",
+          studentCode,
+          reason: "Mã sinh viên đã tồn tại",
+        });
+        continue;
+      }
 
-      const student = await Student.create({
-        roleId: "role_student",
-
+      if (existedByEmail) {
+        errorRows.push({
+          row: rowNumber,
+          column: "Email",
+          studentCode,
+          reason: "Email đã tồn tại",
+        });
+        continue;
+      }
+      validStudents.push({
+        row,
         studentCode,
         fullName,
         email,
+        parentUsername,
+        parentPassword,
+        dateOfBirth,
+      });
+    }
+
+    if (errorRows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "File có lỗi. Vui lòng sửa các dòng lỗi rồi import lại.",
+        totalRows: rows.length,
+        imported: 0,
+        failed: errorRows.length,
+        errors: errorRows,
+      });
+    }
+
+    const importedStudents = [];
+
+    for (const item of validStudents) {
+      const row = item.row;
+
+      const parentPasswordHash = await bcrypt.hash(item.parentPassword, 10);
+
+      const student = await Student.create({
+        role: "student",
+
+        fullName: item.fullName,
+        email: item.email,
+
+        studentCode: item.studentCode,
 
         phone: String(row["Số điện thoại"] || "").trim(),
+
         gender: normalizeGender(row["Giới tính"]),
-        address: String(row["Địa chỉ"] || "").trim(),
-        dateOfBirth,
+
+        dateOfBirth: item.dateOfBirth,
+
         major: String(row["Chuyên ngành"] || "").trim(),
+
+        address: String(row["Địa chỉ"] || "").trim(),
+
         status: "active",
 
         parent: {
-          username: parentUsername,
-          passwordHash,
+          username: item.parentUsername,
+          passwordHash: parentPasswordHash,
           fullName: String(row["Họ tên phụ huynh"] || "").trim(),
           phone: String(row["Số điện thoại phụ huynh"] || "").trim(),
           relationship: "parent",
         },
       });
+
       importedStudents.push(student);
     }
 
@@ -154,10 +247,13 @@ exports.importStudents = async (req, res) => {
       message: "Import danh sách sinh viên thành công",
       totalRows: rows.length,
       imported: importedStudents.length,
-      failed: errorRows.length,
-      errors: errorRows,
+      failed: 0,
+      errors: [],
+      data: importedStudents,
     });
   } catch (error) {
+    console.log("IMPORT STUDENTS ERROR:", error);
+
     return res.status(500).json({
       success: false,
       message: "Lỗi khi import file Excel",
@@ -168,7 +264,9 @@ exports.importStudents = async (req, res) => {
 
 exports.getAllStudents = async (req, res) => {
   try {
-    const students = await Student.find().sort({ createdAt: -1 });
+    const students = await Student.find({
+      role: "student",
+    }).sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,

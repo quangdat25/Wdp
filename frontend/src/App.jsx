@@ -6,6 +6,8 @@ import HomePage from "./pages/HomePage/HomePage";
 import Login from "./pages/Login/Login";
 import PageTransition from "./components/PageTransition/PageTransition";
 import StudentManagement from "./pages/Admin/StudentManagement";
+import PersonnelManagement from "./pages/Admin/PersonnelManagement";
+import NotificationManagement from "./pages/Admin/NotificationManagement";
 
 function App() {
   const location = useLocation();
@@ -39,6 +41,8 @@ function App() {
             />
             <Route path="/staff-dashboard" element={<StudentManagement />} />
             <Route path="/admin/students" element={<StudentManagement />} />
+            <Route path="/admin/personnel" element={<PersonnelManagement />} />
+            <Route path="/admin/notifications" element={<NotificationManagement />} />
           </Routes>
         </PageTransition>
       </main>
