@@ -5,7 +5,10 @@ import Footer from "./components/Footer/Footer";
 import HomePage from "./pages/HomePage/HomePage";
 import Login from "./pages/Login/Login";
 import PageTransition from "./components/PageTransition/PageTransition";
+
 import StudentManagement from "./pages/Admin/StudentManagement";
+
+import ManagerDashboard from "./pages/Manager/ManagerDashboard";
 import StudentDashboard from "./pages/Student/StudentDashboard";
 import ParentDashboard from "./pages/Parent/ParentDashboard";
 
@@ -15,7 +18,8 @@ function App() {
     location.pathname.startsWith("/student-dashboard") ||
     location.pathname.startsWith("/parent-dashboard") ||
     location.pathname.startsWith("/staff-dashboard") ||
-    location.pathname.startsWith("/admin");
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/manager_dashbroad");
 
   return (
     <div className="app">
@@ -29,6 +33,7 @@ function App() {
             <Route path="/parent-dashboard" element={<ParentDashboard />} />
             <Route path="/staff-dashboard" element={<StudentManagement />} />
             <Route path="/admin/students" element={<StudentManagement />} />
+            <Route path="/manager_dashbroad" element={<ManagerDashboard />} />
           </Routes>
         </PageTransition>
       </main>

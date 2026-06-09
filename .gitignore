@@ -1,0 +1,19 @@
+# Backend
+backend/node_modules/
+backend/.env
+
+# Frontend
+frontend/node_modules/
+frontend/.env
+
+# Local AI files
+frontend/AGENTS.md
+frontend/CONTEXT.md
+frontend/skills/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
