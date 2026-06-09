@@ -7,6 +7,8 @@ import Login from "./pages/Login/Login";
 import PageTransition from "./components/PageTransition/PageTransition";
 
 import StudentManagement from "./pages/Admin/StudentManagement";
+import PersonnelManagement from "./pages/Admin/PersonnelManagement";
+import NotificationManagement from "./pages/Admin/NotificationManagement";
 
 import ManagerDashboard from "./pages/Manager/ManagerDashboard";
 import StudentDashboard from "./pages/Student/StudentDashboard";
@@ -23,7 +25,7 @@ function App() {
     location.pathname.startsWith("/parent-dashboard") ||
     location.pathname.startsWith("/staff-dashboard") ||
     location.pathname.startsWith("/admin") ||
-    location.pathname.startsWith("/manager_dashbroad");
+    location.pathname.startsWith("/manager-dashboard");
 
   return (
     <div className="app">
@@ -36,7 +38,9 @@ function App() {
             <Route path="/student-dashboard" element={<StudentDashboard />} />
             <Route path="/parent-dashboard" element={<ParentDashboard />} />
             <Route path="/admin/students" element={<StudentManagement />} />
-            <Route path="/manager_dashbroad" element={<ManagerDashboard />} />
+            <Route path="/admin/personnel" element={<PersonnelManagement />} />
+            <Route path="/admin/notifications" element={<NotificationManagement />} />
+            <Route path="/manager-dashboard" element={<ManagerDashboard />} />
             <Route path="/staff-dashboard/cleaner" element={<CleanerDashboard />} />
             <Route path="/staff-dashboard/maintenance" element={<MaintenanceDashboard />} />
             <Route path="/staff-dashboard/security" element={<SecurityDashboard />} />

@@ -1,3 +1,13 @@
+<<<<<<< HEAD
+node_modules
+
+# Environment files
+.env
+.env.*
+
+# Logs
+logs
+=======
 # Dependencies
 node_modules/
 
@@ -8,10 +18,29 @@ node_modules/
 
 # Logs
 logs/
+>>>>>>> e33085eeae8c2a0ba8a98b0ed6ec930846abc1f3
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+<<<<<<< HEAD
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build output
+dist
+coverage
+
+# Uploaded / generated files
+uploads/*
+!uploads/.gitkeep
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+=======
 
 # Runtime data
 pids/
@@ -53,3 +82,4 @@ sequelize-meta.json
 
 # Package manager
 .pnpm-store/
+>>>>>>> e33085eeae8c2a0ba8a98b0ed6ec930846abc1f3
