@@ -12,6 +12,10 @@ import ManagerDashboard from "./pages/Manager/ManagerDashboard";
 import StudentDashboard from "./pages/Student/StudentDashboard";
 import ParentDashboard from "./pages/Parent/ParentDashboard";
 
+import CleanerDashboard from "./pages/Staff/CleanerDashboard";
+import MaintenanceDashboard from "./pages/Staff/MaintenanceDashboard";
+import SecurityDashboard from "./pages/Staff/SecurityDashboard";
+
 function App() {
   const location = useLocation();
   const isDashboardRoute =
@@ -31,9 +35,11 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/student-dashboard" element={<StudentDashboard />} />
             <Route path="/parent-dashboard" element={<ParentDashboard />} />
-            <Route path="/staff-dashboard" element={<StudentManagement />} />
             <Route path="/admin/students" element={<StudentManagement />} />
             <Route path="/manager_dashbroad" element={<ManagerDashboard />} />
+            <Route path="/staff-dashboard/cleaner" element={<CleanerDashboard />} />
+            <Route path="/staff-dashboard/maintenance" element={<MaintenanceDashboard />} />
+            <Route path="/staff-dashboard/security" element={<SecurityDashboard />} />
           </Routes>
         </PageTransition>
       </main>
