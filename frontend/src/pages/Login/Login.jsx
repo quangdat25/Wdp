@@ -1,23 +1,93 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
+import authService from '../../api/authService';
 import logoImg from '../../assets/logo.png';
 import dormImg from '../../assets/dorm.jpg';
+
 import './Login.css';
 
 function Login() {
-  const [role, setRole] = useState('Staff / Admin');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (role === 'Student') {
-      navigate('/student/dashboard');
-    } else if (role === 'Parent') {
-      navigate('/parent/dashboard');
-    } else {
-      navigate('/staff/dashboard');
+  const getRedirectPath = (role) => {
+    switch (role) {
+      case 'student':
+        return '/student/dashboard';
+      case 'admin':
+        return '/admin/students';
+      case 'manager':
+        return '/manager/dashboard';
+      case 'staff':
+        return '/staff/dashboard/security';
+      case 'parent':
+        return '/parent/dashboard';
+      default:
+        return '/';
     }
   };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const result = await authService.login(username, password);
+
+      if (result.success) {
+        const user = result.data;
+        // Save user info to localStorage for quick access
+        localStorage.setItem('user', JSON.stringify(user));
+        // Redirect based on role
+        const redirectPath = getRedirectPath(user.role);
+        navigate(redirectPath);
+      }
+    } catch (err) {
+      const message =
+        err.response?.data?.message || 'Đã xảy ra lỗi, vui lòng thử lại';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+ const handleGoogleLoginSuccess = async (credentialResponse) => {
+  setError('');
+  setLoading(true);
+  try {
+    const result = await authService.googleLogin(credentialResponse.credential);
+    
+    if (result.success) {
+      // 🚨 IN RA ĐỂ CHECK KHẢO SÁT METADATA & TOKEN
+      console.log(">>> Toàn bộ dữ liệu trả về từ Backend:", result);
+      console.log(">>> Tokens hệ thống:", result.tokens);
+      console.log(">>> Metadata cá nhân:", result.metadata);
+
+      const user = result.data;
+      
+      // Bạn có thể lưu cả cục user kèm token vào localStorage nếu muốn
+      localStorage.setItem('user', JSON.stringify(user));
+      if (result.tokens) {
+        localStorage.setItem('accessToken', result.tokens.accessToken);
+        localStorage.setItem('refreshToken', result.tokens.refreshToken);
+      }
+
+      const redirectPath = getRedirectPath(user.role);
+      navigate(redirectPath);
+    }
+  } catch (err) {
+    const message = err.response?.data?.message || 'Đã xảy ra lỗi khi đăng nhập bằng Google';
+    setError(message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="login-page bg-surface font-body-md text-on-surface min-h-screen relative overflow-hidden">
@@ -30,7 +100,7 @@ function Login() {
         <div className="absolute inset-0 bg-overlay"></div>
       </div>
 
-      {/* Main Content Canvas (Fixed Centered Model) */}
+      {/* Main Content Canvas */}
       <main className="relative z-10 flex items-center justify-center min-h-screen px-margin-mobile md:px-0">
         {/* Glassmorphic Login Modal */}
         <section className="glass-modal w-full max-w-[480px] rounded-xl p-xl shadow-[0px_4px_20px_rgba(0,0,0,0.1)] flex flex-col gap-lg">
@@ -45,37 +115,17 @@ function Login() {
 
           {/* Header */}
           <div className="mt-md">
-            <h2 className="font-title-md text-title-md text-on-surface">Login</h2>
-            <p className="font-body-md text-body-md text-on-surface-variant mt-xs">Access your dormitory portal</p>
+            <h2 className="font-title-md text-title-md text-on-surface">Đăng nhập</h2>
+            <p className="font-body-md text-body-md text-on-surface-variant mt-xs">Truy cập hệ thống quản lý ký túc xá</p>
           </div>
 
-          {/* Role Tabs (Segmented Control) */}
-          <nav className="flex p-xs bg-surface-container-low rounded-xl w-full">
-            <button 
-              type="button"
-              onClick={() => setRole('Student')}
-              className={`flex-1 flex flex-col items-center justify-center gap-xs py-sm px-xs rounded-lg transition-all duration-200 active:scale-95 ${role === 'Student' ? 'bg-white shadow-sm text-primary font-bold' : 'hover:bg-white/50 text-on-surface-variant'}`}
-            >
-              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: role === 'Student' ? "'FILL' 1" : "'FILL' 0" }}>person</span>
-              <span className={`font-label-sm text-label-sm ${role === 'Student' ? 'font-bold' : ''}`}>Student</span>
-            </button>
-            <button 
-              type="button"
-              onClick={() => setRole('Parent')}
-              className={`flex-1 flex flex-col items-center justify-center gap-xs py-sm px-xs rounded-lg transition-all duration-200 active:scale-95 ${role === 'Parent' ? 'bg-white shadow-sm text-primary font-bold' : 'hover:bg-white/50 text-on-surface-variant'}`}
-            >
-              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: role === 'Parent' ? "'FILL' 1" : "'FILL' 0" }}>group</span>
-              <span className={`font-label-sm text-label-sm ${role === 'Parent' ? 'font-bold' : ''}`}>Parent</span>
-            </button>
-            <button 
-              type="button"
-              onClick={() => setRole('Staff / Admin')}
-              className={`flex-1 flex flex-col items-center justify-center gap-xs py-sm px-xs rounded-lg transition-all duration-200 active:scale-95 ${role === 'Staff / Admin' ? 'bg-white shadow-sm text-primary font-bold' : 'hover:bg-white/50 text-on-surface-variant'}`}
-            >
-              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: role === 'Staff / Admin' ? "'FILL' 1" : "'FILL' 0" }}>shield</span>
-              <span className={`font-label-sm text-label-sm ${role === 'Staff / Admin' ? 'font-bold' : ''}`}>Staff / Admin</span>
-            </button>
-          </nav>
+          {/* Error Message */}
+          {error && (
+            <div className="login-error-banner flex items-center gap-sm p-md rounded-lg bg-red-50 border border-red-200">
+              <span className="material-symbols-outlined text-red-500 text-[20px]">error</span>
+              <span className="text-red-600 font-body-md text-sm">{error}</span>
+            </div>
+          )}
 
           {/* Login Form */}
           <form className="flex flex-col gap-md" onSubmit={handleLogin}>
@@ -86,9 +136,13 @@ function Login() {
                   <span className="material-symbols-outlined text-outline group-focus-within:text-primary transition-colors">alternate_email</span>
                 </div>
                 <input 
+                  id="login-username"
                   className="w-full h-[48px] pl-[52px] pr-md bg-white border border-outline-variant rounded-xl font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-outline-variant login-input" 
-                  placeholder="Username" 
-                  type="text" 
+                  placeholder="Tên đăng nhập" 
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={loading}
                   required
                 />
               </div>
@@ -101,36 +155,87 @@ function Login() {
                   <span className="material-symbols-outlined text-outline group-focus-within:text-primary transition-colors">lock</span>
                 </div>
                 <input 
-                  className="w-full h-[48px] pl-[52px] pr-md bg-white border border-outline-variant rounded-xl font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-outline-variant login-input" 
-                  placeholder="Password" 
-                  type="password" 
+                  id="login-password"
+                  className="w-full h-[48px] pl-[52px] pr-[52px] bg-white border border-outline-variant rounded-xl font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-outline-variant login-input" 
+                  placeholder="Mật khẩu" 
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-md flex items-center text-outline hover:text-primary transition-colors"
+                  tabIndex={-1}
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    {showPassword ? 'visibility_off' : 'visibility'}
+                  </span>
+                </button>
               </div>
             </div>
 
             {/* Forgot Password */}
             <div className="flex justify-end">
-              <a className="font-label-sm text-label-sm text-primary hover:underline transition-all" href="#">Forgot Password?</a>
+              <a className="font-label-sm text-label-sm text-primary hover:underline transition-all" href="#">Quên mật khẩu?</a>
             </div>
 
             {/* Primary Login Button */}
-            <button type="submit" className="w-full h-[48px] bg-secondary-container text-on-primary font-title-md text-title-md rounded-xl shadow-lg hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-sm">
-              Login
-              <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+            <button 
+              id="login-submit"
+              type="submit" 
+              disabled={loading}
+              className={`w-full h-[48px] bg-secondary-container text-on-primary font-title-md text-title-md rounded-xl shadow-lg hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-sm ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            >
+              {loading ? (
+                <>
+                  <span className="login-spinner"></span>
+                  Đang đăng nhập...
+                </>
+              ) : (
+                <>
+                  Đăng nhập
+                  <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                </>
+              )}
             </button>
+            
+            {/* Divider */}
+            <div className="flex items-center gap-sm my-xs">
+              <div className="h-[1px] bg-outline-variant/30 flex-1"></div>
+              <span className="font-label-sm text-on-surface-variant text-xs uppercase tracking-wider">Hoặc</span>
+              <div className="h-[1px] bg-outline-variant/30 flex-1"></div>
+            </div>
+
+            {/* Google Login Button */}
+            <div className="flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleLoginSuccess}
+                onError={() => {
+                  setError('Đăng nhập Google thất bại');
+                }}
+                useOneTap
+                theme="outline"
+                size="large"
+                shape="rectangular"
+                width="100%"
+                text="signin_with"
+              />
+            </div>
           </form>
 
           {/* Secondary Action / Help */}
           <div className="pt-sm flex justify-center border-t border-outline-variant/20">
             <p className="font-label-sm text-label-sm text-on-surface-variant">
-              Need technical assistance? <a className="text-primary font-bold hover:underline" href="#">Contact Support</a>
+              Cần hỗ trợ kỹ thuật? <a className="text-primary font-bold hover:underline" href="#">Liên hệ hỗ trợ</a>
             </p>
           </div>
         </section>
       </main>
 
-      {/* Shared Component: Footer (Hidden on focused login screens usually, but following mandate) */}
+      {/* Footer */}
       <footer className="w-full absolute bottom-0 flex flex-col md:flex-row justify-center items-center gap-md pb-sm font-label-sm text-label-sm text-white/70">
         <div className="px-margin-desktop flex flex-col md:flex-row justify-between items-center w-full max-w-7xl">
           <p>© 2024 Dormitory Management Systems. All rights reserved.</p>

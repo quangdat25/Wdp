@@ -11,6 +11,7 @@ import {
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
+import authService from "../../api/authService";
 
 function AdminSidebar() {
   const navigate = useNavigate();
@@ -168,9 +169,17 @@ function AdminSidebar() {
 
       {/* Logout */}
       <button
-        onClick={() => {
-          localStorage.removeItem("accessToken");
-          navigate("/login");
+        onClick={async () => {
+          try {
+            await authService.logout();
+          } catch (err) {
+            console.error("Logout error:", err);
+          } finally {
+            localStorage.removeItem("user");
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            navigate("/");
+          }
         }}
         style={{
           border: "none",
