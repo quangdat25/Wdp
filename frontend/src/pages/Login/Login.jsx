@@ -10,12 +10,11 @@ function Login() {
 
   const handleLogin = (e) => {
     e.preventDefault();
+
     if (role === "Student") {
-      navigate("/student-dashboard");
+      navigate("/student/dashboard");
     } else if (role === "Parent") {
-      navigate("/parent-dashboard");
-    } else if (role === "Admin") {
-      navigate("/admin/dashboard");
+      navigate("/parent/dashboard");
     } else {
       navigate("/admin/dashboard");
     }
