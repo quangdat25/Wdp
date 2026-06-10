@@ -19,7 +19,7 @@ function App() {
     location.pathname.startsWith("/parent-dashboard") ||
     location.pathname.startsWith("/staff-dashboard") ||
     location.pathname.startsWith("/admin") ||
-    location.pathname.startsWith("/manager_dashbroad");
+    location.pathname.startsWith("/manager/dashboard");
 
   return (
     <div className="app">
@@ -33,7 +33,7 @@ function App() {
             <Route path="/parent-dashboard" element={<ParentDashboard />} />
             <Route path="/staff-dashboard" element={<StudentManagement />} />
             <Route path="/admin/students" element={<StudentManagement />} />
-            <Route path="/manager_dashbroad" element={<ManagerDashboard />} />
+            <Route path="/manager/dashboard" element={<ManagerDashboard />} />
           </Routes>
         </PageTransition>
       </main>
