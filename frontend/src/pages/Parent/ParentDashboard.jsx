@@ -1,400 +1,259 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import authService from "../../api/authService";
-import { FaBell, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt } from "react-icons/fa";
+import {
+  FaBed,
+  FaBell,
+  FaCalendarAlt,
+  FaCommentAlt,
+  FaEnvelope,
+  FaHistory,
+  FaHome,
+  FaMapMarkerAlt,
+  FaPhoneAlt,
+  FaSignOutAlt,
+  FaStar,
+  FaTachometerAlt,
+  FaTint,
+  FaUserShield,
+} from "react-icons/fa";
+import "./ParentDashboard.css";
+
+const parentModules = [
+  { id: "home", label: "Trang chủ", icon: <FaHome /> },
+  { id: "news", label: "Tin tức", icon: <FaBell /> },
+  { id: "room", label: "Phòng của con", icon: <FaBed /> },
+  { id: "payment-history", label: "Lịch sử thanh toán", icon: <FaHistory /> },
+  { id: "utilities", label: "Điện nước tiêu thụ", icon: <FaTint /> },
+  { id: "score", label: "Điểm ý thức", icon: <FaStar /> },
+  { id: "feedback", label: "Gửi phản hồi", icon: <FaCommentAlt /> },
+];
+
+const newsItems = [
+  { title: "Thông báo về việc đóng tiền nước sinh hoạt tháng 06/2026", date: "08/06/2026" },
+  { title: "Lịch bảo trì điều hòa toàn bộ tòa nhà KTX từ 10/06 đến 15/06", date: "07/06/2026" },
+  { title: "Giải bóng đá thường niên Dormitory Cup 2026 chính thức khởi tranh", date: "05/06/2026" },
+  { title: "Quy định mới về giờ giấc ra vào cổng KTX áp dụng từ tuần sau", date: "03/06/2026" },
+];
 
 function ParentDashboard() {
   const navigate = useNavigate();
+  const [activeModule, setActiveModule] = useState("home");
 
-  const [activeTab, setActiveTab] = useState("Trang chủ");
+  const activeConfig = parentModules.find((m) => m.id === activeModule);
 
-  const menuItems = [
-    "Trang chủ",
-    "Tin tức",
-    "Phòng của con",
-    "Lịch sử thanh toán",
-    "Điện nước tiêu thụ",
-    "Điểm ý thức",
-    "Gửi phản hồi"
-  ];
-
-  const handleLogout = async () => {
-    try {
-      await authService.logout();
-    } catch (err) {
-      console.error("Logout error:", err);
-    } finally {
-      localStorage.removeItem("user");
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      navigate("/");
-    }
+  const handleLogout = () => {
+    navigate("/login");
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "#F5F6F8",
-        fontFamily: "'Inter', sans-serif",
-      }}
-    >
-      <aside
-        style={{
-          width: 250,
-          background: "#00E676",
-          padding: "24px 16px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          boxSizing: "border-box",
-          flexShrink: 0,
-        }}
-      >
+    <div className="parent-shell">
+      <aside className="parent-sidebar">
         <div>
-          <div style={{ padding: "0 8px", marginBottom: 24 }}>
-            <h2
-              style={{
-                margin: 0,
-                color: "#000000",
-                fontWeight: 800,
-                fontSize: 22,
-                lineHeight: "1.2",
-              }}
-            >
-              FPT Dormitory
-            </h2>
-            <p
-              style={{
-                margin: "4px 0 0",
-                color: "#000000",
-                fontSize: 12,
-                fontWeight: 600,
-                opacity: 0.8,
-              }}
-            >
-              Hệ thống quản lý KTX
-            </p>
+          <div className="parent-brand">
+            <div className="parent-brand__mark">
+              <FaUserShield />
+            </div>
+            <div>
+              <h1>FPT Dormitory</h1>
+              <p>Parent Portal</p>
+            </div>
           </div>
 
-          <nav style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {menuItems.map((item) => {
-              const isActive = activeTab === item;
-              return (
-                <button
-                  key={item}
-                  onClick={() => setActiveTab(item)}
-                  style={{
-                    width: "100%",
-                    height: 42,
-                    borderRadius: 21,
-                    border: isActive ? "none" : "1px solid #000000",
-                    background: isActive ? "rgba(255, 255, 255, 0.45)" : "#FFFFFF",
-                    color: "#000000",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    textAlign: "center",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    transition: "all 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.background = "rgba(255, 255, 255, 0.85)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.background = "#FFFFFF";
-                    }
-                  }}
-                >
-                  {item}
-                </button>
-              );
-            })}
+          <nav className="parent-nav">
+            {parentModules.map((item) => (
+              <button
+                type="button"
+                key={item.id}
+                className={`parent-nav__item ${activeModule === item.id ? "is-active" : ""}`}
+                onClick={() => setActiveModule(item.id)}
+              >
+                <span className="parent-nav__icon">{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            ))}
           </nav>
         </div>
 
-        <button
-          onClick={handleLogout}
-          style={{
-            width: "100%",
-            height: 54,
-            background: "#FFFFFF",
-            border: "1px solid #000000",
-            borderRadius: 8,
-            color: "#000000",
-            fontWeight: 700,
-            fontSize: 18,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.06)",
-            transition: "all 0.2s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#F5F5F5";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "#FFFFFF";
-          }}
-        >
-          Đăng xuất
-        </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="parent-profile">
+            <div className="parent-profile__avatar">PH</div>
+            <div>
+              <strong>Nguyễn Văn Phụ</strong>
+              <span>PARENT</span>
+            </div>
+          </div>
+          <button className="parent-logout-btn" onClick={handleLogout}>
+            <FaSignOutAlt />
+            Đăng xuất
+          </button>
+        </div>
       </aside>
 
-      <main
-        style={{
-          flex: 1,
-          padding: "24px 32px",
-          display: "flex",
-          flexDirection: "column",
-          boxSizing: "border-box",
-          overflowY: "auto",
-          height: "100vh",
-        }}
-      >
-        <header
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 24,
-          }}
-        >
-          <h1
-            style={{
-              fontSize: 28,
-              color: "#0A4E9B",
-              fontWeight: 800,
-              margin: 0,
-            }}
-          >
-            {activeTab === "Trang chủ" ? "Parent Board" : activeTab}
-          </h1>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: "#000000",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#FFFFFF",
-                cursor: "pointer",
-              }}
-            >
-              <FaBell size={18} />
-            </div>
-
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: "#00E676",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#000000",
-                fontWeight: 700,
-                fontSize: 16,
-                cursor: "pointer",
-              }}
-            >
-              P
-            </div>
+      <main className="parent-main">
+        <header className="parent-topbar">
+          <div>
+            <span className="parent-kicker">Parent dashboard</span>
+            <h2>{activeConfig?.label}</h2>
+            <p>
+              {activeModule === "home"
+                ? "Theo dõi thông tin, phòng và tình trạng của con tại KTX."
+                : `Quản lý chức năng ${activeConfig?.label} dành cho phụ huynh.`}
+            </p>
+          </div>
+          <div className="parent-topbar__actions">
+            <button type="button" className="parent-icon-button" aria-label="Thông báo">
+              <FaBell />
+              <span />
+            </button>
+            <button type="button" className="parent-primary-button">
+              <FaCalendarAlt />
+              Summer 2026
+            </button>
           </div>
         </header>
 
-        {activeTab === "Trang chủ" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <div
-              style={{
-                background: "#DDF3FD",
-                borderRadius: 12,
-                padding: "20px 24px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 18,
-                  color: "#0A4E9B",
-                  fontWeight: 700,
-                }}
-              >
-                Phòng của con: 302 (Tòa A1)
-              </span>
-              <button
-                onClick={() => setActiveTab("Phòng của con")}
-                style={{
-                  background: "#2E7D32",
-                  color: "#FFFFFF",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "10px 24px",
-                  fontSize: 16,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  transition: "background 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#1B5E20";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#2E7D32";
-                }}
-              >
-                Xem chi tiết
-              </button>
-            </div>
+        {activeModule === "home" && <HomeScreen setActiveModule={setActiveModule} />}
 
-            <div
-              style={{
-                background: "#FFFFFF",
-                borderRadius: 12,
-                boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  background: "#0D47A1",
-                  padding: "14px 20px",
-                  color: "#FFFFFF",
-                  fontSize: 18,
-                  fontWeight: 700,
-                }}
-              >
-                News
-              </div>
-              <div style={{ padding: 0 }}>
-                {[
-                  "Thông báo về việc đóng tiền nước sinh hoạt tháng 06/2026",
-                  "Lịch bảo trì điều hòa toàn bộ tòa nhà KTX từ 10/06 đến 15/06",
-                  "Giải bóng đá thường niên Dormitory Cup 2026 chính thức khởi tranh",
-                  "Quy định mới về giờ giấc ra vào cổng KTX áp dụng từ tuần sau",
-                ].map((newsItem, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: "16px 20px",
-                      background: idx % 2 === 0 ? "#EAEAEA" : "#FFFFFF",
-                      color: "#000000",
-                      fontSize: 14,
-                      fontWeight: 600,
-                      borderBottom: "1px solid #E0E0E0",
-                    }}
-                  >
-                    {newsItem}
-                  </div>
-                ))}
-                <div style={{ padding: "12px 20px" }}>
-                  <a
-                    href="#news"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setActiveTab("Tin tức");
-                    }}
-                    style={{
-                      fontSize: 12,
-                      color: "#0D47A1",
-                      textDecoration: "none",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Xem thêm
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                background: "#FFFFFF",
-                borderRadius: 12,
-                boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  background: "#0D47A1",
-                  padding: "14px 20px",
-                  color: "#FFFFFF",
-                  fontSize: 18,
-                  fontWeight: 700,
-                }}
-              >
-                Contact
-              </div>
-              <div
-                style={{
-                  background: "#EAEAEA",
-                  padding: "24px 20px",
-                  minHeight: 120,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                 <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Ban Quản Lý KTX Đại Học FPT</div>
-                 <div style={{ fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
-                   <FaPhoneAlt style={{ color: "#0D47A1" }} /> Hotline hỗ trợ: 024.7300.5588
-                 </div>
-                 <div style={{ fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
-                   <FaEnvelope style={{ color: "#0D47A1" }} /> Email liên hệ: ktx@fpt.edu.vn
-                 </div>
-                 <div style={{ fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
-                   <FaMapMarkerAlt style={{ color: "#0D47A1" }} /> Văn phòng: Phòng 102 - Tòa nhà KTX A1
-                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab !== "Trang chủ" && (
-          <div
-            style={{
-              background: "#FFFFFF",
-              borderRadius: 16,
-              padding: 28,
-              boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
-              minHeight: 300,
-            }}
-          >
-            <h2>Giao diện chức năng: {activeTab}</h2>
-            <p style={{ color: "#666", marginTop: 8 }}>
-              Hệ thống đang tải dữ liệu cho chức năng <strong>{activeTab}</strong> dành cho phụ huynh...
-            </p>
-            <div
-              style={{
-                marginTop: 32,
-                padding: 24,
-                border: "2px dashed #CBD5E1",
-                borderRadius: 12,
-                textAlign: "center",
-                color: "#94A3B8",
-                fontWeight: 600,
-              }}
-            >
-              [Chức năng {activeTab} của Phụ Huynh đang được kết nối với dữ liệu học viên]
-            </div>
+        {activeModule !== "home" && (
+          <div className="parent-placeholder">
+            <div className="parent-placeholder__icon">{activeConfig?.icon}</div>
+            <h3>{activeConfig?.label}</h3>
+            <p>Chức năng đang được kết nối với dữ liệu học viên...</p>
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+function HomeScreen({ setActiveModule }) {
+  return (
+    <div className="parent-stack">
+      <div className="parent-room-banner">
+        <div className="parent-room-banner__info">
+          <div className="parent-room-banner__icon">
+            <FaBed />
+          </div>
+          <div className="parent-room-banner__text">
+            <strong>Phòng của con: 302 – Tòa A1</strong>
+            <span>Giường số 2 · Summer 2026 · Đang hoạt động</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="parent-primary-button"
+          onClick={() => setActiveModule("room")}
+        >
+          Xem chi tiết
+        </button>
+      </div>
+
+      <section className="parent-metrics">
+        <MetricCard
+          icon={<FaBed />}
+          label="Phòng của con"
+          value="302 – A1"
+          note="Đang lưu trú"
+          tone="purple"
+        />
+        <MetricCard
+          icon={<FaTachometerAlt />}
+          label="Điện tháng 06"
+          value="4.210 kWh"
+          note="Cập nhật 08/06/2026"
+          tone="amber"
+        />
+        <MetricCard
+          icon={<FaTint />}
+          label="Nước tháng 06"
+          value="782 m³"
+          note="Cập nhật 08/06/2026"
+          tone="rose"
+        />
+        <MetricCard
+          icon={<FaStar />}
+          label="Điểm ý thức"
+          value="96"
+          note="CFD Score của con"
+          tone="green"
+        />
+      </section>
+
+      <section className="parent-grid parent-grid--wide">
+        <div className="parent-panel">
+          <div className="parent-panel__header">
+            <div>
+              <h3>Tin tức mới nhất</h3>
+              <p>Thông báo từ Ban Quản Lý KTX</p>
+            </div>
+            <button
+              type="button"
+              className="parent-panel__see-more"
+              onClick={() => setActiveModule("news")}
+            >
+              Xem thêm
+            </button>
+          </div>
+          <div className="parent-news-list">
+            {newsItems.map((item, idx) => (
+              <div key={idx} className="parent-news-item">
+                <span className="parent-news-item__dot" />
+                <span className="parent-news-item__text">{item.title}</span>
+                <span className="parent-news-item__date">{item.date}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="parent-panel">
+          <div className="parent-panel__header">
+            <div>
+              <h3>Liên hệ hỗ trợ</h3>
+              <p>Ban Quản Lý KTX Đại Học FPT</p>
+            </div>
+          </div>
+          <div className="parent-contact-list">
+            <div className="parent-contact-item">
+              <div className="parent-contact-item__icon">
+                <FaPhoneAlt />
+              </div>
+              <div>
+                <div className="parent-contact-item__label">Hotline hỗ trợ</div>
+                <div className="parent-contact-item__value">024.7300.5588</div>
+              </div>
+            </div>
+            <div className="parent-contact-item">
+              <div className="parent-contact-item__icon">
+                <FaEnvelope />
+              </div>
+              <div>
+                <div className="parent-contact-item__label">Email liên hệ</div>
+                <div className="parent-contact-item__value">ktx@fpt.edu.vn</div>
+              </div>
+            </div>
+            <div className="parent-contact-item">
+              <div className="parent-contact-item__icon">
+                <FaMapMarkerAlt />
+              </div>
+              <div>
+                <div className="parent-contact-item__label">Văn phòng</div>
+                <div className="parent-contact-item__value">Phòng 102 – Tòa KTX A1</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function MetricCard({ icon, label, value, note, tone }) {
+  return (
+    <div className={`parent-metric-card parent-metric-card--${tone}`}>
+      <div className="parent-metric-card__icon">{icon}</div>
+      <span className="metric-label">{label}</span>
+      <strong className="metric-value">{value}</strong>
+      <p className="metric-note">{note}</p>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+
 const express = require("express");
 const app = express();
 
@@ -48,6 +49,7 @@ app.use((err, req, res, next) => {
   const status = err.status || 500;
   res.status(status).json({ message: err.message });
 });
+
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

@@ -1,10 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-<<<<<<< Updated upstream
-=======
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import 'antd/dist/reset.css'
->>>>>>> Stashed changes
 import './index.css'
 import App from './App.jsx'
 

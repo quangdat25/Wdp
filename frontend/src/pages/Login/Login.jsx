@@ -18,15 +18,15 @@ function Login() {
   const getRedirectPath = (role) => {
     switch (role) {
       case 'student':
-        return '/student-dashboard';
+        return '/student/dashboard';
       case 'admin':
         return '/admin/students';
       case 'manager':
-        return '/manager-dashboard';
+        return '/manager/dashboard';
       case 'staff':
-        return '/staff-dashboard/security';
+        return '/staff/dashboard/security';
       case 'parent':
-        return '/parent-dashboard';
+        return '/parent/dashboard';
       default:
         return '/';
     }

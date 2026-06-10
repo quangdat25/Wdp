@@ -14,6 +14,7 @@
 .login-page .login-input:focus {
     transform: scale(1.01);
 }
+<<<<<<< HEAD
 
 /* Error banner animation */
 .login-error-banner {
@@ -41,3 +42,5 @@
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+=======
+>>>>>>> 8dbf6fb443b9483d79ab779bd0c9421fa20fa8ee
