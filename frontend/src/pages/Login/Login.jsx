@@ -13,6 +13,10 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  
+  // 🆕 Thêm state quản lý vai trò được chọn (Mặc định ban đầu là 'student')
+  const [activeRole, setActiveRole] = useState('student');
+
   const navigate = useNavigate();
 
   const getRedirectPath = (role) => {
@@ -38,14 +42,13 @@ function Login() {
     setLoading(true);
 
     try {
-      const result = await authService.login(username, password);
+      // 🆕 Truyền thêm activeRole vào API nếu Backend của bạn yêu cầu phân biệt role khi đăng nhập bằng mật khẩu
+      const result = await authService.login(username, password, activeRole);
 
       if (result.success) {
         const user = result.data;
-        // Save user info to localStorage for quick access
         localStorage.setItem('user', JSON.stringify(user));
-        // Redirect based on role
-        const redirectPath = getRedirectPath(user.role);
+        const redirectPath = getRedirectPath(user.role || activeRole);
         navigate(redirectPath);
       }
     } catch (err) {
@@ -57,37 +60,33 @@ function Login() {
     }
   };
 
- const handleGoogleLoginSuccess = async (credentialResponse) => {
-  setError('');
-  setLoading(true);
-  try {
-    const result = await authService.googleLogin(credentialResponse.credential);
-    
-    if (result.success) {
-      // 🚨 IN RA ĐỂ CHECK KHẢO SÁT METADATA & TOKEN
-      console.log(">>> Toàn bộ dữ liệu trả về từ Backend:", result);
-      console.log(">>> Tokens hệ thống:", result.tokens);
-      console.log(">>> Metadata cá nhân:", result.metadata);
-
-      const user = result.data;
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
+    setError('');
+    setLoading(true);
+    try {
+      // 🆕 Truyền thêm activeRole vào Google Login nếu backend cần biết user đăng nhập với vai trò gì
+      const result = await authService.googleLogin(credentialResponse.credential, activeRole);
       
-      // Bạn có thể lưu cả cục user kèm token vào localStorage nếu muốn
-      localStorage.setItem('user', JSON.stringify(user));
-      if (result.tokens) {
-        localStorage.setItem('accessToken', result.tokens.accessToken);
-        localStorage.setItem('refreshToken', result.tokens.refreshToken);
-      }
+      if (result.success) {
+        console.log(">>> Toàn bộ dữ liệu trả về từ Backend:", result);
+        const user = result.data;
+        
+        localStorage.setItem('user', JSON.stringify(user));
+        if (result.tokens) {
+          localStorage.setItem('accessToken', result.tokens.accessToken);
+          localStorage.setItem('refreshToken', result.tokens.refreshToken);
+        }
 
-      const redirectPath = getRedirectPath(user.role);
-      navigate(redirectPath);
+        const redirectPath = getRedirectPath(user.role || activeRole);
+        navigate(redirectPath);
+      }
+    } catch (err) {
+      const message = err.response?.data?.message || 'Đã xảy ra lỗi khi đăng nhập bằng Google';
+      setError(message);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    const message = err.response?.data?.message || 'Đã xảy ra lỗi khi đăng nhập bằng Google';
-    setError(message);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="login-page bg-surface font-body-md text-on-surface min-h-screen relative overflow-hidden">
@@ -96,7 +95,6 @@ function Login() {
         className="fixed inset-0 z-0 bg-cover bg-center transition-all duration-700 blur-[10px]" 
         style={{ backgroundImage: `url(${dormImg})`, transform: 'scale(1.05)' }}
       >
-        {/* Dimming Overlay */}
         <div className="absolute inset-0 bg-overlay"></div>
       </div>
 
@@ -117,6 +115,48 @@ function Login() {
           <div className="mt-md">
             <h2 className="font-title-md text-title-md text-on-surface">Đăng nhập</h2>
             <p className="font-body-md text-body-md text-on-surface-variant mt-xs">Truy cập hệ thống quản lý ký túc xá</p>
+          </div>
+
+          {/* 🆕 NEW: Role Selector Tabs (3 ô chọn vai trò) */}
+          <div className="flex bg-[#F0F4F9] p-1 rounded-2xl border border-gray-100 w-full justify-between items-center my-xs">
+            <button
+              type="button"
+              onClick={() => setActiveRole('student')}
+              className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${
+                activeRole === 'student'
+                  ? 'bg-white text-[#0A3663] shadow-md'
+                  : 'text-[#5C5F62] hover:bg-white/50'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">person</span>
+              <span>Student</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveRole('parent')}
+              className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${
+                activeRole === 'parent'
+                  ? 'bg-white text-[#0A3663] shadow-md'
+                  : 'text-[#5C5F62] hover:bg-white/50'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">group</span>
+              <span>Parent</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveRole('staff')} // Bạn có thể sửa thành 'admin' tùy cấu trúc backend
+              className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${
+                activeRole === 'staff' || activeRole === 'admin'
+                  ? 'bg-white text-[#0A3663] shadow-md'
+                  : 'text-[#5C5F62] hover:bg-white/50'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">shield</span>
+              <span>Staff / Admin</span>
+            </button>
           </div>
 
           {/* Error Message */}
