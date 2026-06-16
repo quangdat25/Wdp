@@ -33,10 +33,11 @@ const studentModules = [
 ];
 
 const newsItems = [
-  { title: "Thông báo về việc đóng tiền nước sinh hoạt tháng 06/2026", date: "08/06/2026" },
+  { title: "Thông báo về việc đóng tiền nước sinh hoạt tháng 06/2027", date: "08/06/2026" },
   { title: "Lịch bảo trì điều hòa toàn bộ tòa nhà KTX từ 10/06 đến 15/06", date: "07/06/2026" },
   { title: "Giải bóng đá thường niên Dormitory Cup 2026 chính thức khởi tranh", date: "05/06/2026" },
   { title: "Quy định mới về giờ giấc ra vào cổng KTX áp dụng từ tuần sau", date: "03/06/2026" },
+  { title: "Quy định mới về giờ ăn KTX áp dụng từ tuần sau", date: "03/06/2026" },
 ];
 
 function StudentDashboard() {
