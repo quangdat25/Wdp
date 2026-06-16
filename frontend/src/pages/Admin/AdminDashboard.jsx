@@ -125,11 +125,7 @@ const maintenanceQueue = [
   { room: "D-506", issue: "Nước nóng", status: "Đã lên lịch" },
 ];
 
-function AdminDashboard() {
-  useEffect(() => {
-    showSuccess("Chào mừng quay trở lại hệ thống với quyền Admin");
-  }, []);
-
+function AdminDashboard() { 
   return (
     <div style={styles.pageShell}>
       <AdminSidebar />

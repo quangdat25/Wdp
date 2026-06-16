@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import authService from "../../api/authService";
 import { FaBell, FaWrench, FaTools, FaPlusCircle } from "react-icons/fa";
 
 // Initial fake data right inside the file
@@ -76,8 +77,17 @@ function MaintenanceDashboard() {
     "Lập phiếu sự cố"
   ];
 
-  const handleLogout = () => {
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      localStorage.removeItem("user");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      navigate("/");
+    }
   };
 
   // Status transition handler

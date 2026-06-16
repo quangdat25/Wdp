@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import authService from "../../api/authService";
 import { FaBell, FaShieldAlt, FaPlusCircle, FaSearch } from "react-icons/fa";
 
 // Initial fake data right inside the file
@@ -81,8 +82,17 @@ function SecurityDashboard() {
     "Tìm kiếm sinh viên"
   ];
 
-  const handleLogout = () => {
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      localStorage.removeItem("user");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      navigate("/");
+    }
   };
 
   const handleCreateViolation = (e) => {
