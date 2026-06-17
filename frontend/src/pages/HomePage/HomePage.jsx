@@ -5,17 +5,17 @@ import './HomePage.css';
 /* Placeholder images */
 const HERO_SLIDES = [
   {
-    img: '/public/img/707454477_1400714095420183_1797950806403973180_n.jpg',
+    img: '/img/707454477_1400714095420183_1797950806403973180_n.jpg',
     title: 'KTX ĐẠI HỌC FPT',
     subtitle: 'Không gian sống xanh',
   },
   {
-   img: '/public/img/anh3.jpg',
+   img: '/img/anh3.jpg',
     title: 'KTX ĐẠI HỌC FPT',
     subtitle: 'Tiện nghi – Hiện đại',
   },
   {
-    img: '/public/img/4248_150A1A42-2FD3-4037-ABB0-04D05B060259.jpg',
+    img: '/img/4248_150A1A42-2FD3-4037-ABB0-04D05B060259.jpg',
     title: 'KTX ĐẠI HỌC FPT',
     subtitle: 'Ngôi nhà thứ hai của bạn',
   },
@@ -126,7 +126,7 @@ function HomePage() {
         <div className="container">
           <div className="info-channel__banner">
             <img
-               src="/public/img/background.jpg"
+               src="/img/background.jpg"
               alt="Kênh thông tin KTX"
               className="info-channel__img"
             />
@@ -164,7 +164,7 @@ function HomePage() {
             </div>
             <div className="dorm-info__image">
               <img
-                src="/public/img/anh5.jpg"
+                src="/img/anh5.jpg"
                 alt="Tòa nhà KTX"
               />
             </div>
@@ -174,7 +174,7 @@ function HomePage() {
           <div className="dorm-info__block dorm-info__block--reverse">
             <div className="dorm-info__image">
               <img
-                src="/public/img/anh4.jpg"
+                src="/img/anh4.jpg"
                 alt="Khuôn viên KTX"
               />
             </div>
@@ -200,7 +200,7 @@ function HomePage() {
         <div className="container">
           <div className="dorm-detail__image-wrapper">
             <img
-              src="/public/img/background.jpg"
+              src="/img/background.jpg"
               alt="Tổng quan ký túc xá Đại học FPT"
               className="dorm-detail__img"
             />

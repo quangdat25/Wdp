@@ -6,81 +6,70 @@ import {
   FaTools,
   FaUsersCog,
   FaSignOutAlt,
+  FaUsers,
+  FaBell,
 } from "react-icons/fa";
 
-const menuItems = [
-  {
-    label: "Bảng điều khiển",
-    icon: <FaChartPie />,
-  },
-  {
-    label: "Quản lý sinh viên",
-    icon: <FaUserGraduate />,
-    active: true,
-  },
-  {
-    label: "Quản lý phòng",
-    icon: <FaBed />,
-  },
-  {
-    label: "Thanh toán",
-    icon: <FaMoneyBillWave />,
-  },
-  {
-    label: "Yêu cầu",
-    icon: <FaTools />,
-  },
-  {
-    label: "Tài khoản",
-    icon: <FaUsersCog />,
-  },
-];
+import { useNavigate, useLocation } from "react-router-dom";
+import authService from "../../api/authService";
 
 function AdminSidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isActive = (path) => location.pathname === path;
+
+  const menuStyle = (path) => ({
+    border: "none",
+    height: 54,
+    borderRadius: 14,
+    background: isActive(path)
+      ? "rgba(255,255,255,0.25)"
+      : "rgba(255,255,255,0.08)",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    gap: 14,
+    padding: "0 18px",
+    fontSize: 15,
+    fontWeight: isActive(path) ? 700 : 500,
+    cursor: "pointer",
+    backdropFilter: "blur(10px)",
+    transition: "all 0.3s ease",
+    width: "100%",
+  });
+
   return (
     <aside
       style={{
         position: "fixed",
         top: 0,
         left: 0,
-        bottom: 0,
-
         width: 270,
-        height: "100dvh",
-
+        height: "100vh",
         background:
           "linear-gradient(180deg, #34d399 0%, #22c55e 50%, #16a34a 100%)",
-
         padding: "24px 16px",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-
         boxSizing: "border-box",
-        overflowY: "auto",
-
-        boxShadow: "10px 0 30px rgba(34, 197, 94, 0.25)",
-        zIndex: 9999,
       }}
     >
-      {/* Header */}
       <div>
+        {/* Logo */}
         <div
           style={{
             background: "rgba(255,255,255,0.15)",
-            border: "1px solid rgba(255,255,255,0.25)",
             borderRadius: 20,
             padding: 18,
             marginBottom: 28,
-            backdropFilter: "blur(10px)",
           }}
         >
           <h2
             style={{
               margin: 0,
               color: "#fff",
-              fontWeight: 800,
-              fontSize: 24,
             }}
           >
             FPT Dormitory
@@ -89,8 +78,7 @@ function AdminSidebar() {
           <p
             style={{
               marginTop: 8,
-              marginBottom: 0,
-              color: "rgba(255,255,255,0.9)",
+              color: "#fff",
               fontSize: 13,
             }}
           >
@@ -98,82 +86,113 @@ function AdminSidebar() {
           </p>
         </div>
 
-        {/* Menu */}
-        <nav
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
+        {/* Dashboard */}
+        <button
+          style={menuStyle("/admin/dashboard")}
+          onClick={() => navigate("/admin/dashboard")}
         >
-          {menuItems.map((item) => (
-            <button
-              key={item.label}
-              style={{
-                border: "none",
-                height: 54,
-                borderRadius: 14,
-                background: item.active
-                  ? "rgba(255,255,255,0.25)"
-                  : "rgba(255,255,255,0.08)",
-                color: "#fff",
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-                padding: "0 18px",
-                fontSize: 15,
-                fontWeight: item.active ? 700 : 500,
-                cursor: "pointer",
-                backdropFilter: "blur(10px)",
-                transition: "all 0.3s ease",
-                boxShadow: item.active ? "0 8px 20px rgba(0,0,0,0.12)" : "none",
-              }}
-              onMouseEnter={(e) => {
-                if (!item.active) {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.18)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!item.active) {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-                }
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 18,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minWidth: 20,
-                }}
-              >
-                {item.icon}
-              </span>
+          <FaChartPie />
+          Bảng điều khiển
+        </button>
 
-              {item.label}
-            </button>
-          ))}
-        </nav>
+        {/* Student */}
+        <button
+          style={{
+            ...menuStyle("/admin/students"),
+            marginTop: 10,
+          }}
+          onClick={() => navigate("/admin/students")}
+        >
+          <FaUserGraduate />
+          Quản lý sinh viên
+        </button>
+
+        <button
+          style={{
+            ...menuStyle("/admin/personnel"),
+            marginTop: 10,
+          }}
+          onClick={() => navigate("/admin/personnel")}
+        >
+          <FaUsers />
+          Quản lý nhân sự
+        </button>
+
+        {/* Room */}
+        <button
+          style={{
+            ...menuStyle("/admin/notifications"),
+            marginTop: 10,
+          }}
+          onClick={() => navigate("/admin/notifications")}
+        >
+          <FaBell />
+          Quản lý thông báo
+        </button>
+
+        {/* Payment */}
+        <button
+          style={{
+            ...menuStyle("/admin/payments"),
+            marginTop: 10,
+          }}
+          onClick={() => navigate("/admin/payments")}
+        >
+          <FaMoneyBillWave />
+          Thanh toán
+        </button>
+
+        {/* Request */}
+        <button
+          style={{
+            ...menuStyle("/admin/requests"),
+            marginTop: 10,
+          }}
+          onClick={() => navigate("/admin/requests")}
+        >
+          <FaTools />
+          Yêu cầu
+        </button>
+
+        {/* Account */}
+        <button
+          style={{
+            ...menuStyle("/admin/accounts"),
+            marginTop: 10,
+          }}
+          onClick={() => navigate("/admin/accounts")}
+        >
+          <FaUsersCog />
+          Tài khoản
+        </button>
       </div>
 
       {/* Logout */}
       <button
+        onClick={async () => {
+          try {
+            await authService.logout();
+          } catch (err) {
+            console.error("Logout error:", err);
+          } finally {
+            localStorage.removeItem("user");
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            navigate("/");
+          }
+        }}
         style={{
           border: "none",
           height: 54,
           borderRadius: 14,
-          background: "#ffffff",
+          background: "#fff",
           color: "#16a34a",
           fontWeight: 700,
-          fontSize: 15,
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           gap: 10,
-          boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
-          transition: "all 0.3s ease",
         }}
       >
         <FaSignOutAlt />
