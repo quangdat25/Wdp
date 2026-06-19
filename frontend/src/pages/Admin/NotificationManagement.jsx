@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pagination } from "antd";
-import AdminSidebar from "./AdminSidebar";
 import { showError, showSuccess } from "../../components/alert";
 import {
   createNotification,
   getAllNotifications,
 } from "../../api/notificationService";
+import Sidebar from "../../components/Sidebar";
 
 const receiverOptions = [
   { value: "all", label: "Tất cả người dùng" },
@@ -121,7 +121,7 @@ function NotificationManagement() {
         background: "linear-gradient(180deg, #f8fbff 0%, #f3f8f6 100%)",
       }}
     >
-      <AdminSidebar />
+      <Sidebar />
 
       <main
         style={{

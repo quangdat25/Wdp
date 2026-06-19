@@ -108,6 +108,7 @@ class UserController {
           email: findUser.email,
           username: loginUsername,
           role: actualRole,
+          ...(actualRole === "staff" && { staffType: findUser.staffType }),
         },
       });
     } catch (error) {

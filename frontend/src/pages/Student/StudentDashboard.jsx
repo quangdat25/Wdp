@@ -18,47 +18,7 @@ import authService from "../../api/authService";
 import { getAllNotifications } from "../../api/notificationService";
 import { socket } from "../../socket";
 import "./StudentDashboard.css";
-
-const studentModules = [
-  { id: "home", label: "Trang chủ", title: "Student Board", icon: <FaBed /> },
-  { id: "news", label: "Tin tức", title: "Tin tức", icon: <FaBell /> },
-  {
-    id: "room-history",
-    label: "Lịch sử phòng",
-    title: "Lịch sử phòng",
-    icon: <FaDoorOpen />,
-  },
-  {
-    id: "booking",
-    label: "Đặt phòng",
-    title: "Đặt phòng",
-    icon: <FaBed />,
-  },
-  {
-    id: "payment-history",
-    label: "Lịch sử thanh toán",
-    title: "Lịch sử thanh toán",
-    icon: <FaCalendarAlt />,
-  },
-  {
-    id: "utility",
-    label: "Điện nước tiêu thụ",
-    title: "Điện nước tiêu thụ",
-    icon: <FaBolt />,
-  },
-  {
-    id: "cfd-score",
-    label: "Điểm ý thức",
-    title: "Điểm ý thức",
-    icon: <FaStar />,
-  },
-  {
-    id: "request",
-    label: "Gửi yêu cầu",
-    title: "Gửi yêu cầu",
-    icon: <FaEnvelope />,
-  },
-];
+import Sidebar from "../../components/Sidebar";
 
 const newsItems = [
   {
@@ -226,45 +186,7 @@ function StudentDashboard() {
 
   return (
     <div className="student-shell">
-      <aside className="student-sidebar">
-        <div>
-          <div className="student-brand">
-            <div className="student-brand__mark">
-              <FaBed />
-            </div>
-
-            <div>
-              <h1>FPT Dormitory</h1>
-              <p>Student Portal</p>
-            </div>
-          </div>
-
-          <nav className="student-nav">
-            {studentModules.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActiveModule(item.id)}
-                className={`student-nav__item ${
-                  activeModule === item.id ? "is-active" : ""
-                }`}
-              >
-                <span className="student-nav__icon">{item.icon}</span>
-                {item.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="student-logout-btn"
-        >
-          Đăng xuất
-        </button>
-      </aside>
-
+      <Sidebar />
       <main className="student-main">
         <header className="student-topbar">
           <div>

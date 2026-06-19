@@ -20,16 +20,8 @@ import {
 import { getAllNotifications } from "../../api/notificationService";
 import { socket } from "../../socket";
 import "./ParentDashboard.css";
+import Sidebar from "../../components/Sidebar";
 
-const parentModules = [
-  { id: "home", label: "Trang chủ", icon: <FaHome /> },
-  { id: "news", label: "Tin tức", icon: <FaBell /> },
-  { id: "room", label: "Phòng của con", icon: <FaBed /> },
-  { id: "payment-history", label: "Lịch sử thanh toán", icon: <FaHistory /> },
-  { id: "utilities", label: "Điện nước tiêu thụ", icon: <FaTint /> },
-  { id: "score", label: "Điểm ý thức", icon: <FaStar /> },
-  { id: "feedback", label: "Gửi phản hồi", icon: <FaCommentAlt /> },
-];
 
 const newsItems = [
   {
@@ -62,7 +54,6 @@ function ParentDashboard() {
   const [readIds, setReadIds] = useState([]);
   const [toast, setToast] = useState(null);
 
-  const activeConfig = parentModules.find((m) => m.id === activeModule);
 
   const unreadCount = useMemo(() => {
     return notifications.filter((item) => !readIds.includes(item._id)).length;
@@ -187,55 +178,11 @@ function ParentDashboard() {
 
   return (
     <div className="parent-shell">
-      <aside className="parent-sidebar">
-        <div>
-          <div className="parent-brand">
-            <div className="parent-brand__mark">
-              <FaUserShield />
-            </div>
 
-            <div>
-              <h1>FPT Dormitory</h1>
-              <p>Parent Portal</p>
-            </div>
-          </div>
-
-          <nav className="parent-nav">
-            {parentModules.map((item) => (
-              <button
-                type="button"
-                key={item.id}
-                className={`parent-nav__item ${
-                  activeModule === item.id ? "is-active" : ""
-                }`}
-                onClick={() => setActiveModule(item.id)}
-              >
-                <span className="parent-nav__icon">{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div className="parent-profile">
-            <div className="parent-profile__avatar">PH</div>
-            <div>
-              <strong>Nguyễn Văn Phụ</strong>
-              <span>PARENT</span>
-            </div>
-          </div>
-
-          <button className="parent-logout-btn" onClick={handleLogout}>
-            <FaSignOutAlt />
-            Đăng xuất
-          </button>
-        </div>
-      </aside>
-
+    <Sidebar/>
       <main className="parent-main">
         <header className="parent-topbar">
-          <div>
+          {/* <div>
             <span className="parent-kicker">Parent dashboard</span>
             <h2>{activeConfig?.label}</h2>
             <p>
@@ -243,7 +190,7 @@ function ParentDashboard() {
                 ? "Theo dõi thông tin, phòng và tình trạng của con tại KTX."
                 : `Quản lý chức năng ${activeConfig?.label} dành cho phụ huynh.`}
             </p>
-          </div>
+          </div> */}
 
           <div className="parent-topbar__actions">
             <button

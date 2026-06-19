@@ -14,9 +14,9 @@ import {
   FaClock,
   FaMapMarkerAlt,
 } from "react-icons/fa";
-import AdminSidebar from "./AdminSidebar";
 import { useEffect } from "react";
 import { showSuccess } from "../../components/Alert";
+import Sidebar from "../../components/Sidebar";
 const overviewCards = [
   {
     title: "Tổng sinh viên",
@@ -128,7 +128,7 @@ const maintenanceQueue = [
 function AdminDashboard() { 
   return (
     <div style={styles.pageShell}>
-      <AdminSidebar />
+      <Sidebar />
 
       <main style={styles.main}>
         <section style={styles.heroCard}>

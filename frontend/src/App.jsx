@@ -10,6 +10,7 @@ import Footer from "./components/Footer/Footer";
 import HomePage from "./pages/HomePage/HomePage";
 import Login from "./pages/Login/Login";
 import PageTransition from "./components/PageTransition/PageTransition";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 import StudentManagement from "./pages/Admin/StudentManagement";
 import PersonnelManagement from "./pages/Admin/PersonnelManagement";
