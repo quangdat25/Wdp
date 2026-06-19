@@ -1,44 +1,49 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pagination } from "antd";
-import AdminSidebar from "./AdminSidebar";
 import { showError, showSuccess } from "../../components/alert";
+import {
+  createNotification,
+  getAllNotifications,
+} from "../../api/notificationService";
+import Sidebar from "../../components/Sidebar";
 
 const receiverOptions = [
   { value: "all", label: "Tất cả người dùng" },
   { value: "student", label: "Sinh viên" },
-  { value: "parent", label: "Phụ huynh" },
   { value: "staff", label: "Nhân viên" },
   { value: "manager", label: "Quản lý" },
+  { value: "admin", label: "Admin" },
+  { value: "parent", label: "Phụ huynh" },
 ];
-
-const typeColors = {
-  system: { background: "#dbeafe", color: "#1d4ed8", label: "Hệ thống" },
-  booking: { background: "#dcfce7", color: "#166534", label: "Đặt phòng" },
-  payment: { background: "#fef3c7", color: "#92400e", label: "Thanh toán" },
-  urgent: { background: "#fee2e2", color: "#b91c1c", label: "Khẩn cấp" },
-};
 
 function NotificationManagement() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [receiver, setReceiver] = useState("all");
-  const [type, setType] = useState("system");
   const [sending, setSending] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
-
-  const [notifications, setNotifications] = useState([
-    {
-      _id: "1",
-      title: "Thông báo bảo trì hệ thống",
-      content: "Hệ thống sẽ bảo trì vào 22:00 tối nay.",
-      receiver: "all",
-      type: "system",
-      createdAt: new Date(),
-    },
-  ]);
+  const [notifications, setNotifications] = useState([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const res = await getAllNotifications();
+      setNotifications(res.data.data || []);
+    } catch (error) {
+      console.error(error);
+      showError("Không thể tải danh sách thông báo");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
 
   const paginatedNotifications = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -59,33 +64,54 @@ function NotificationManagement() {
     try {
       setSending(true);
 
-      const newNotification = {
-        _id: Date.now().toString(),
-        title,
-        content,
-        receiver,
-        type,
-        createdAt: new Date(),
-      };
+      const payload =
+        receiver === "all"
+          ? {
+              title,
+              content,
+              targetType: "all",
+              targetRoles: [],
+              targetUsers: [],
+            }
+          : {
+              title,
+              content,
+              targetType: "roles",
+              targetRoles: [receiver],
+              targetUsers: [],
+            };
 
-      setNotifications((prev) => [newNotification, ...prev]);
+      const res = await createNotification(payload);
 
+      setNotifications((prev) => [res.data.data, ...prev]);
       setTitle("");
       setContent("");
       setReceiver("all");
-      setType("system");
 
       showSuccess("Gửi thông báo thành công");
     } catch (error) {
       console.error(error);
-      showError("Gửi thông báo thất bại");
+      showError(error.response?.data?.message || "Gửi thông báo thất bại");
     } finally {
       setSending(false);
     }
   };
 
-  const getReceiverLabel = (value) => {
-    return receiverOptions.find((item) => item.value === value)?.label || value;
+  const getReceiverLabel = (notification) => {
+    if (notification.targetType === "all") return "Tất cả người dùng";
+
+    if (notification.targetType === "roles") {
+      return notification.targetRoles
+        ?.map(
+          (role) =>
+            receiverOptions.find((item) => item.value === role)?.label || role,
+        )
+        .join(", ");
+    }
+
+    if (notification.targetType === "users") return "Người dùng cụ thể";
+
+    return "Không xác định";
   };
 
   return (
@@ -95,7 +121,7 @@ function NotificationManagement() {
         background: "linear-gradient(180deg, #f8fbff 0%, #f3f8f6 100%)",
       }}
     >
-      <AdminSidebar />
+      <Sidebar />
 
       <main
         style={{
@@ -133,12 +159,12 @@ function NotificationManagement() {
         >
           <SummaryCard title="Tổng thông báo" value={notifications.length} />
           <SummaryCard
-            title="Thông báo hệ thống"
-            value={notifications.filter((n) => n.type === "system").length}
+            title="Gửi tất cả"
+            value={notifications.filter((n) => n.targetType === "all").length}
           />
           <SummaryCard
-            title="Thông báo khẩn cấp"
-            value={notifications.filter((n) => n.type === "urgent").length}
+            title="Gửi theo vai trò"
+            value={notifications.filter((n) => n.targetType === "roles").length}
           />
         </section>
 
@@ -168,18 +194,6 @@ function NotificationManagement() {
               onChange={setReceiver}
               options={receiverOptions}
             />
-
-            <SelectBox
-              label="Loại thông báo"
-              value={type}
-              onChange={setType}
-              options={[
-                { value: "system", label: "Hệ thống" },
-                { value: "booking", label: "Đặt phòng" },
-                { value: "payment", label: "Thanh toán" },
-                { value: "urgent", label: "Khẩn cấp" },
-              ]}
-            />
           </div>
 
           <div style={{ marginTop: 16 }}>
@@ -207,7 +221,9 @@ function NotificationManagement() {
             disabled={sending}
             style={{
               marginTop: 18,
-              background: sending ? "#93c5fd" : "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
+              background: sending
+                ? "#93c5fd"
+                : "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
               color: "#fff",
               border: "none",
               borderRadius: 14,
@@ -246,68 +262,70 @@ function NotificationManagement() {
             >
               <thead>
                 <tr style={{ background: "#f7fafc", textAlign: "left" }}>
-                  {["Tiêu đề", "Gửi đến", "Loại", "Ngày gửi", "Chi tiết"].map(
-                    (head) => (
-                      <th key={head} style={thStyle}>
-                        {head}
-                      </th>
-                    ),
-                  )}
+                  {["Tiêu đề", "Gửi đến", "Ngày gửi", "Chi tiết"].map((head) => (
+                    <th key={head} style={thStyle}>
+                      {head}
+                    </th>
+                  ))}
                 </tr>
               </thead>
 
               <tbody>
-                {paginatedNotifications.length === 0 ? (
+                {loading ? (
                   <tr>
-                    <td colSpan="5" style={{ padding: 20, textAlign: "center" }}>
+                    <td colSpan="4" style={{ padding: 20, textAlign: "center" }}>
+                      Đang tải dữ liệu...
+                    </td>
+                  </tr>
+                ) : paginatedNotifications.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" style={{ padding: 20, textAlign: "center" }}>
                       Chưa có thông báo nào
                     </td>
                   </tr>
                 ) : (
-                  paginatedNotifications.map((item) => {
-                    const badge = typeColors[item.type] || typeColors.system;
+                  paginatedNotifications.map((item) => (
+                    <tr key={item._id}>
+                      <td style={tdStyle}>{item.title}</td>
 
-                    return (
-                      <tr key={item._id}>
-                        <td style={tdStyle}>{item.title}</td>
-                        <td style={tdStyle}>{getReceiverLabel(item.receiver)}</td>
-                        <td style={tdStyle}>
-                          <span
-                            style={{
-                              padding: "7px 14px",
-                              borderRadius: 999,
-                              background: badge.background,
-                              color: badge.color,
-                              fontWeight: 700,
-                              fontSize: 13,
-                            }}
-                          >
-                            {badge.label}
-                          </span>
-                        </td>
-                        <td style={tdStyle}>
-                          {new Date(item.createdAt).toLocaleString("vi-VN")}
-                        </td>
-                        <td style={tdStyle}>
-                          <button
-                            onClick={() => setSelectedNotification(item)}
-                            style={{
-                              border: "none",
-                              background:
-                                "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
-                              color: "#fff",
-                              padding: "9px 12px",
-                              borderRadius: 10,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                            }}
-                          >
-                            Xem chi tiết
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
+                      <td style={tdStyle}>
+                        <span
+                          style={{
+                            padding: "7px 14px",
+                            borderRadius: 999,
+                            background: "#dbeafe",
+                            color: "#1d4ed8",
+                            fontWeight: 700,
+                            fontSize: 13,
+                          }}
+                        >
+                          {getReceiverLabel(item)}
+                        </span>
+                      </td>
+
+                      <td style={tdStyle}>
+                        {new Date(item.createdAt).toLocaleString("vi-VN")}
+                      </td>
+
+                      <td style={tdStyle}>
+                        <button
+                          onClick={() => setSelectedNotification(item)}
+                          style={{
+                            border: "none",
+                            background:
+                              "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
+                            color: "#fff",
+                            padding: "9px 12px",
+                            borderRadius: 10,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Xem chi tiết
+                        </button>
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
@@ -332,7 +350,7 @@ function NotificationManagement() {
       {selectedNotification && (
         <NotificationModal
           notification={selectedNotification}
-          receiverLabel={getReceiverLabel(selectedNotification.receiver)}
+          receiverLabel={getReceiverLabel(selectedNotification)}
           onClose={() => setSelectedNotification(null)}
         />
       )}
@@ -375,9 +393,7 @@ function SummaryCard({ title, value }) {
       }}
     >
       <div style={{ color: "#64748b", fontWeight: 700 }}>{title}</div>
-      <div style={{ marginTop: 10, fontSize: 30, fontWeight: 800 }}>
-        {value}
-      </div>
+      <div style={{ marginTop: 10, fontSize: 30, fontWeight: 800 }}>{value}</div>
     </div>
   );
 }

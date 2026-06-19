@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pagination } from "antd";
-import AdminSidebar from "./AdminSidebar";
 import { getAllStudents, importStudents } from "../../api/studentService";
 import { showError, showSuccess } from "../../components/alert";
+import Sidebar from "../../components/Sidebar";
 const statusColors = {
   active: { background: "#dcfce7", color: "#166534", label: "Đang hoạt động" },
   inactive: { background: "#fef3c7", color: "#92400e", label: "Tạm nghỉ" },
@@ -234,7 +234,7 @@ function StudentManagement() {
         background: "linear-gradient(180deg, #f8fbff 0%, #f3f8f6 100%)",
       }}
     >
-      <AdminSidebar />
+      <Sidebar />
 
       <main
         style={{

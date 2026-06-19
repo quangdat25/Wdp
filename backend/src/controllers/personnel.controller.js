@@ -8,7 +8,7 @@ exports.getAllPersonnel = async (req, res) => {
     const personnel = await User.find({
       role: { $in: ["staff", "manager"] },
     })
-      .select("-passwordHash")
+      .select("-password")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -24,12 +24,13 @@ exports.getAllPersonnel = async (req, res) => {
     });
   }
 };
+
 exports.getPersonnelById = async (req, res) => {
   try {
     const personnel = await User.findOne({
       _id: req.params.id,
       role: { $in: ["staff", "manager"] },
-    }).select("-passwordHash");
+    }).select("-password");
 
     if (!personnel) {
       return res.status(404).json({
@@ -50,6 +51,7 @@ exports.getPersonnelById = async (req, res) => {
     });
   }
 };
+
 exports.createPersonnel = async (req, res) => {
   try {
     const {
@@ -94,7 +96,7 @@ exports.createPersonnel = async (req, res) => {
       });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     let personnel;
 
@@ -120,7 +122,7 @@ exports.createPersonnel = async (req, res) => {
         fullName,
         email,
         username,
-        passwordHash,
+        password: hashedPassword,
         phone,
         status: status || "active",
         staffCode,
@@ -153,7 +155,7 @@ exports.createPersonnel = async (req, res) => {
         fullName,
         email,
         username,
-        passwordHash,
+        password: hashedPassword,
         phone,
         status: status || "active",
         managerCode,
@@ -164,7 +166,7 @@ exports.createPersonnel = async (req, res) => {
     }
 
     const result = personnel.toObject();
-    delete result.passwordHash;
+    delete result.password;
 
     return res.status(201).json({
       success: true,
@@ -238,8 +240,8 @@ exports.updatePersonnel = async (req, res) => {
     personnel.startDate = startDate ?? personnel.startDate;
     personnel.note = note ?? personnel.note;
 
-    if (password) {
-      personnel.passwordHash = await bcrypt.hash(password, 10);
+    if (password && password.trim() !== "") {
+      personnel.password = await bcrypt.hash(password, 10);
     }
 
     if (personnel.role === "staff") {
@@ -254,7 +256,7 @@ exports.updatePersonnel = async (req, res) => {
     await personnel.save();
 
     const result = personnel.toObject();
-    delete result.passwordHash;
+    delete result.password;
 
     return res.status(200).json({
       success: true,
