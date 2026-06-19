@@ -13,6 +13,7 @@ const receiverOptions = [
   { value: "staff", label: "Nhân viên" },
   { value: "manager", label: "Quản lý" },
   { value: "admin", label: "Admin" },
+  { value: "parent", label: "Phụ huynh" },
 ];
 
 function NotificationManagement() {

@@ -29,7 +29,7 @@ const notificationSchema = new mongoose.Schema(
     targetRoles: [
       {
         type: String,
-        enum: ["student", "staff", "manager", "admin"],
+        enum: ["student", "staff", "manager", "admin","parent"],
       },
     ],
 
