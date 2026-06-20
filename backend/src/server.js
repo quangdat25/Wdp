@@ -1,4 +1,3 @@
-
 const express = require("express");
 const app = express();
 
@@ -6,7 +5,7 @@ require("dotenv").config();
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
-
+const { initSocket } = require("./socket");
 // connect db
 const connectDB = require("./config/connectDB");
 const routes = require("./routes/index.routes");
@@ -50,7 +49,8 @@ app.use((err, req, res, next) => {
   res.status(status).json({ message: err.message });
 });
 
-
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+initSocket(server);

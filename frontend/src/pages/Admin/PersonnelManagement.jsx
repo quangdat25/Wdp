@@ -10,7 +10,6 @@ import {
   FaUserCog,
 } from "react-icons/fa";
 import { showError, showSuccess } from "../../components/alert";
-import AdminSidebar from "./AdminSidebar";
 
 import {
   getAllPersonnel,
@@ -18,6 +17,7 @@ import {
   updatePersonnel,
   deletePersonnel,
 } from "../../api/personnelService";
+import Sidebar from "../../components/Sidebar";
 
 const CONFIG = {
   status: {
@@ -260,7 +260,7 @@ function PersonnelManagement() {
 
   return (
     <div style={styles.pageShell}>
-      <AdminSidebar />
+      <Sidebar />
 
       <main style={styles.main}>
         <section style={styles.hero}>
