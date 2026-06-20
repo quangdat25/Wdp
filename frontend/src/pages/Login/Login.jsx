@@ -19,8 +19,8 @@ function Login() {
 
   const navigate = useNavigate();
 
-  const getRedirectPath = (user, fallbackRole) => {
-    const role = user?.role || fallbackRole;
+  const getRedirectPath = (user) => {
+    const role = user?.role;
     switch (role) {
       case 'student':
         return '/student/dashboard';
