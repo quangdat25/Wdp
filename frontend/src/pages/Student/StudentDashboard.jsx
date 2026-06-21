@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import {
-  FaBell,
   FaPhoneAlt,
   FaEnvelope,
   FaMapMarkerAlt,
@@ -14,11 +12,9 @@ import {
   FaCalendarAlt,
 } from "react-icons/fa";
 
-import authService from "../../api/authService";
-import { getAllNotifications } from "../../api/notificationService";
-import { socket } from "../../socket";
 import "./StudentDashboard.css";
 import Sidebar from "../../components/Sidebar";
+import Header from "../../components/Headers";
 
 const newsItems = [
   {
@@ -39,199 +35,41 @@ const newsItems = [
   },
 ];
 
-function StudentDashboard() {
-  const navigate = useNavigate();
-  const toastTimerRef = useRef(null);
+const studentModules = [
+  {
+    id: "booking",
+    label: "Đặt phòng",
+    icon: <FaBed />,
+  },
+  {
+    id: "room-history",
+    label: "Lịch sử phòng",
+    icon: <FaBed />,
+  },
+  {
+    id: "news",
+    label: "Tin tức",
+    icon: <FaCalendarAlt />,
+  },
+];
 
+function StudentDashboard() {
   const [activeModule, setActiveModule] = useState("home");
   const [hasBooked] = useState(false);
 
-  const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [loadingNotifications, setLoadingNotifications] = useState(false);
-  const [selectedNotification, setSelectedNotification] = useState(null);
-  const [readIds, setReadIds] = useState([]);
-  const [toast, setToast] = useState(null);
-
-  const activeConfig =
-    studentModules.find((item) => item.id === activeModule) ||
-    studentModules[0];
-
-  const showToast = (notification) => {
-    setToast({
-      title: notification?.title || "Thông báo mới",
-      content: notification?.content || "",
-    });
-
-    if (toastTimerRef.current) {
-      clearTimeout(toastTimerRef.current);
-    }
-
-    toastTimerRef.current = setTimeout(() => {
-      setToast(null);
-    }, 3500);
-  };
-
-  const filterStudentNotifications = (items) => {
-    return items.filter((item) => {
-      if (item.targetType === "all") return true;
-
-      if (item.targetType === "roles") {
-        return item.targetRoles?.includes("student");
-      }
-
-      return false;
-    });
-  };
-
-  const fetchNotifications = async (showLatestToast = false) => {
-    try {
-      setLoadingNotifications(true);
-
-      const res = await getAllNotifications();
-      const allNotifications = res.data.data || [];
-      const studentNotifications = filterStudentNotifications(allNotifications);
-
-      setNotifications(studentNotifications);
-
-      if (showLatestToast && studentNotifications.length > 0) {
-        showToast(studentNotifications[0]);
-      }
-    } catch (error) {
-      console.error("Load notifications error:", error);
-    } finally {
-      setLoadingNotifications(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications(true);
-  }, []);
-
-  useEffect(() => {
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    const handleConnect = () => {
-      console.log("Student socket connected:", socket.id);
-      socket.emit("join_role", "student");
-    };
-
-    const handleNewNotification = (notification) => {
-      console.log("Student received notification:", notification);
-
-      const isForStudent =
-        notification.targetType === "all" ||
-        notification.targetRoles?.includes("student");
-
-      if (!isForStudent) return;
-
-      setNotifications((prev) => {
-        const exists = prev.some((item) => item._id === notification._id);
-        if (exists) return prev;
-
-        return [notification, ...prev];
-      });
-
-      showToast(notification);
-    };
-
-    socket.on("connect", handleConnect);
-    socket.on("new_notification", handleNewNotification);
-
-    if (socket.connected) {
-      socket.emit("join_role", "student");
-    }
-
-    return () => {
-      socket.off("connect", handleConnect);
-      socket.off("new_notification", handleNewNotification);
-
-      if (toastTimerRef.current) {
-        clearTimeout(toastTimerRef.current);
-      }
-    };
-  }, []);
-
-  const unreadCount = useMemo(() => {
-    return notifications.filter((item) => !readIds.includes(item._id)).length;
-  }, [notifications, readIds]);
-
-  const handleOpenNotification = () => {
-    setShowNotificationModal(true);
-    fetchNotifications(false);
-  };
-
-  const handleSelectNotification = (item) => {
-    setSelectedNotification(item);
-
-    setReadIds((prev) =>
-      prev.includes(item._id) ? prev : [...prev, item._id],
-    );
-  };
-
-  const handleLogout = async () => {
-    try {
-      await authService.logout();
-    } catch (err) {
-      console.error("Logout error:", err);
-    } finally {
-      localStorage.removeItem("user");
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      navigate("/");
-    }
+  const activeConfig = studentModules.find(
+    (item) => item.id === activeModule,
+  ) || {
+    label: "Chức năng",
+    icon: <FaBed />,
   };
 
   return (
     <div className="student-shell">
       <Sidebar />
+
       <main className="student-main">
-        <header className="student-topbar">
-          <div>
-            <span className="student-kicker">Student Portal</span>
-            <h2>{activeConfig.title}</h2>
-            <p>
-              Quản lý thông tin ký túc xá và theo dõi các thông báo mới nhất.
-            </p>
-          </div>
-
-          <div className="student-topbar__actions">
-            <button
-              type="button"
-              className="student-icon-button"
-              onClick={handleOpenNotification}
-            >
-              <FaBell />
-
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 4,
-                    right: 4,
-                    minWidth: 18,
-                    height: 18,
-                    borderRadius: "50%",
-                    background: "#ef4444",
-                    color: "#fff",
-                    fontSize: 10,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 800,
-                    border: "2px solid #fff",
-                  }}
-                >
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            <div className="student-profile__avatar">A</div>
-          </div>
-        </header>
+        <Header />
 
         {activeModule === "home" &&
           (hasBooked ? (
@@ -244,22 +82,6 @@ function StudentDashboard() {
           <PlaceholderScreen activeConfig={activeConfig} />
         )}
       </main>
-
-      {toast && <NotificationToast toast={toast} />}
-
-      {showNotificationModal && (
-        <NotificationModal
-          notifications={notifications}
-          loading={loadingNotifications}
-          readIds={readIds}
-          selectedNotification={selectedNotification}
-          onSelect={handleSelectNotification}
-          onClose={() => {
-            setShowNotificationModal(false);
-            setSelectedNotification(null);
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -268,281 +90,13 @@ function PlaceholderScreen({ activeConfig }) {
   return (
     <div className="student-placeholder">
       <div className="student-placeholder__icon">{activeConfig.icon}</div>
+
       <h3>Giao diện chức năng: {activeConfig.label}</h3>
+
       <p>
         Hệ thống đang tải dữ liệu cho chức năng{" "}
         <strong>{activeConfig.label}</strong> dành cho sinh viên...
       </p>
-    </div>
-  );
-}
-
-function NotificationToast({ toast }) {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        top: 24,
-        right: 24,
-        width: 340,
-        background: "#ffffff",
-        borderLeft: "6px solid #2563eb",
-        borderRadius: 14,
-        padding: "14px 16px",
-        boxShadow: "0 16px 40px rgba(15, 23, 42, 0.22)",
-        zIndex: 2000,
-      }}
-    >
-      <div
-        style={{
-          fontWeight: 800,
-          color: "#0f172a",
-          marginBottom: 6,
-        }}
-      >
-        📢 {toast.title}
-      </div>
-
-      <div
-        style={{
-          color: "#475569",
-          fontSize: 14,
-          lineHeight: 1.5,
-        }}
-      >
-        {toast.content}
-      </div>
-    </div>
-  );
-}
-
-function NotificationModal({
-  notifications,
-  loading,
-  readIds,
-  selectedNotification,
-  onSelect,
-  onClose,
-}) {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15, 23, 42, 0.45)",
-        display: "grid",
-        placeItems: "center",
-        zIndex: 999,
-      }}
-    >
-      <div
-        style={{
-          width: 760,
-          maxWidth: "94vw",
-          maxHeight: "86vh",
-          background: "#FFFFFF",
-          borderRadius: 20,
-          overflow: "hidden",
-          boxShadow: "0 24px 80px rgba(0,0,0,0.22)",
-        }}
-      >
-        <div
-          style={{
-            padding: "18px 22px",
-            background: "#0D47A1",
-            color: "#FFFFFF",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <h2 style={{ margin: 0, fontSize: 20 }}>Thông báo</h2>
-
-          <button
-            onClick={onClose}
-            style={{
-              border: "none",
-              background: "#FFFFFF",
-              color: "#0D47A1",
-              borderRadius: 10,
-              padding: "8px 14px",
-              fontWeight: 800,
-              cursor: "pointer",
-            }}
-          >
-            Đóng
-          </button>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "320px 1fr",
-            minHeight: 420,
-            maxHeight: "70vh",
-          }}
-        >
-          <div
-            style={{
-              borderRight: "1px solid #E5E7EB",
-              overflowY: "auto",
-              background: "#F8FAFC",
-            }}
-          >
-            {loading ? (
-              <div style={{ padding: 20, textAlign: "center" }}>
-                Đang tải thông báo...
-              </div>
-            ) : notifications.length === 0 ? (
-              <div
-                style={{
-                  padding: 20,
-                  textAlign: "center",
-                  color: "#64748B",
-                }}
-              >
-                Chưa có thông báo nào
-              </div>
-            ) : (
-              notifications.map((item) => {
-                const isRead = readIds.includes(item._id);
-
-                return (
-                  <button
-                    key={item._id}
-                    onClick={() => onSelect(item)}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      borderBottom: "1px solid #E5E7EB",
-                      background:
-                        selectedNotification?._id === item._id
-                          ? "#DBEAFE"
-                          : isRead
-                            ? "#FFFFFF"
-                            : "#EFF6FF",
-                      padding: 16,
-                      textAlign: "left",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 8,
-                      }}
-                    >
-                      <strong
-                        style={{
-                          color: "#0F172A",
-                          fontSize: 14,
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        {item.title}
-                      </strong>
-
-                      {!isRead && (
-                        <span
-                          style={{
-                            width: 9,
-                            height: 9,
-                            borderRadius: "50%",
-                            background: "#2563EB",
-                            flexShrink: 0,
-                            marginTop: 4,
-                          }}
-                        />
-                      )}
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: 6,
-                        color: "#64748B",
-                        fontSize: 12,
-                      }}
-                    >
-                      {new Date(item.createdAt).toLocaleString("vi-VN")}
-                    </div>
-
-                    <p
-                      style={{
-                        margin: "8px 0 0",
-                        color: "#475569",
-                        fontSize: 13,
-                        lineHeight: 1.4,
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                      }}
-                    >
-                      {item.content}
-                    </p>
-                  </button>
-                );
-              })
-            )}
-          </div>
-
-          <div style={{ padding: 22, overflowY: "auto" }}>
-            {!selectedNotification ? (
-              <div
-                style={{
-                  height: "100%",
-                  display: "grid",
-                  placeItems: "center",
-                  color: "#94A3B8",
-                  fontWeight: 700,
-                  textAlign: "center",
-                }}
-              >
-                Chọn một thông báo để xem chi tiết
-              </div>
-            ) : (
-              <div>
-                <h2
-                  style={{
-                    margin: "0 0 10px",
-                    color: "#0A4E9B",
-                    fontSize: 24,
-                  }}
-                >
-                  {selectedNotification.title}
-                </h2>
-
-                <div
-                  style={{
-                    color: "#64748B",
-                    fontSize: 13,
-                    marginBottom: 18,
-                  }}
-                >
-                  {new Date(selectedNotification.createdAt).toLocaleString(
-                    "vi-VN",
-                  )}
-                </div>
-
-                <div
-                  style={{
-                    background: "#F8FAFC",
-                    border: "1px solid #E2E8F0",
-                    borderRadius: 14,
-                    padding: 16,
-                    color: "#334155",
-                    lineHeight: 1.7,
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {selectedNotification.content}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -582,6 +136,7 @@ function UnbookedHomeScreen({ setActiveModule }) {
           note="Kỳ Summer 2026"
           tone="blue"
         />
+
         <MetricCard
           icon={<FaCheckCircle />}
           label="Phòng 4 giường"
@@ -589,6 +144,7 @@ function UnbookedHomeScreen({ setActiveModule }) {
           note="Giá từ 950.000đ/tháng"
           tone="green"
         />
+
         <MetricCard
           icon={<FaCheckCircle />}
           label="Phòng 6 giường"
@@ -596,6 +152,7 @@ function UnbookedHomeScreen({ setActiveModule }) {
           note="Giá từ 750.000đ/tháng"
           tone="amber"
         />
+
         <MetricCard
           icon={<FaStar />}
           label="Điểm ý thức"
@@ -642,6 +199,7 @@ function BookedHomeScreen({ setActiveModule }) {
           note="Cập nhật 08/06/2026"
           tone="amber"
         />
+
         <MetricCard
           icon={<FaWater />}
           label="Nước tháng 06"
@@ -649,6 +207,7 @@ function BookedHomeScreen({ setActiveModule }) {
           note="Cập nhật 08/06/2026"
           tone="blue"
         />
+
         <MetricCard
           icon={<FaStar />}
           label="Điểm ý thức"
@@ -656,6 +215,7 @@ function BookedHomeScreen({ setActiveModule }) {
           note="CFD Score hiện tại"
           tone="green"
         />
+
         <MetricCard
           icon={<FaCalendarAlt />}
           label="Hóa đơn tháng 06"

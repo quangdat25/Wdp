@@ -1,7 +1,11 @@
 const bcrypt = require("bcryptjs");
 const userModel = require("../models/user.model");
 const jwt = require("jsonwebtoken");
-const { createAccessToken, createRefreshToken, verifyTokenGoogle } = require("../auth/checkAuth");
+const {
+  createAccessToken,
+  createRefreshToken,
+  verifyTokenGoogle,
+} = require("../auth/checkAuth");
 
 function setCookie(res, accessToken, refreshToken) {
   const isProduction = process.env.NODE_ENV === "production";
@@ -34,7 +38,8 @@ class UserController {
       if (!loginId || !password) {
         return res.status(400).json({
           success: false,
-          message: "Vui lòng nhập đầy đủ tên đăng nhập (hoặc email) và mật khẩu",
+          message:
+            "Vui lòng nhập đầy đủ tên đăng nhập (hoặc email) và mật khẩu",
         });
       }
 
@@ -65,12 +70,10 @@ class UserController {
         } else {
           isMatchPassword = await bcrypt.compare(password, findUser.password);
         }
-      } else if (
-        findUser.parent &&
-        findUser.parent.username === loginId
-      ) {
+      } else if (findUser.parent && findUser.parent.username === loginId) {
         // Đăng nhập bằng tài khoản parent (nằm trong sub-document của student)
-        const parentPassword = findUser.parent.password || findUser.parent.passwordHash;
+        const parentPassword =
+          findUser.parent.password || findUser.parent.passwordHash;
         if (password === parentPassword) {
           isMatchPassword = true;
         } else {
@@ -110,6 +113,10 @@ class UserController {
           role: actualRole,
           ...(actualRole === "staff" && { staffType: findUser.staffType }),
         },
+        tokens: {
+          accessToken,
+          refreshToken,
+        },
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -140,7 +147,9 @@ class UserController {
 
   async getMe(req, res) {
     try {
-      const findUser = await userModel.findById(req.user).select("-password -passwordHash");
+      const findUser = await userModel
+        .findById(req.user)
+        .select("-password -passwordHash");
 
       if (!findUser) {
         return res.status(404).json({
@@ -165,7 +174,9 @@ class UserController {
     try {
       const { token } = req.body;
       if (!token) {
-        return res.status(400).json({ success: false, message: "Vui lòng cung cấp token" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Vui lòng cung cấp token" });
       }
 
       const payload = await verifyTokenGoogle(token);
@@ -174,11 +185,17 @@ class UserController {
       const findUser = await userModel.findOne({ email });
 
       if (!findUser) {
-        return res.status(404).json({ success: false, message: "Tài khoản không tồn tại trên hệ thống" });
+        return res.status(404).json({
+          success: false,
+          message: "Tài khoản không tồn tại trên hệ thống",
+        });
       }
 
       if (findUser.role !== "student") {
-        return res.status(403).json({ success: false, message: "Chỉ sinh viên mới được phép đăng nhập bằng Google" });
+        return res.status(403).json({
+          success: false,
+          message: "Chỉ sinh viên mới được phép đăng nhập bằng Google",
+        });
       }
 
       const tokenPayload = {
@@ -202,10 +219,13 @@ class UserController {
           username: findUser.username,
           role: findUser.role,
         },
+        tokens: {
+          accessToken,
+          refreshToken,
+        },
       });
     } catch (error) {
       console.error("Google Login error:", error);
-      
     }
   }
 }

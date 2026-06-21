@@ -24,68 +24,65 @@ import ParentDashboard from "./pages/Parent/ParentDashboard";
 import CleanerDashboard from "./pages/Staff/CleanerDashboard";
 import MaintenanceDashboard from "./pages/Staff/MaintenanceDashboard";
 import SecurityDashboard from "./pages/Staff/SecurityDashboard";
+import CreateTicket from "./pages/Student/CreateTicket";
+import MyTickets from "./pages/Student/MyTickets";
+import TicketManagement from "./pages/Manager/TicketManagement";
 
 function App() {
   const location = useLocation();
-  const isDashboardRoute =
-    location.pathname.startsWith("/student/dashboard") ||
-    location.pathname.startsWith("/parent/dashboard") ||
-    location.pathname.startsWith("/staff/dashboard") ||
-    location.pathname.startsWith("/admin") ||
-    location.pathname.startsWith("/manager/dashboard");
+  const isHomePage = location.pathname === "/";
 
   return (
     <div className="app">
-      {!isDashboardRoute && <Header />}
+      {isHomePage && <Header />}
       <main>
         <PageTransition>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<Login />} />
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<Login />} />
 
-              {/* Admin Routes */}
-              <Route
-                path="/admin"
-                element={<Navigate to="/admin/dashboard" replace />}
-              />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/students" element={<StudentManagement />} />
-              <Route
-                path="/admin/personnel"
-                element={<PersonnelManagement />}
-              />
-              <Route
-                path="/admin/notifications"
-                element={<NotificationManagement />}
-              />
+            {/* Admin Routes */}
+            <Route
+              path="/admin"
+              element={<Navigate to="/admin/dashboard" replace />}
+            />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/students" element={<StudentManagement />} />
+            <Route path="/admin/personnel" element={<PersonnelManagement />} />
+            <Route
+              path="/admin/notifications"
+              element={<NotificationManagement />}
+            />
 
-              {/* Student Routes */}
-              <Route path="/student/dashboard" element={<StudentDashboard />} />
+            {/* Student Routes */}
+            <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/student/support/request" element={<CreateTicket />} />
+            <Route path="/student/my/tickets" element={<MyTickets/>} />
+            {/* Parent Routes */}
+            <Route path="/parent/dashboard" element={<ParentDashboard />} />
 
-              {/* Parent Routes */}
-              <Route path="/parent/dashboard" element={<ParentDashboard />} />
+            {/* Manager Routes */}
+            <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+            <Route path="/manager/tickets" element={<TicketManagement />} />
 
-              {/* Manager Routes */}
-              <Route path="/manager/dashboard" element={<ManagerDashboard />} />
-
-              {/* Staff Routes */}
-              <Route
-                path="/staff/dashboard/cleaner"
-                element={<CleanerDashboard />}
-              />
-              <Route
-                path="/staff/dashboard/maintenance"
-                element={<MaintenanceDashboard />}
-              />
-              <Route
-                path="/staff/dashboard/security"
-                element={<SecurityDashboard />}
-              />
-            </Routes>
+            {/* Staff Routes */}
+            <Route
+              path="/staff/dashboard/cleaner"
+              element={<CleanerDashboard />}
+            />
+            <Route
+              path="/staff/dashboard/maintenance"
+              element={<MaintenanceDashboard />}
+            />
+            <Route
+              path="/staff/dashboard/security"
+              element={<SecurityDashboard />}
+            />
+          </Routes>
         </PageTransition>
       </main>
-      {!isDashboardRoute && <Footer />}
+      {isHomePage && <Footer />}
     </div>
   );
 }
