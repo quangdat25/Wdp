@@ -1,4 +1,4 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, Outlet } from "react-router-dom";
 
 const ProtectedRoute = ({ children, allowedRoles, allowedStaffTypes }) => {
   const location = useLocation();
@@ -29,7 +29,7 @@ const ProtectedRoute = ({ children, allowedRoles, allowedStaffTypes }) => {
     }
 
     // All checks passed
-    return children;
+    return children ? children : <Outlet />;
   } catch (err) {
     // Handle invalid JSON in localStorage
     localStorage.removeItem("user");

@@ -12,6 +12,7 @@ import {
   FaBolt,
   FaWater,
   FaCalendarAlt,
+  FaChartPie,
 } from "react-icons/fa";
 
 import authService from "../../api/authService";
@@ -37,6 +38,13 @@ const newsItems = [
     title: "Quy định mới về giờ giấc ra vào cổng KTX áp dụng từ tuần sau",
     date: "07/06/2026",
   },
+];
+
+const studentModules = [
+  { id: "home", title: "Trang chủ", label: "Trang chủ", icon: <FaChartPie /> },
+  { id: "booking", title: "Đặt phòng ký túc xá", label: "Đặt phòng", icon: <FaBed /> },
+  { id: "room-history", title: "Lịch sử ở phòng", label: "Lịch sử phòng", icon: <FaBed /> },
+  { id: "news", title: "Tin tức mới nhất", label: "Tin tức", icon: <FaBell /> },
 ];
 
 function StudentDashboard() {

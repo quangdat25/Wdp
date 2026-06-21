@@ -45,43 +45,53 @@ function App() {
               <Route path="/login" element={<Login />} />
 
               {/* Admin Routes */}
-              <Route
-                path="/admin"
-                element={<Navigate to="/admin/dashboard" replace />}
-              />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/students" element={<StudentManagement />} />
-              <Route
-                path="/admin/personnel"
-                element={<PersonnelManagement />}
-              />
-              <Route
-                path="/admin/notifications"
-                element={<NotificationManagement />}
-              />
+              <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+                <Route
+                  path="/admin"
+                  element={<Navigate to="/admin/dashboard" replace />}
+                />
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin/students" element={<StudentManagement />} />
+                <Route
+                  path="/admin/personnel"
+                  element={<PersonnelManagement />}
+                />
+                <Route
+                  path="/admin/notifications"
+                  element={<NotificationManagement />}
+                />
+              </Route>
 
               {/* Student Routes */}
-              <Route path="/student/dashboard" element={<StudentDashboard />} />
+              <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
+                <Route path="/student/dashboard" element={<StudentDashboard />} />
+              </Route>
 
               {/* Parent Routes */}
-              <Route path="/parent/dashboard" element={<ParentDashboard />} />
+              <Route element={<ProtectedRoute allowedRoles={["parent"]} />}>
+                <Route path="/parent/dashboard" element={<ParentDashboard />} />
+              </Route>
 
               {/* Manager Routes */}
-              <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+              <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
+                <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+              </Route>
 
               {/* Staff Routes */}
-              <Route
-                path="/staff/dashboard/cleaner"
-                element={<CleanerDashboard />}
-              />
-              <Route
-                path="/staff/dashboard/maintenance"
-                element={<MaintenanceDashboard />}
-              />
-              <Route
-                path="/staff/dashboard/security"
-                element={<SecurityDashboard />}
-              />
+              <Route element={<ProtectedRoute allowedRoles={["staff"]} />}>
+                <Route
+                  path="/staff/dashboard/cleaner"
+                  element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["cleaner"]}><CleanerDashboard /></ProtectedRoute>}
+                />
+                <Route
+                  path="/staff/dashboard/maintenance"
+                  element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["maintenance"]}><MaintenanceDashboard /></ProtectedRoute>}
+                />
+                <Route
+                  path="/staff/dashboard/security"
+                  element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["security"]}><SecurityDashboard /></ProtectedRoute>}
+                />
+              </Route>
             </Routes>
         </PageTransition>
       </main>

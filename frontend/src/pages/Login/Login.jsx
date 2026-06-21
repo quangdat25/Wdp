@@ -53,21 +53,8 @@ function Login() {
       if (result.success) {
         const user = result.data;
 
-        // KIỂM TRA ROLE TRÊN FRONTEND (phòng trường hợp backend bỏ qua activeRole)
-        const userRole = user?.role;
-        const isValidRole =
-          activeRole === "staff"
-            ? ["staff", "admin", "manager"].includes(userRole)
-            : userRole === activeRole;
-
-        if (!isValidRole) {
-          setError("Tài khoản không có quyền truy cập vào mục này.");
-          setLoading(false);
-          return;
-        }
-
         localStorage.setItem("user", JSON.stringify(user));
-        const redirectPath = getRedirectPath(user, activeRole);
+        const redirectPath = getRedirectPath(user);
         navigate(redirectPath);
       }
     } catch (err) {
@@ -92,26 +79,13 @@ function Login() {
         console.log(">>> Toàn bộ dữ liệu trả về từ Backend:", result);
         const user = result.data;
 
-        // KIỂM TRA ROLE TRÊN FRONTEND
-        const userRole = user?.role;
-        const isValidRole =
-          activeRole === "staff"
-            ? ["staff", "admin", "manager"].includes(userRole)
-            : userRole === activeRole;
-
-        if (!isValidRole) {
-          setError("Tài khoản không có quyền truy cập vào mục này.");
-          setLoading(false);
-          return;
-        }
-
         localStorage.setItem("user", JSON.stringify(user));
         if (result.tokens) {
           localStorage.setItem("accessToken", result.tokens.accessToken);
           localStorage.setItem("refreshToken", result.tokens.refreshToken);
         }
 
-        const redirectPath = getRedirectPath(user, activeRole);
+        const redirectPath = getRedirectPath(user);
         navigate(redirectPath);
       }
     } catch (err) {
