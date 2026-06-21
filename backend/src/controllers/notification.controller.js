@@ -1,4 +1,5 @@
 const Notification = require("../models/notification.model");
+const NotificationReceipt = require("../models/notificationReceipt.model");
 const { getIO } = require("../socket");
 
 class NotificationController {
@@ -12,7 +13,7 @@ class NotificationController {
         targetType,
         targetRoles: targetRoles || [],
         targetUsers: targetUsers || [],
-        senderId: req.user?._id || req.user?.id,
+        senderId: req.user?.id,
       });
 
       const io = getIO();
@@ -23,13 +24,13 @@ class NotificationController {
           break;
 
         case "roles":
-          targetRoles.forEach((role) => {
+          (targetRoles || []).forEach((role) => {
             io.to(`role:${role}`).emit("new_notification", notification);
           });
           break;
 
         case "users":
-          targetUsers.forEach((userId) => {
+          (targetUsers || []).forEach((userId) => {
             io.to(`user:${userId}`).emit("new_notification", notification);
           });
           break;
@@ -105,6 +106,87 @@ class NotificationController {
       return res.status(200).json({
         success: true,
         message: "Xóa thông báo thành công",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  async getMyNotifications(req, res) {
+    try {
+      const role = req.user.role;
+      const userId = req.user.id;
+
+      const notifications = await Notification.find({
+        $or: [
+          { targetType: "all" },
+          {
+            targetType: "roles",
+            targetRoles: role,
+          },
+          {
+            targetType: "users",
+            targetUsers: userId,
+          },
+        ],
+      })
+        .populate("senderId", "fullName role")
+        .sort({ createdAt: -1 });
+
+      const receipts = await NotificationReceipt.find({
+        userId,
+        isRead: true,
+      });
+
+      const readIds = receipts.map((item) => item.notificationId.toString());
+
+      const data = notifications.map((item) => {
+        const obj = item.toObject();
+
+        return {
+          ...obj,
+          isRead: readIds.includes(item._id.toString()),
+        };
+      });
+
+      return res.status(200).json({
+        success: true,
+        data,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  async markAsRead(req, res) {
+    try {
+      const notificationId = req.params.id;
+      const userId = req.user.id;
+
+      await NotificationReceipt.findOneAndUpdate(
+        {
+          notificationId,
+          userId,
+        },
+        {
+          isRead: true,
+          readAt: new Date(),
+        },
+        {
+          upsert: true,
+          new: true,
+        },
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Đã đọc thông báo",
       });
     } catch (error) {
       return res.status(500).json({

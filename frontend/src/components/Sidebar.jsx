@@ -8,6 +8,8 @@ import {
   FaSignOutAlt,
   FaUsers,
   FaBell,
+  FaLifeRing,
+  FaClipboardList,
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -98,9 +100,9 @@ function Sidebar() {
         icon: <FaBed />,
       },
       {
-        path: "/manager/requests",
-        label: "Yêu cầu",
-        icon: <FaTools />,
+        path: "/manager/tickets",
+        label: "Quản lý yêu cầu",
+        icon: <FaClipboardList />,
       },
       {
         path: "/manager/notifications",
@@ -147,6 +149,16 @@ function Sidebar() {
         path: "/student/requests",
         label: "Yêu cầu",
         icon: <FaTools />,
+      },
+      {
+        path: "/student/support/request",
+        label: "Gửi yêu cầu hỗ trợ",
+        icon: <FaLifeRing />,
+      },
+      {
+        path: "/student/my/tickets",
+        label: "Yêu cầu hỗ trợ",
+        icon: <FaClipboardList />,
       },
       {
         path: "/student/notifications",
