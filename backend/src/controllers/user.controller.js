@@ -185,17 +185,21 @@ class UserController {
       const findUser = await userModel.findOne({ email });
 
       if (!findUser) {
-        return res.status(404).json({
-          success: false,
-          message: "Tài khoản không tồn tại trên hệ thống",
-        });
+        return res
+          .status(404)
+          .json({
+            success: false,
+            message: "Tài khoản không tồn tại trên hệ thống",
+          });
       }
 
       if (findUser.role !== "student") {
-        return res.status(403).json({
-          success: false,
-          message: "Chỉ sinh viên mới được phép đăng nhập bằng Google",
-        });
+        return res
+          .status(403)
+          .json({
+            success: false,
+            message: "Chỉ sinh viên mới được phép đăng nhập bằng Google",
+          });
       }
 
       const tokenPayload = {

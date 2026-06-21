@@ -1,16 +1,24 @@
 // Central export for all models
 const User = require("./user.model");
 const Student = require("./student.model");
-const Admin = require("./admin.model");
-const Staff = require("./staff.model");
-const Manager = require("./manager.model");
 const Parent = require("./parent.model");
+const Admin = require("./admin.model");
+const DormManager = require("./dormManager.model");
+const SecurityStaff = require("./securityStaff.model");
+const CleaningStaff = require("./cleaningStaff.model");
+const MaintenanceStaff = require("./maintenanceStaff.model");
+const Room = require("./room.models");
+const Building = require("./building.model");
 
 module.exports = {
   User,
   Student,
-  Admin,
-  Staff,
-  Manager,
   Parent,
+  Admin,
+  DormManager,
+  SecurityStaff,
+  CleaningStaff,
+  MaintenanceStaff,
+  Room,
+  Building,
 };
