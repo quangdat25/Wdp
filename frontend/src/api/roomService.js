@@ -1,4 +1,4 @@
-import request from "../config/request";
+import request from "../config/axiosConfig";
 
 // Kiểm tra kết nối server
 export const healthCheck = async () => {

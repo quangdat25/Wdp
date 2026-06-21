@@ -24,25 +24,23 @@ import ParentDashboard from "./pages/Parent/ParentDashboard";
 import CleanerDashboard from "./pages/Staff/CleanerDashboard";
 import MaintenanceDashboard from "./pages/Staff/MaintenanceDashboard";
 import SecurityDashboard from "./pages/Staff/SecurityDashboard";
+import CreateTicket from "./pages/Student/CreateTicket";
+import MyTickets from "./pages/Student/MyTickets";
+import TicketManagement from "./pages/Manager/TicketManagement";
 
 function App() {
   const location = useLocation();
-  const isDashboardRoute =
-    location.pathname.startsWith("/student/dashboard") ||
-    location.pathname.startsWith("/parent/dashboard") ||
-    location.pathname.startsWith("/staff/dashboard") ||
-    location.pathname.startsWith("/admin") ||
-    location.pathname.startsWith("/manager/dashboard");
+  const isHomePage = location.pathname === "/";
 
   return (
     <div className="app">
-      {!isDashboardRoute && <Header />}
+      {isHomePage && <Header />}
       <main>
         <PageTransition>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<Login />} />
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<Login />} />
 
               {/* Admin Routes */}
               <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
@@ -65,6 +63,8 @@ function App() {
               {/* Student Routes */}
               <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
                 <Route path="/student/dashboard" element={<StudentDashboard />} />
+                <Route path="/student/support/request" element={<CreateTicket />} />
+                <Route path="/student/my/tickets" element={<MyTickets />} />
               </Route>
 
               {/* Parent Routes */}
@@ -75,6 +75,7 @@ function App() {
               {/* Manager Routes */}
               <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
                 <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+                <Route path="/manager/tickets" element={<TicketManagement />} />
               </Route>
 
               {/* Staff Routes */}
@@ -95,7 +96,7 @@ function App() {
             </Routes>
         </PageTransition>
       </main>
-      {!isDashboardRoute && <Footer />}
+      {isHomePage && <Footer />}
     </div>
   );
 }

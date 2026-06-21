@@ -47,20 +47,38 @@ function Login() {
     setLoading(true);
 
     try {
-      // 🆕 Truyền thêm activeRole vào API nếu Backend của bạn yêu cầu phân biệt role khi đăng nhập bằng mật khẩu
-      const result = await authService.login(username, password, activeRole);
-      console.log("LOGIN RESULT =", result);
+      const result = await authService.login(username, password);
+
       if (result.success) {
         const user = result.data;
 
+        const userRole = user?.role;
+
+        const isValidRole =
+          activeRole === "staff"
+            ? ["staff", "admin", "manager"].includes(userRole)
+            : userRole === activeRole;
+
+        if (!isValidRole) {
+          setError("Tài khoản không có quyền truy cập vào mục này.");
+          return;
+        }
+
+        // lưu user
         localStorage.setItem("user", JSON.stringify(user));
-        const redirectPath = getRedirectPath(user);
-        navigate(redirectPath);
+
+        // lưu token
+        if (result.tokens) {
+          localStorage.setItem("accessToken", result.tokens.accessToken);
+          localStorage.setItem("refreshToken", result.tokens.refreshToken);
+        }
+
+        navigate(getRedirectPath(user));
       }
     } catch (err) {
-      const message =
-        err.response?.data?.message || "Đã xảy ra lỗi, vui lòng thử lại";
-      setError(message);
+      setError(
+        err.response?.data?.message || "Đã xảy ra lỗi, vui lòng thử lại",
+      );
     } finally {
       setLoading(false);
     }
@@ -69,19 +87,20 @@ function Login() {
   const handleGoogleLoginSuccess = async (credentialResponse) => {
     setError("");
     setLoading(true);
+
     try {
-      // 🆕 Truyền thêm activeRole vào Google Login nếu backend cần biết user đăng nhập với vai trò gì
       const result = await authService.googleLogin(
         credentialResponse.credential,
-        activeRole,
       );
+
       if (result.success) {
-        console.log(">>> Toàn bộ dữ liệu trả về từ Backend:", result);
         const user = result.data;
 
         localStorage.setItem("user", JSON.stringify(user));
+
         if (result.tokens) {
           localStorage.setItem("accessToken", result.tokens.accessToken);
+
           localStorage.setItem("refreshToken", result.tokens.refreshToken);
         }
 
@@ -89,15 +108,11 @@ function Login() {
         navigate(redirectPath);
       }
     } catch (err) {
-      const message =
-        err.response?.data?.message ||
-        "Đã xảy ra lỗi khi đăng nhập bằng Google";
-      setError(message);
+      setError(err.response?.data?.message || "Đăng nhập Google thất bại");
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <div className="login-page bg-surface font-body-md text-on-surface min-h-screen relative overflow-hidden">
       {/* Hero Background Layer */}

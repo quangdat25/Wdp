@@ -1,8 +1,21 @@
 import axios from "axios";
 
 const request = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  withCredentials: true,
+  baseURL: "http://localhost:3000",
+});
+
+// Interceptor cho Request: Thêm Access Token vào Header
+request.interceptors.request.use((config) => {
+  const token = localStorage.getItem("accessToken");
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  // Bật withCredentials để tự động gửi cookie (nếu dùng cookie)
+  config.withCredentials = true;
+
+  return config;
 });
 
 // Interceptor cho Response: Xử lý tự động Refresh Token khi gặp lỗi 401
@@ -32,6 +45,8 @@ request.interceptors.response.use(
       } catch (refreshError) {
         // Nếu Refresh Token cũng chết -> Yêu cầu đăng nhập lại
         localStorage.removeItem("user");
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
         window.location.href = "/login";
         return Promise.reject(refreshError);
       }
