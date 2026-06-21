@@ -2,7 +2,7 @@ import request from "../config/request";
 
 const authService = {
   login: async (username, password) => {
-    const response = await request.post("/api/user/login", {
+    const response = await request.post("/api/users/login", {
       username,
       password,
     });
@@ -10,19 +10,19 @@ const authService = {
   },
 
   googleLogin: async (token) => {
-    const response = await request.post("/api/user/google-login", {
+    const response = await request.post("/api/users/google-login", {
       token,
     });
     return response.data;
   },
 
   logout: async () => {
-    const response = await request.post("/api/user/logout");
+    const response = await request.post("/api/users/logout");
     return response.data;
   },
 
   getMe: async () => {
-    const response = await request.get("/api/user/me");
+    const response = await request.get("/api/users/me");
     return response.data;
   },
 };

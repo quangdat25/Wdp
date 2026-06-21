@@ -17,63 +17,9 @@ import {
   FaUsersCog,
 } from "react-icons/fa";
 import "./ManagerDashboard.css";
+import Sidebar from "../../components/Sidebar";
+import Header from "../../components/Headers";
 
-const managerModules = [
-  {
-    id: "overview",
-    label: "Tổng quan",
-    icon: <FaChartPie />,
-    description: "Theo dõi nhanh tình trạng vận hành ký túc xá.",
-  },
-  {
-    id: "infrastructure",
-    label: "Tòa, phòng, giường",
-    icon: <FaBuilding />,
-    description: "Quản lý building, room, bed và trạng thái sử dụng.",
-  },
-  {
-    id: "bookings",
-    label: "Duyệt đặt phòng",
-    icon: <FaClipboardCheck />,
-    description: "Xử lý booking_requests theo học kỳ và giường trống.",
-  },
-  {
-    id: "residencies",
-    label: "Lưu trú",
-    icon: <FaDoorOpen />,
-    description: "Theo dõi sinh viên check-in, check-out và phòng đang ở.",
-  },
-  {
-    id: "billing",
-    label: "Hóa đơn, điện nước",
-    icon: <FaFileInvoiceDollar />,
-    description: "Quản lý invoices, utility_readings và thanh toán.",
-  },
-  {
-    id: "operations",
-    label: "Ticket vận hành",
-    icon: <FaTools />,
-    description: "Phân công maintenance, cleaning và theo dõi tiến độ.",
-  },
-  {
-    id: "violations",
-    label: "Vi phạm",
-    icon: <FaExclamationTriangle />,
-    description: "Ghi nhận nội quy, trừ điểm CFD và tiền phạt.",
-  },
-  {
-    id: "staffs",
-    label: "Nhân sự",
-    icon: <FaUsersCog />,
-    description: "Quản lý staff bảo vệ, vệ sinh và bảo trì theo manager.",
-  },
-  {
-    id: "settings",
-    label: "Thông báo, cài đặt",
-    icon: <FaSlidersH />,
-    description: "Thiết lập học kỳ, giá điện nước và thông báo.",
-  },
-];
 
 const buildings = [
   { name: "Dorm A", manager: "Ngô Quý Quang", floors: 6, rooms: 48, beds: 192, occupancy: 84, gender: "Nam" },
@@ -148,7 +94,6 @@ function ManagerDashboard() {
   const [activeModule, setActiveModule] = useState("overview");
   const [query, setQuery] = useState("");
 
-  const activeConfig = managerModules.find((item) => item.id === activeModule);
   const totalBeds = buildings.reduce((sum, building) => sum + building.beds, 0);
   const occupiedBeds = Math.round(
     buildings.reduce((sum, building) => sum + (building.beds * building.occupancy) / 100, 0)
@@ -164,60 +109,10 @@ function ManagerDashboard() {
 
   return (
     <div className="manager-shell">
-      <aside className="manager-sidebar">
-        <div>
-          <div className="manager-brand">
-            <div className="manager-brand__mark">
-              <FaHome />
-            </div>
-            <div>
-              <h1>FPT Dormitory</h1>
-              <p>Manager Workspace</p>
-            </div>
-          </div>
-
-          <nav className="manager-nav" aria-label="Manager navigation">
-            {managerModules.map((item) => (
-              <button
-                type="button"
-                key={item.id}
-                className={`manager-nav__item ${activeModule === item.id ? "is-active" : ""}`}
-                onClick={() => setActiveModule(item.id)}
-              >
-                <span className="manager-nav__icon">{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <div className="manager-profile">
-          <div className="manager-profile__avatar">QQ</div>
-          <div>
-            <strong>Ngô Quý Quang</strong>
-            <span>MANAGER</span>
-          </div>
-        </div>
-      </aside>
+      <Sidebar/>
 
       <main className="manager-main">
-        <header className="manager-topbar">
-          <div>
-            <span className="manager-kicker">Manager dashboard</span>
-            <h2>{activeConfig?.label}</h2>
-            <p>{activeConfig?.description}</p>
-          </div>
-          <div className="manager-topbar__actions">
-            <button type="button" className="manager-icon-button" aria-label="Thông báo">
-              <FaBell />
-              <span />
-            </button>
-            <button type="button" className="manager-primary-button">
-              <FaCalendarAlt />
-              Summer 2026
-            </button>
-          </div>
-        </header>
+        <Header/>
 
         {activeModule === "overview" && (
           <OverviewScreen

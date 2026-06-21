@@ -113,6 +113,10 @@ class UserController {
           role: actualRole,
           ...(actualRole === "staff" && { staffType: findUser.staffType }),
         },
+        tokens: {
+          accessToken,
+          refreshToken,
+        },
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -218,6 +222,10 @@ class UserController {
           email: findUser.email,
           username: findUser.username,
           role: findUser.role,
+        },
+        tokens: {
+          accessToken,
+          refreshToken,
         },
       });
     } catch (error) {

@@ -1,5 +1,10 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 import Header from "./components/Header/Header";
 import Footer from "./components/Footer/Footer";
 import HomePage from "./pages/HomePage/HomePage";
@@ -11,6 +16,7 @@ import StudentManagement from "./pages/Admin/StudentManagement";
 import PersonnelManagement from "./pages/Admin/PersonnelManagement";
 import NotificationManagement from "./pages/Admin/NotificationManagement";
 import RoomManagement from "./pages/Admin/RoomManagement";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
 
 import ManagerDashboard from "./pages/Manager/ManagerDashboard";
 import StudentDashboard from "./pages/Student/StudentDashboard";
@@ -19,29 +25,34 @@ import ParentDashboard from "./pages/Parent/ParentDashboard";
 import CleanerDashboard from "./pages/Staff/CleanerDashboard";
 import MaintenanceDashboard from "./pages/Staff/MaintenanceDashboard";
 import SecurityDashboard from "./pages/Staff/SecurityDashboard";
+import CreateTicket from "./pages/Student/CreateTicket";
+import MyTickets from "./pages/Student/MyTickets";
+import TicketManagement from "./pages/Manager/TicketManagement";
 
 function App() {
   const location = useLocation();
-  const isDashboardRoute =
-    location.pathname.startsWith("/student/dashboard") ||
-    location.pathname.startsWith("/parent/dashboard") ||
-    location.pathname.startsWith("/staff/dashboard") ||
-    location.pathname.startsWith("/admin") ||
-    location.pathname.startsWith("/manager/dashboard");
+  const isHomePage = location.pathname === "/";
 
   return (
     <div className="app">
-      {!isDashboardRoute && <Header />}
+      {isHomePage && <Header />}
       <main>
         <PageTransition>
           <Routes>
+            {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<Login />} />
+
+            {/* Admin Routes */}
+            <Route
+              path="/admin"
+              element={<Navigate to="/admin/dashboard" replace />}
+            />
             <Route 
-              path="/student/dashboard" 
+              path="/admin/dashboard" 
               element={
-                <ProtectedRoute allowedRoles={['student']}>
-                  <StudentDashboard />
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
                 </ProtectedRoute>
               } 
             />
@@ -58,6 +69,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <StudentManagement />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/buildings" 
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <RoomManagement />
                 </ProtectedRoute>
               } 
             />
@@ -118,10 +137,33 @@ function App() {
               } 
             />
 
+            {/* Student Routes */}
+            <Route path="/student/dashboard" element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <StudentDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/student/support/request" element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <CreateTicket />
+              </ProtectedRoute>
+            } />
+            <Route path="/student/my/tickets" element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <MyTickets/>
+              </ProtectedRoute>
+            } />
+
+            {/* Manager Routes */}
+            <Route path="/manager/tickets" element={
+              <ProtectedRoute allowedRoles={['manager']}>
+                <TicketManagement />
+              </ProtectedRoute>
+            } />
           </Routes>
         </PageTransition>
       </main>
-      {!isDashboardRoute && <Footer />}
+      {isHomePage && <Footer />}
     </div>
   );
 }
