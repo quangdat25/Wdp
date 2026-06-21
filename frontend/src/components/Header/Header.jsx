@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import logoImg from '../../assets/logo-removebg-preview.png';
 import './Header.css';
 
 function Header() {
@@ -20,16 +21,7 @@ function Header() {
         {/* Logo */}
         <Link to="/" className="header__logo" id="logo-link">
           <div className="header__logo-icon">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="2" y="2" width="16" height="16" rx="3" stroke="#4CAF50" strokeWidth="2.5" fill="none"/>
-              <rect x="22" y="2" width="16" height="16" rx="3" stroke="#e8601c" strokeWidth="2.5" fill="none"/>
-              <rect x="2" y="22" width="16" height="16" rx="3" stroke="#e8601c" strokeWidth="2.5" fill="none"/>
-              <rect x="22" y="22" width="16" height="16" rx="3" stroke="#4CAF50" strokeWidth="2.5" fill="none"/>
-              <circle cx="10" cy="10" r="3" fill="#4CAF50"/>
-              <circle cx="30" cy="10" r="3" fill="#e8601c"/>
-              <circle cx="10" cy="30" r="3" fill="#e8601c"/>
-              <circle cx="30" cy="30" r="3" fill="#4CAF50"/>
-            </svg>
+            <img src={logoImg} alt="Logo" width="40" height="40" style={{ objectFit: 'contain' }} />
           </div>
           <div className="header__logo-text">
             <span className="header__logo-title">On campus</span>
