@@ -22,7 +22,7 @@ class ViolationService {
       securityId,
       reason,
       location,
-      building: securityBuilding,
+      building: securityBuilding || student.building || "Unknown",
       status: "PENDING",
     });
 
