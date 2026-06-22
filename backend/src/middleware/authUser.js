@@ -3,9 +3,15 @@ const userModel = require("../models/user.model");
 
 const authUser = async (req, res, next) => {
   try {
-    const { accessToken, refreshToken, logged } = req.cookies;
+    let accessToken = req.cookies.accessToken;
 
-    if ((logged && !accessToken) || (!logged && accessToken)) {
+    if (!accessToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+      accessToken = req.headers.authorization.split(" ")[1];
+    }
+
+    const { refreshToken, logged } = req.cookies;
+
+    if (req.cookies.logged && ((logged && !req.cookies.accessToken) || (!logged && req.cookies.accessToken))) {
       res.clearCookie("logged");
       res.clearCookie("accessToken");
       res.clearCookie("refreshToken");
@@ -45,7 +51,11 @@ const authUser = async (req, res, next) => {
 
 const authAdmin = async (req, res, next) => {
   try {
-    const { accessToken } = req.cookies;
+    let accessToken = req.cookies.accessToken;
+
+    if (!accessToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+      accessToken = req.headers.authorization.split(" ")[1];
+    }
 
     if (!accessToken) {
       return res.status(401).json({
