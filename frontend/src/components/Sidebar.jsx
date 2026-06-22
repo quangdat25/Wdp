@@ -10,6 +10,10 @@ import {
   FaBell,
   FaLifeRing,
   FaClipboardList,
+  FaWrench,
+  FaShieldAlt,
+  FaPlusCircle,
+  FaSearch,
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -22,7 +26,10 @@ function Sidebar() {
   const user = JSON.parse(localStorage.getItem("user"));
   const role = user?.role;
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => {
+    const currentFull = location.pathname + location.search;
+    return currentFull === path || (path === location.pathname && location.search === "");
+  };
 
   const menuStyle = (path) => ({
     border: "none",
@@ -129,6 +136,25 @@ function Sidebar() {
       },
     ],
 
+    cleaning: [
+      { path: "/staff/dashboard/cleaning", label: "Trang chủ", icon: <FaChartPie /> },
+      { path: "/staff/dashboard/cleaning?tab=Dọn dẹp phòng", label: "Dọn dẹp phòng", icon: <FaClipboardList /> },
+      { path: "/staff/dashboard/cleaning?tab=Sự cố kỹ thuật", label: "Sự cố kỹ thuật", icon: <FaTools /> },
+    ],
+
+    maintenance: [
+      { path: "/staff/dashboard/maintenance", label: "Trang chủ", icon: <FaChartPie /> },
+      { path: "/staff/dashboard/maintenance?tab=Danh sách sự cố", label: "Danh sách sự cố", icon: <FaWrench /> },
+      { path: "/staff/dashboard/maintenance?tab=Lập phiếu sự cố", label: "Lập phiếu sự cố", icon: <FaPlusCircle /> },
+    ],
+
+    security: [
+      { path: "/staff/dashboard/security", label: "Trang chủ", icon: <FaChartPie /> },
+      { path: "/staff/dashboard/security?tab=Lịch sử ra vào", label: "Lịch sử ra vào", icon: <FaShieldAlt /> },
+      { path: "/staff/dashboard/security?tab=Lập biên bản", label: "Lập biên bản", icon: <FaPlusCircle /> },
+      { path: "/staff/dashboard/security?tab=Tìm kiếm sinh viên", label: "Tìm kiếm sinh viên", icon: <FaSearch /> },
+    ],
+
     student: [
       {
         path: "/student/dashboard",
@@ -196,7 +222,7 @@ function Sidebar() {
     ],
   };
 
-  const menus = menusByRole[role] || [];
+  const menus = menusByRole[role === "staff" && user?.staffType ? user.staffType : role] || menusByRole[role] || [];
 
   const handleLogout = async () => {
     try {

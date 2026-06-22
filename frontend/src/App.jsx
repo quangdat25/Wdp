@@ -21,7 +21,7 @@ import ManagerDashboard from "./pages/Manager/ManagerDashboard";
 import StudentDashboard from "./pages/Student/StudentDashboard";
 import ParentDashboard from "./pages/Parent/ParentDashboard";
 
-import CleanerDashboard from "./pages/Staff/CleanerDashboard";
+import CleanerDashboard from "./pages/Staff/CleaningDashboard";
 import MaintenanceDashboard from "./pages/Staff/MaintenanceDashboard";
 import SecurityDashboard from "./pages/Staff/SecurityDashboard";
 import CreateTicket from "./pages/Student/CreateTicket";
@@ -42,58 +42,58 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<Login />} />
 
-              {/* Admin Routes */}
-              <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
-                <Route
-                  path="/admin"
-                  element={<Navigate to="/admin/dashboard" replace />}
-                />
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                <Route path="/admin/students" element={<StudentManagement />} />
-                <Route
-                  path="/admin/personnel"
-                  element={<PersonnelManagement />}
-                />
-                <Route
-                  path="/admin/notifications"
-                  element={<NotificationManagement />}
-                />
-              </Route>
+            {/* Admin Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+              <Route
+                path="/admin"
+                element={<Navigate to="/admin/dashboard" replace />}
+              />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/students" element={<StudentManagement />} />
+              <Route
+                path="/admin/personnel"
+                element={<PersonnelManagement />}
+              />
+              <Route
+                path="/admin/notifications"
+                element={<NotificationManagement />}
+              />
+            </Route>
 
-              {/* Student Routes */}
-              <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
-                <Route path="/student/dashboard" element={<StudentDashboard />} />
-                <Route path="/student/support/request" element={<CreateTicket />} />
-                <Route path="/student/my/tickets" element={<MyTickets />} />
-              </Route>
+            {/* Student Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
+              <Route path="/student/dashboard" element={<StudentDashboard />} />
+              <Route path="/student/support/request" element={<CreateTicket />} />
+              <Route path="/student/my/tickets" element={<MyTickets />} />
+            </Route>
 
-              {/* Parent Routes */}
-              <Route element={<ProtectedRoute allowedRoles={["parent"]} />}>
-                <Route path="/parent/dashboard" element={<ParentDashboard />} />
-              </Route>
+            {/* Parent Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["parent"]} />}>
+              <Route path="/parent/dashboard" element={<ParentDashboard />} />
+            </Route>
 
-              {/* Manager Routes */}
-              <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
-                <Route path="/manager/dashboard" element={<ManagerDashboard />} />
-                <Route path="/manager/tickets" element={<TicketManagement />} />
-              </Route>
+            {/* Manager Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
+              <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+              <Route path="/manager/tickets" element={<TicketManagement />} />
+            </Route>
 
-              {/* Staff Routes */}
-              <Route element={<ProtectedRoute allowedRoles={["staff"]} />}>
-                <Route
-                  path="/staff/dashboard/cleaner"
-                  element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["cleaner"]}><CleanerDashboard /></ProtectedRoute>}
-                />
-                <Route
-                  path="/staff/dashboard/maintenance"
-                  element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["maintenance"]}><MaintenanceDashboard /></ProtectedRoute>}
-                />
-                <Route
-                  path="/staff/dashboard/security"
-                  element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["security"]}><SecurityDashboard /></ProtectedRoute>}
-                />
-              </Route>
-            </Routes>
+            {/* Staff Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["staff"]} />}>
+              <Route
+                path="/staff/dashboard/cleaner"
+                element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["cleaner"]}><CleanerDashboard /></ProtectedRoute>}
+              />
+              <Route
+                path="/staff/dashboard/maintenance"
+                element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["maintenance"]}><MaintenanceDashboard /></ProtectedRoute>}
+              />
+              <Route
+                path="/staff/dashboard/security"
+                element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["security"]}><SecurityDashboard /></ProtectedRoute>}
+              />
+            </Route>
+          </Routes>
         </PageTransition>
       </main>
       {isHomePage && <Footer />}

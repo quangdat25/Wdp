@@ -7,11 +7,11 @@ const {
   deleteMyTicket,
 } = require("../controllers/ticket.controller");
 
-const { verifyToken, authorizeRoles } = require("../middleware/checkAuth");
+const { authenticate, authorize } = require("../middleware/authUser");
 
-router.post("/", verifyToken, authorizeRoles("student"), createTicket);
+router.post("/", authenticate, authorize("student"), createTicket);
 
-router.get("/my", verifyToken, authorizeRoles("student"), getMyTickets);
+router.get("/my", authenticate, authorize("student"), getMyTickets);
 
-router.delete("/my/:id", verifyToken, authorizeRoles("student"), deleteMyTicket);
+router.delete("/my/:id", authenticate, authorize("student"), deleteMyTicket);
 module.exports = router;

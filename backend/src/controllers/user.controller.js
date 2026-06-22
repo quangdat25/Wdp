@@ -1,15 +1,7 @@
 const bcrypt = require("bcryptjs");
 const userModel = require("../models/user.model");
 const jwt = require("jsonwebtoken");
-<<<<<<< HEAD
 const { generateAccessToken, generateRefreshToken, verifyTokenGoogle, verifyToken } = require("../utils/jwt.util");
-=======
-const {
-  createAccessToken,
-  createRefreshToken,
-  verifyTokenGoogle,
-} = require("../auth/checkAuth");
->>>>>>> df5bb308fc8e2e311a0510108beb6391bde340da
 
 function setCookie(res, accessToken, refreshToken) {
   const isProduction = process.env.NODE_ENV === "production";
