@@ -14,7 +14,7 @@ import {
 
 import { useNavigate, useLocation } from "react-router-dom";
 import authService from "../api/authService";
-
+import { showSuccess } from "../components/Alert";
 function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -208,6 +208,7 @@ function Sidebar() {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       navigate("/");
+      showSuccess("Đăng xuất thành công");
     }
   };
 
