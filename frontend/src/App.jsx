@@ -15,6 +15,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import StudentManagement from "./pages/Admin/StudentManagement";
 import PersonnelManagement from "./pages/Admin/PersonnelManagement";
 import NotificationManagement from "./pages/Admin/NotificationManagement";
+import RoomManagement from "./pages/Admin/RoomManagement";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 
 import ManagerDashboard from "./pages/Manager/ManagerDashboard";
@@ -58,6 +59,8 @@ function App() {
                 path="/admin/notifications"
                 element={<NotificationManagement />}
               />
+              <Route path="/admin/buildings" element={<RoomManagement />} />
+              <Route path="/admin/rooms" element={<RoomManagement />} />
             </Route>
 
             {/* Student Routes */}

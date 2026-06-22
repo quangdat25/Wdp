@@ -59,6 +59,11 @@ function Sidebar() {
         icon: <FaChartPie />,
       },
       {
+        path: "/admin/rooms",
+        label: "Quản lý phòng ở",
+        icon: <FaBed />,
+      },
+      {
         path: "/admin/students",
         label: "Quản lý sinh viên",
         icon: <FaUserGraduate />,
