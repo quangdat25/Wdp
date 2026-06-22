@@ -6,7 +6,7 @@ const authenticate = async (req, res, next) => {
   try {
     // Lấy accessToken từ cookie hoặc từ Header Authorization (Bearer token)
     let accessToken = req.cookies?.accessToken;
-    
+
     if (!accessToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
       accessToken = req.headers.authorization.split(" ")[1];
     }
@@ -54,28 +54,12 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-<<<<<<< HEAD
 // 2. Middleware phân quyền: Dùng cho các role/staffType cụ thể
 const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     // req.user đã được gán từ middleware authenticate trước đó
     if (!req.user) {
       return res.status(401).json({ success: false, message: "Chưa xác thực" });
-=======
-const authAdmin = async (req, res, next) => {
-  try {
-    let accessToken = req.cookies.accessToken;
-
-    if (!accessToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
-      accessToken = req.headers.authorization.split(" ")[1];
-    }
-
-    if (!accessToken) {
-      return res.status(401).json({
-        success: false,
-        message: "Vui lòng đăng nhập lại",
-      });
->>>>>>> 421bfabf84c862c772a7601aa3044046329779de
     }
 
     const { role, staffType } = req.user;
