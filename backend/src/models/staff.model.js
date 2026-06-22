@@ -31,10 +31,9 @@ const staffSchema = new mongoose.Schema({
     type: Date,
   },
 
-  building: {
-    type: String,
-    default: "",
-    trim: true,
+  buildingId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Building",
   },
 });
 

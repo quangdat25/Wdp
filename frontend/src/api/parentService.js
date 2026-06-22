@@ -1,4 +1,4 @@
-import request from "../config/request";
+import request from "../config/axiosConfig";
 
 export const getMyChildRoom = async () => {
   const res = await request.get("/api/parents/my-child-room");

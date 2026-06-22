@@ -57,15 +57,13 @@ const studentSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
-  building: {
-    type: String,
-    default: "",
-    trim: true,
+  buildingId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Building",
   },
-  room: {
-    type: String,
-    default: "",
-    trim: true,
+  roomId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Room",
   },
   parent: parentSchema,
 });

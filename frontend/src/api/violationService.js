@@ -19,3 +19,8 @@ export const rejectViolation = async (id) => {
   const response = await request.put(`/api/violations/${id}/reject`);
   return response.data;
 };
+
+export const revokeViolation = async (id, revokeReason) => {
+  const response = await request.put(`/api/violations/${id}/revoke`, { revokeReason });
+  return response.data;
+};

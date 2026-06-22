@@ -37,4 +37,12 @@ router.put(
   asyncHandler(violationController.rejectViolation)
 );
 
+// 5. Thu hồi vi phạm (Manager/Admin)
+router.put(
+  "/:id/revoke",
+  authenticate,
+  authorize("manager", "admin"),
+  asyncHandler(violationController.revokeViolation)
+);
+
 module.exports = router;
