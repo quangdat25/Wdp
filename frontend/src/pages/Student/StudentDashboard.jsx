@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaPhoneAlt,
   FaEnvelope,
@@ -10,6 +11,7 @@ import {
   FaBolt,
   FaWater,
   FaCalendarAlt,
+  FaChartPie,
 } from "react-icons/fa";
 
 import "./StudentDashboard.css";
@@ -36,24 +38,15 @@ const newsItems = [
 ];
 
 const studentModules = [
-  {
-    id: "booking",
-    label: "Đặt phòng",
-    icon: <FaBed />,
-  },
-  {
-    id: "room-history",
-    label: "Lịch sử phòng",
-    icon: <FaBed />,
-  },
-  {
-    id: "news",
-    label: "Tin tức",
-    icon: <FaCalendarAlt />,
-  },
+  { id: "home", title: "Trang chủ", label: "Trang chủ", icon: <FaChartPie /> },
+  { id: "booking", title: "Đặt phòng ký túc xá", label: "Đặt phòng", icon: <FaBed /> },
+  { id: "room-history", title: "Lịch sử ở phòng", label: "Lịch sử phòng", icon: <FaBed /> },
+  { id: "news", title: "Tin tức mới nhất", label: "Tin tức", icon: <FaCalendarAlt /> },
 ];
 
 function StudentDashboard() {
+  const navigate = useNavigate();
+  const toastTimerRef = useRef(null);
   const [activeModule, setActiveModule] = useState("home");
   const [hasBooked] = useState(false);
 

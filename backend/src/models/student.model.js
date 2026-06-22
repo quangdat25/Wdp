@@ -57,6 +57,16 @@ const studentSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  building: {
+    type: String,
+    default: "",
+    trim: true,
+  },
+  room: {
+    type: String,
+    default: "",
+    trim: true,
+  },
   parent: parentSchema,
 });
 module.exports = User.discriminator("student", studentSchema);

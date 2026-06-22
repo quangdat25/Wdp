@@ -23,12 +23,13 @@ import StudentDashboard from "./pages/Student/StudentDashboard";
 import ParentDashboard from "./pages/Parent/ParentDashboard";
 import ParentStudentInfo from "./pages/Parent/ParentStudentInfo";
 
-import CleanerDashboard from "./pages/Staff/CleanerDashboard";
+import CleanerDashboard from "./pages/Staff/CleaningDashboard";
 import MaintenanceDashboard from "./pages/Staff/MaintenanceDashboard";
 import SecurityDashboard from "./pages/Staff/SecurityDashboard";
 import CreateTicket from "./pages/Student/CreateTicket";
 import MyTickets from "./pages/Student/MyTickets";
 import TicketManagement from "./pages/Manager/TicketManagement";
+import ViolationManagement from "./pages/Manager/ViolationManagement";
 
 function App() {
   const location = useLocation();
@@ -45,130 +46,60 @@ function App() {
             <Route path="/login" element={<Login />} />
 
             {/* Admin Routes */}
-            <Route
-              path="/admin"
-              element={<Navigate to="/admin/dashboard" replace />}
-            />
-            <Route
-              path="/admin/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/parent/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['parent']}>
-                  <ParentDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/parent/student"
-              element={
-                <ProtectedRoute allowedRoles={['parent']}>
-                  <ParentStudentInfo />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/students"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <StudentManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/buildings"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <RoomManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/manager/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['manager']}>
-                  <ManagerDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/personnel"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <PersonnelManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/notifications"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <NotificationManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/rooms"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <RoomManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/staff/dashboard/cleaner"
-              element={
-                <ProtectedRoute allowedRoles={['staff']} allowedStaffTypes={['cleaner']}>
-                  <CleanerDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/staff/dashboard/maintenance"
-              element={
-                <ProtectedRoute allowedRoles={['staff']} allowedStaffTypes={['maintenance']}>
-                  <MaintenanceDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/staff/dashboard/security"
-              element={
-                <ProtectedRoute allowedRoles={['staff']} allowedStaffTypes={['security']}>
-                  <SecurityDashboard />
-                </ProtectedRoute>
-              }
-            />
+            <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+              <Route
+                path="/admin"
+                element={<Navigate to="/admin/dashboard" replace />}
+              />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/students" element={<StudentManagement />} />
+              <Route
+                path="/admin/personnel"
+                element={<PersonnelManagement />}
+              />
+              <Route
+                path="/admin/notifications"
+                element={<NotificationManagement />}
+              />
+              <Route path="/admin/buildings" element={<RoomManagement />} />
+              <Route path="/admin/rooms" element={<RoomManagement />} />
+            </Route>
 
             {/* Student Routes */}
-            <Route path="/student/dashboard" element={
-              <ProtectedRoute allowedRoles={['student']}>
-                <StudentDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/student/support/request" element={
-              <ProtectedRoute allowedRoles={['student']}>
-                <CreateTicket />
-              </ProtectedRoute>
-            } />
-            <Route path="/student/my/tickets" element={
-              <ProtectedRoute allowedRoles={['student']}>
-                <MyTickets />
-              </ProtectedRoute>
-            } />
+            <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
+              <Route path="/student/dashboard" element={<StudentDashboard />} />
+              <Route path="/student/support/request" element={<CreateTicket />} />
+              <Route path="/student/my/tickets" element={<MyTickets />} />
+            </Route>
+
+            {/* Parent Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["parent"]} />}>
+              <Route path="/parent/dashboard" element={<ParentDashboard />} />
+              <Route path="/parent/student" element={<ParentStudentInfo />} />
+            </Route>
 
             {/* Manager Routes */}
-            <Route path="/manager/tickets" element={
-              <ProtectedRoute allowedRoles={['manager']}>
-                <TicketManagement />
-              </ProtectedRoute>
-            } />
+            <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
+              <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+              <Route path="/manager/tickets" element={<TicketManagement />} />
+              <Route path="/manager/violations" element={<ViolationManagement />} />
+            </Route>
+
+            {/* Staff Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["staff"]} />}>
+              <Route
+                path="/staff/dashboard/cleaner"
+                element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["cleaner"]}><CleanerDashboard /></ProtectedRoute>}
+              />
+              <Route
+                path="/staff/dashboard/maintenance"
+                element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["maintenance"]}><MaintenanceDashboard /></ProtectedRoute>}
+              />
+              <Route
+                path="/staff/dashboard/security/*"
+                element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["security"]}><SecurityDashboard /></ProtectedRoute>}
+              />
+            </Route>
           </Routes>
         </PageTransition>
       </main>

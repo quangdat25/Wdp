@@ -24,6 +24,11 @@ const managerSchema = new mongoose.Schema({
     type: Date,
   },
 
+  building: {
+    type: String,
+    default: "",
+    trim: true,
+  },
 });
 
 module.exports = User.discriminator("manager", managerSchema);

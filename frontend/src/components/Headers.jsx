@@ -4,7 +4,14 @@ import { FaBell, FaTimes } from "react-icons/fa";
 import { getMyNotifications, markAsRead } from "../api/notificationService";
 import { socket } from "../socket";
 
-function Header({ avatarText = "A" }) {
+function Header({ 
+  avatarText = "A", 
+  title = null, 
+  bgGradient = null, 
+  borderColor = null, 
+  shadowColor = null,
+  titleColor = "#0F172A"
+}) {
   const toastTimerRef = useRef(null);
 
   const [showNotificationModal, setShowNotificationModal] = useState(false);
@@ -67,6 +74,7 @@ function Header({ avatarText = "A" }) {
 
   useEffect(() => {
     if (!socket.connected) {
+      socket.auth = { token: localStorage.getItem("accessToken") };
       socket.connect();
     }
 
@@ -125,7 +133,7 @@ function Header({ avatarText = "A" }) {
           width: "100%",
           minHeight: 72,
           display: "flex",
-          justifyContent: "flex-end",
+          justifyContent: title ? "space-between" : "flex-end",
           alignItems: "center",
           padding: "14px 24px",
           marginBottom: 24,
@@ -133,13 +141,17 @@ function Header({ avatarText = "A" }) {
           position: "sticky",
           top: 0,
           zIndex: 1000,
-          background:
-            "linear-gradient(135deg, rgba(52,211,153,0.16), rgba(34,197,94,0.12), rgba(22,163,74,0.10))",
-          border: "1px solid rgba(22,163,74,0.18)",
-          boxShadow: "0 14px 35px rgba(22, 163, 74, 0.08)",
+          background: bgGradient || "linear-gradient(135deg, rgba(52,211,153,0.16), rgba(34,197,94,0.12), rgba(22,163,74,0.10))",
+          border: `1px solid ${borderColor || "rgba(22,163,74,0.18)"}`,
+          boxShadow: `0 14px 35px ${shadowColor || "rgba(22, 163, 74, 0.08)"}`,
           boxSizing: "border-box",
         }}
       >
+        {title && (
+          <h1 style={{ fontSize: 28, color: titleColor, fontWeight: 800, margin: 0 }}>
+            {title}
+          </h1>
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <button
             type="button"

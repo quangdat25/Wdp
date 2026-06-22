@@ -9,40 +9,40 @@ const {
   getStaffList,
 } = require("../controllers/ticketManagement.controller");
 
-const { verifyToken, authorizeRoles } = require("../middleware/checkAuth");
+const { authenticate, authorize } = require("../middleware/authUser");
 
 router.get(
   "/",
-  verifyToken,
-  authorizeRoles("admin", "manager"),
+  authenticate,
+  authorize("admin", "manager"),
   getAllTickets
 );
 
 router.get(
   "/staff",
-  verifyToken,
-  authorizeRoles("admin", "manager"),
+  authenticate,
+  authorize("admin", "manager"),
   getStaffList
 );
 
 router.patch(
   "/:ticketId/approve",
-  verifyToken,
-  authorizeRoles("admin", "manager"),
+  authenticate,
+  authorize("admin", "manager"),
   approveTicket
 );
 
 router.patch(
   "/:ticketId/reject",
-  verifyToken,
-  authorizeRoles("admin", "manager"),
+  authenticate,
+  authorize("admin", "manager"),
   rejectTicket
 );
 
 router.patch(
   "/:ticketId/assign",
-  verifyToken,
-  authorizeRoles("admin", "manager"),
+  authenticate,
+  authorize("admin", "manager"),
   assignTicket
 );
 
