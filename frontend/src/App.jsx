@@ -21,6 +21,7 @@ import AdminDashboard from "./pages/Admin/AdminDashboard";
 import ManagerDashboard from "./pages/Manager/ManagerDashboard";
 import StudentDashboard from "./pages/Student/StudentDashboard";
 import ParentDashboard from "./pages/Parent/ParentDashboard";
+import ParentStudentInfo from "./pages/Parent/ParentStudentInfo";
 
 import CleanerDashboard from "./pages/Staff/CleaningDashboard";
 import MaintenanceDashboard from "./pages/Staff/MaintenanceDashboard";
@@ -74,6 +75,7 @@ function App() {
             {/* Parent Routes */}
             <Route element={<ProtectedRoute allowedRoles={["parent"]} />}>
               <Route path="/parent/dashboard" element={<ParentDashboard />} />
+              <Route path="/parent/student" element={<ParentStudentInfo />} />
             </Route>
 
             {/* Manager Routes */}

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getMyChildRoom } from "../../api/parentService";
 import {
   FaBed,
   FaCalendarAlt,
@@ -48,6 +49,24 @@ const parentModules = [
 
 function ParentDashboard() {
   const [activeModule, setActiveModule] = useState("home");
+  const [childData, setChildData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchChildData = async () => {
+      try {
+        const data = await getMyChildRoom();
+        if (data && data.success) {
+          setChildData(data.data);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải thông tin:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchChildData();
+  }, []);
 
   const activeConfig =
     parentModules.find((item) => item.id === activeModule) || {
@@ -58,12 +77,11 @@ function ParentDashboard() {
   return (
     <div className="parent-shell">
       <Sidebar />
-
       <main className="parent-main">
         <Header avatarText="P" />
 
         {activeModule === "home" && (
-          <HomeScreen setActiveModule={setActiveModule} />
+          <HomeScreen setActiveModule={setActiveModule} childData={childData} loading={loading} />
         )}
 
         {activeModule !== "home" && (
@@ -78,7 +96,24 @@ function ParentDashboard() {
   );
 }
 
-function HomeScreen({ setActiveModule }) {
+function HomeScreen({ setActiveModule, childData, loading }) {
+  if (loading) {
+    return (
+      <div className="parent-stack">
+        <div className="parent-placeholder" style={{ backgroundColor: "var(--bg-card)", padding: "2rem", borderRadius: "12px", border: "1px solid var(--border-color)" }}>
+          <h3>Đang tải dữ liệu của con...</h3>
+        </div>
+      </div>
+    );
+  }
+
+  const roomText = childData
+    ? `${childData.room.roomNumber} – ${childData.building.name}`
+    : "Chưa xếp phòng";
+  const bedText = childData
+    ? `Giường số ${childData.bedNumber} · Đang hoạt động`
+    : "Vui lòng liên hệ BQL";
+
   return (
     <div className="parent-stack">
       <div className="parent-room-banner">
@@ -88,8 +123,8 @@ function HomeScreen({ setActiveModule }) {
           </div>
 
           <div className="parent-room-banner__text">
-            <strong>Phòng của con: 302 – Tòa A1</strong>
-            <span>Giường số 2 · Summer 2026 · Đang hoạt động</span>
+            <strong>Phòng của con: {roomText}</strong>
+            <span>{bedText}</span>
           </div>
         </div>
 
@@ -106,8 +141,8 @@ function HomeScreen({ setActiveModule }) {
         <MetricCard
           icon={<FaBed />}
           label="Phòng của con"
-          value="302 – A1"
-          note="Đang lưu trú"
+          value={childData ? `${childData.room.roomNumber} – ${childData.building.name}` : "N/A"}
+          note={childData ? "Đang lưu trú" : ""}
           tone="purple"
         />
 
@@ -130,7 +165,7 @@ function HomeScreen({ setActiveModule }) {
         <MetricCard
           icon={<FaStar />}
           label="Điểm ý thức"
-          value="96"
+          value={childData ? childData.student.CFDScore : "N/A"}
           note="CFD Score của con"
           tone="green"
         />
