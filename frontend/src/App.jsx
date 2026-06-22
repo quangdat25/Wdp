@@ -28,6 +28,7 @@ import SecurityDashboard from "./pages/Staff/SecurityDashboard";
 import CreateTicket from "./pages/Student/CreateTicket";
 import MyTickets from "./pages/Student/MyTickets";
 import TicketManagement from "./pages/Manager/TicketManagement";
+import ViolationManagement from "./pages/Manager/ViolationManagement";
 
 function App() {
   const location = useLocation();
@@ -79,6 +80,7 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
               <Route path="/manager/dashboard" element={<ManagerDashboard />} />
               <Route path="/manager/tickets" element={<TicketManagement />} />
+              <Route path="/manager/violations" element={<ViolationManagement />} />
             </Route>
 
             {/* Staff Routes */}
@@ -92,7 +94,7 @@ function App() {
                 element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["maintenance"]}><MaintenanceDashboard /></ProtectedRoute>}
               />
               <Route
-                path="/staff/dashboard/security"
+                path="/staff/dashboard/security/*"
                 element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["security"]}><SecurityDashboard /></ProtectedRoute>}
               />
             </Route>

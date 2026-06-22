@@ -117,6 +117,11 @@ function Sidebar() {
         icon: <FaClipboardList />,
       },
       {
+        path: "/manager/violations",
+        label: "Quản lý Kỷ luật",
+        icon: <FaShieldAlt />,
+      },
+      {
         path: "/manager/notifications",
         label: "Thông báo",
         icon: <FaBell />,
@@ -155,9 +160,9 @@ function Sidebar() {
 
     security: [
       { path: "/staff/dashboard/security", label: "Trang chủ", icon: <FaChartPie /> },
-      { path: "/staff/dashboard/security?tab=Lịch sử ra vào", label: "Lịch sử ra vào", icon: <FaShieldAlt /> },
-      { path: "/staff/dashboard/security?tab=Lập biên bản", label: "Lập biên bản", icon: <FaPlusCircle /> },
-      { path: "/staff/dashboard/security?tab=Tìm kiếm sinh viên", label: "Tìm kiếm sinh viên", icon: <FaSearch /> },
+      { path: "/staff/dashboard/security/history", label: "Lịch sử ra vào", icon: <FaShieldAlt /> },
+      { path: "/staff/dashboard/security/create-report", label: "Lập biên bản", icon: <FaPlusCircle /> },
+      { path: "/staff/dashboard/security/search", label: "Tìm kiếm sinh viên", icon: <FaSearch /> },
     ],
 
     student: [

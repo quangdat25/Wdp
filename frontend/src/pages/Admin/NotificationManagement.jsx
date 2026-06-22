@@ -68,19 +68,19 @@ function NotificationManagement() {
       const payload =
         receiver === "all"
           ? {
-              title,
-              content,
-              targetType: "all",
-              targetRoles: [],
-              targetUsers: [],
-            }
+            title,
+            content,
+            targetType: "all",
+            targetRoles: [],
+            targetUsers: [],
+          }
           : {
-              title,
-              content,
-              targetType: "roles",
-              targetRoles: [receiver],
-              targetUsers: [],
-            };
+            title,
+            content,
+            targetType: "roles",
+            targetRoles: [receiver],
+            targetUsers: [],
+          };
 
       const res = await createNotification(payload);
 
