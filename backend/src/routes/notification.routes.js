@@ -16,3 +16,4 @@ router.get("/:id", verifyToken, notificationController.getNotificationById);
 router.delete("/:id", verifyToken, notificationController.deleteNotification);
 
 module.exports = router;
+    

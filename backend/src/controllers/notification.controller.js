@@ -1,24 +1,51 @@
 const Notification = require("../models/notification.model");
 const NotificationReceipt = require("../models/notificationReceipt.model");
+const Student = require("../models/student.model");
 const { getIO } = require("../socket");
 
 class NotificationController {
   async createNotification(req, res) {
     try {
-      const { title, content, targetType, targetRoles, targetUsers } = req.body;
+      const {
+        title,
+        content,
+        targetType,
+        targetRoles,
+        targetUsers,
+        studentCode,
+      } = req.body;
+
+      let finalTargetType = targetType;
+      let finalTargetUsers = targetUsers || [];
+
+      if (targetType === "studentCode") {
+        const student = await Student.findOne({
+          studentCode: studentCode?.trim(),
+        });
+
+        if (!student) {
+          return res.status(404).json({
+            success: false,
+            message: "Không tìm thấy sinh viên với mã này",
+          });
+        }
+
+        finalTargetType = "users";
+        finalTargetUsers = [student._id];
+      }
 
       const notification = await Notification.create({
         title,
         content,
-        targetType,
+        targetType: finalTargetType,
         targetRoles: targetRoles || [],
-        targetUsers: targetUsers || [],
+        targetUsers: finalTargetUsers,
         senderId: req.user?.id,
       });
 
       const io = getIO();
 
-      switch (targetType) {
+      switch (finalTargetType) {
         case "all":
           io.to("all").emit("new_notification", notification);
           break;
@@ -30,7 +57,7 @@ class NotificationController {
           break;
 
         case "users":
-          (targetUsers || []).forEach((userId) => {
+          finalTargetUsers.forEach((userId) => {
             io.to(`user:${userId}`).emit("new_notification", notification);
           });
           break;

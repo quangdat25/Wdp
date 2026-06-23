@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Pagination } from "antd";
 import {
   getAllTicketsForManagement,
   getStaffList,
@@ -49,6 +50,9 @@ function TicketManagement() {
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+
   const fetchTickets = async () => {
     try {
       setLoading(true);
@@ -83,6 +87,20 @@ function TicketManagement() {
     if (statusFilter === "all") return tickets;
     return tickets.filter((ticket) => ticket.status === statusFilter);
   }, [tickets, statusFilter]);
+
+  const paginatedTickets = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredTickets.slice(start, start + pageSize);
+  }, [filteredTickets, currentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredTickets.length / pageSize));
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, filteredTickets.length, pageSize]);
 
   const formatDate = (date) => {
     if (!date) return "Chưa có";
@@ -186,9 +204,16 @@ function TicketManagement() {
 
         <section className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-lg">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-xl font-extrabold text-slate-800">
-              Danh sách yêu cầu
-            </h2>
+            <div>
+              <h2 className="text-xl font-extrabold text-slate-800">
+                Danh sách yêu cầu
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {loading
+                  ? "Đang tải dữ liệu..."
+                  : `Hiển thị ${filteredTickets.length} yêu cầu`}
+              </p>
+            </div>
 
             <select
               value={statusFilter}
@@ -241,7 +266,7 @@ function TicketManagement() {
                     </td>
                   </tr>
                 ) : (
-                  filteredTickets.map((ticket) => (
+                  paginatedTickets.map((ticket) => (
                     <tr key={ticket._id} className="hover:bg-slate-50">
                       <TableCell>
                         <div className="font-bold text-slate-800">
@@ -302,6 +327,26 @@ function TicketManagement() {
               </tbody>
             </table>
           </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginTop: 20,
+            }}
+          >
+            <Pagination
+              current={currentPage}
+              total={filteredTickets.length}
+              pageSize={pageSize}
+              showSizeChanger
+              pageSizeOptions={["5", "10", "20", "50"]}
+              onChange={(page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              }}
+            />
+          </div>
         </section>
       </main>
 
@@ -347,14 +392,6 @@ function TicketDetailModal({
             </h2>
             <p className="mt-1 text-sm text-slate-500">{ticket.title}</p>
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xl font-bold text-slate-600 hover:bg-red-100 hover:text-red-600"
-          >
-            ×
-          </button>
         </div>
 
         <div className="max-h-[72vh] overflow-y-auto px-6 py-5">

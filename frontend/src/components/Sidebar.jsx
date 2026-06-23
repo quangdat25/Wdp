@@ -100,11 +100,6 @@ function Sidebar() {
         icon: <FaUserGraduate />,
       },
       {
-        path: "/manager/rooms",
-        label: "Quản lý phòng",
-        icon: <FaBed />,
-      },
-      {
         path: "/manager/tickets",
         label: "Quản lý yêu cầu",
         icon: <FaClipboardList />,
@@ -151,14 +146,9 @@ function Sidebar() {
         icon: <FaMoneyBillWave />,
       },
       {
-        path: "/student/requests",
-        label: "Yêu cầu",
-        icon: <FaTools />,
-      },
-      {
         path: "/student/support/request",
         label: "Gửi yêu cầu hỗ trợ",
-        icon: <FaLifeRing />,
+        icon: <FaTools />,
       },
       {
         path: "/student/my/tickets",
