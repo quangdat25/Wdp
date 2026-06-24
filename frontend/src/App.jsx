@@ -23,7 +23,7 @@ import StudentDashboard from "./pages/Student/StudentDashboard";
 import ParentDashboard from "./pages/Parent/ParentDashboard";
 import ParentStudentInfo from "./pages/Parent/ParentStudentInfo";
 
-import CleanerDashboard from "./pages/Staff/CleaningDashboard";
+import CleanerDashboard from "./pages/Staff/CleanerDashboard";
 import MaintenanceDashboard from "./pages/Staff/MaintenanceDashboard";
 import SecurityDashboard from "./pages/Staff/SecurityDashboard";
 import CreateTicket from "./pages/Student/CreateTicket";
@@ -88,11 +88,11 @@ function App() {
             {/* Staff Routes */}
             <Route element={<ProtectedRoute allowedRoles={["staff"]} />}>
               <Route
-                path="/staff/dashboard/cleaner"
+                path="/staff/dashboard/cleaner/*"
                 element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["cleaner"]}><CleanerDashboard /></ProtectedRoute>}
               />
               <Route
-                path="/staff/dashboard/maintenance"
+                path="/staff/dashboard/maintenance/*"
                 element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["maintenance"]}><MaintenanceDashboard /></ProtectedRoute>}
               />
               <Route
