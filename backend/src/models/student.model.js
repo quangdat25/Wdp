@@ -57,6 +57,14 @@ const studentSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  buildingId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Building",
+  },
+  roomId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Room",
+  },
   parent: parentSchema,
 });
 module.exports = User.discriminator("student", studentSchema);

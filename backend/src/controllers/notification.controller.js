@@ -10,13 +10,13 @@ class NotificationController {
         title,
         content,
         targetType,
-        targetRoles,
-        targetUsers,
+        targetRoles = [],
+        targetUsers = [],
         studentCode,
       } = req.body;
 
       let finalTargetType = targetType;
-      let finalTargetUsers = targetUsers || [];
+      let finalTargetUsers = targetUsers;
 
       if (targetType === "studentCode") {
         const student = await Student.findOne({
@@ -38,29 +38,27 @@ class NotificationController {
         title,
         content,
         targetType: finalTargetType,
-        targetRoles: targetRoles || [],
+        targetRoles,
         targetUsers: finalTargetUsers,
-        senderId: req.user?.id,
+        senderId: req.user?._id || req.user?.id,
       });
 
       const io = getIO();
 
-      switch (finalTargetType) {
-        case "all":
-          io.to("all").emit("new_notification", notification);
-          break;
+      if (finalTargetType === "all") {
+        io.to("all").emit("new_notification", notification);
+      }
 
-        case "roles":
-          (targetRoles || []).forEach((role) => {
-            io.to(`role:${role}`).emit("new_notification", notification);
-          });
-          break;
+      if (finalTargetType === "roles") {
+        targetRoles.forEach((role) => {
+          io.to(`role:${role}`).emit("new_notification", notification);
+        });
+      }
 
-        case "users":
-          finalTargetUsers.forEach((userId) => {
-            io.to(`user:${userId}`).emit("new_notification", notification);
-          });
-          break;
+      if (finalTargetType === "users") {
+        finalTargetUsers.forEach((userId) => {
+          io.to(`user:${userId}`).emit("new_notification", notification);
+        });
       }
 
       return res.status(201).json({
@@ -130,6 +128,10 @@ class NotificationController {
         });
       }
 
+      await NotificationReceipt.deleteMany({
+        notificationId: notification._id,
+      });
+
       return res.status(200).json({
         success: true,
         message: "Xóa thông báo thành công",
@@ -144,8 +146,8 @@ class NotificationController {
 
   async getMyNotifications(req, res) {
     try {
-      const role = req.user.role;
-      const userId = req.user.id;
+      const role = req.auth?.role || req.user?.role;
+      const userId = req.user?._id || req.user?.id;
 
       const notifications = await Notification.find({
         $or: [
@@ -194,7 +196,7 @@ class NotificationController {
   async markAsRead(req, res) {
     try {
       const notificationId = req.params.id;
-      const userId = req.user.id;
+      const userId = req.user?._id || req.user?.id;
 
       await NotificationReceipt.findOneAndUpdate(
         {

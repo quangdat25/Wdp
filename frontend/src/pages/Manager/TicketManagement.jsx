@@ -291,10 +291,9 @@ function TicketManagement() {
 
                       <TableCell>
                         <span
-                          className={`inline-flex rounded-full px-3 py-1 text-sm font-bold ${
-                            statusClasses[ticket.status] ||
+                          className={`inline-flex rounded-full px-3 py-1 text-sm font-bold ${statusClasses[ticket.status] ||
                             "bg-slate-100 text-slate-600"
-                          }`}
+                            }`}
                         >
                           {statusLabels[ticket.status] || ticket.status}
                         </span>

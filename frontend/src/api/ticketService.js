@@ -1,4 +1,4 @@
-import request from "../config/request";
+import request from "../config/axiosConfig";
 
 export const createTicket = (data) => {
   return request.post("api/tickets", data);
@@ -10,4 +10,7 @@ export const getMyTickets = () => {
 
 export const deleteMyTicket = (id) => {
   return request.delete(`api/tickets/my/${id}`);
+};
+export const getCurrentRoom = () => {
+  return request.get("api/tickets/current-room");
 };

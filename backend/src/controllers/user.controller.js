@@ -1,29 +1,25 @@
 const bcrypt = require("bcryptjs");
 const userModel = require("../models/user.model");
 const jwt = require("jsonwebtoken");
-const {
-  createAccessToken,
-  createRefreshToken,
-  verifyTokenGoogle,
-} = require("../auth/checkAuth");
+const { generateAccessToken, generateRefreshToken, verifyTokenGoogle, verifyToken } = require("../utils/jwt.util");
 
 function setCookie(res, accessToken, refreshToken) {
   const isProduction = process.env.NODE_ENV === "production";
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    secure: true,
+    secure: isProduction,
     maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
     sameSite: isProduction ? "none" : "lax",
   });
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: true,
+    secure: isProduction,
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     sameSite: isProduction ? "none" : "lax",
   });
   res.cookie("logged", 1, {
     httpOnly: false,
-    secure: true,
+    secure: isProduction,
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     sameSite: isProduction ? "none" : "lax",
   });
@@ -94,8 +90,8 @@ class UserController {
         role: actualRole, // Dùng actualRole (nếu là parent thì token sẽ có role parent)
       };
 
-      const accessToken = createAccessToken(tokenPayload);
-      const refreshToken = createRefreshToken(tokenPayload);
+      const accessToken = generateAccessToken(tokenPayload);
+      const refreshToken = generateRefreshToken(tokenPayload);
 
       setCookie(res, accessToken, refreshToken);
 
@@ -208,8 +204,8 @@ class UserController {
         role: findUser.role,
       };
 
-      const accessToken = createAccessToken(tokenPayload);
-      const refreshToken = createRefreshToken(tokenPayload);
+      const accessToken = generateAccessToken(tokenPayload);
+      const refreshToken = generateRefreshToken(tokenPayload);
 
       setCookie(res, accessToken, refreshToken);
 
@@ -230,6 +226,64 @@ class UserController {
       });
     } catch (error) {
       console.error("Google Login error:", error);
+    }
+  }
+  async refreshToken(req, res) {
+    try {
+      const { refreshToken } = req.cookies;
+
+      if (!refreshToken) {
+        return res.status(401).json({
+          success: false,
+          message: "Không tìm thấy Refresh Token",
+        });
+      }
+
+      const decoded = await verifyToken(refreshToken);
+      if (!decoded) {
+        res.clearCookie("accessToken");
+        res.clearCookie("refreshToken");
+        return res.status(401).json({
+          success: false,
+          message: "Refresh Token không hợp lệ hoặc đã hết hạn",
+        });
+      }
+
+      const findUser = await userModel.findById(decoded.id);
+      if (!findUser) {
+        return res.status(401).json({
+          success: false,
+          message: "Người dùng không tồn tại",
+        });
+      }
+
+      const tokenPayload = {
+        id: findUser._id,
+        username: findUser.username || findUser.email,
+        role: findUser.role,
+      };
+
+      const newAccessToken = generateAccessToken(tokenPayload);
+
+      const isProduction = process.env.NODE_ENV === "production";
+      res.cookie("accessToken", newAccessToken, {
+        httpOnly: true,
+        secure: isProduction,
+        maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
+        sameSite: isProduction ? "none" : "lax",
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Lấy Access Token mới thành công",
+        accessToken: newAccessToken
+      });
+    } catch (error) {
+      console.error("Refresh Token error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Lỗi máy chủ",
+      });
     }
   }
 }

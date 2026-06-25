@@ -1,4 +1,4 @@
-import request from "../config/request";
+import request from "../config/axiosConfig";
 
 const authService = {
   login: async (username, password) => {
@@ -23,6 +23,11 @@ const authService = {
 
   getMe: async () => {
     const response = await request.get("/api/users/me");
+    return response.data;
+  },
+
+  getMyProfile: async () => {
+    const response = await request.get("/api/users/profile");
     return response.data;
   },
 };

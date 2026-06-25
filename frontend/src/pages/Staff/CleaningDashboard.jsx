@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import Sidebar from "../../components/Sidebar";
 import authService from "../../api/authService";
 import { FaBell, FaExclamationTriangle } from "react-icons/fa";
 
@@ -42,7 +43,15 @@ const initialCleanTasks = [
 
 function CleanerDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("Trang chủ");
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get("tab");
+    if (tab) setActiveTab(tab);
+    else setActiveTab("Trang chủ");
+  }, [location.search]);
 
   // State management inside the file
   const [cleanTasks, setCleanTasks] = useState(initialCleanTasks);
@@ -131,117 +140,12 @@ function CleanerDashboard() {
       id="cleaner-dashboard-container"
     >
       {/* Sidebar navigation */}
-      <aside
-        style={{
-          width: 250,
-          background: "#00E676", // Matches student dashboard sidebar color
-          padding: "24px 16px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          boxSizing: "border-box",
-          flexShrink: 0,
-        }}
-      >
-        <div>
-          <div style={{ padding: "0 8px", marginBottom: 24 }}>
-            <h2
-              style={{
-                margin: 0,
-                color: "#000000",
-                fontWeight: 800,
-                fontSize: 22,
-                lineHeight: "1.2",
-              }}
-            >
-              FPT Housekeeping
-            </h2>
-            <p
-              style={{
-                margin: "4px 0 0",
-                color: "#000000",
-                fontSize: 12,
-                fontWeight: 600,
-                opacity: 0.8,
-              }}
-            >
-              Phân hệ Vệ sinh & Đóng phòng
-            </p>
-          </div>
-
-          <nav style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {menuItems.map((item) => {
-              const isActive = activeTab === item;
-              return (
-                <button
-                  key={item}
-                  onClick={() => setActiveTab(item)}
-                  style={{
-                    width: "100%",
-                    height: 42,
-                    borderRadius: 21,
-                    border: isActive ? "none" : "1px solid #000000",
-                    background: isActive ? "rgba(255, 255, 255, 0.45)" : "#FFFFFF",
-                    color: "#000000",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    textAlign: "center",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    transition: "all 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.background = "rgba(255, 255, 255, 0.85)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.background = "#FFFFFF";
-                    }
-                  }}
-                >
-                  {item}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        <button
-          onClick={handleLogout}
-          style={{
-            width: "100%",
-            height: 54,
-            background: "#FFFFFF",
-            border: "1px solid #000000",
-            borderRadius: 8,
-            color: "#000000",
-            fontWeight: 700,
-            fontSize: 18,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.06)",
-            transition: "all 0.2s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#F5F5F5";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "#FFFFFF";
-          }}
-        >
-          Đăng xuất
-        </button>
-      </aside>
+      <Sidebar />
 
       {/* Main dashboard contents */}
       <main
         style={{
+          marginLeft: 270,
           flex: 1,
           padding: "24px 32px",
           display: "flex",
@@ -327,7 +231,7 @@ function CleanerDashboard() {
                 Kế hoạch hôm nay: Bạn có {cleanTasks.filter(t => t.status !== "READY").length} phòng đang ở diện vệ sinh dọn dẹp bàn giao.
               </span>
               <button
-                onClick={() => setActiveTab("Dọn dẹp phòng")}
+                onClick={() => navigate("/staff/dashboard/cleaner?tab=Dọn dẹp phòng")}
                 style={{
                   background: "#0D47A1",
                   color: "#FFFFFF",
