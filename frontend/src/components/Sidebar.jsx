@@ -176,12 +176,7 @@ function Sidebar() {
         icon: <FaMoneyBillWave />,
       },
       {
-        path: "/student/support/request",
-        label: "Gửi yêu cầu hỗ trợ",
-        icon: <FaTools />,
-      },
-      {
-        path: "/student/my/tickets",
+        path: "/student/tickets",
         label: "Yêu cầu hỗ trợ",
         icon: <FaClipboardList />,
       },
