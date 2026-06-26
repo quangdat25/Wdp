@@ -20,7 +20,6 @@ function CleanerDashboard() {
 
   const [activeTab, setActiveTab] = useState("Trang chủ");
 
-
   useEffect(() => {
     const path = location.pathname.toLowerCase();
     if (path.endsWith("/tasks")) {
@@ -47,7 +46,10 @@ function CleanerDashboard() {
   });
 
   useEffect(() => {
-    localStorage.setItem("cleaner_reported_damages", JSON.stringify(reportedDamages));
+    localStorage.setItem(
+      "cleaner_reported_damages",
+      JSON.stringify(reportedDamages),
+    );
   }, [reportedDamages]);
 
   // Defect reporting modal overlay states
@@ -116,7 +118,10 @@ function CleanerDashboard() {
     try {
       const res = await updateTicketStatus(taskId, { status: "completed" });
       if (res.data?.success) {
-        showToast("Cập nhật thành công! Ghi nhận trạng thái hoàn thành.", "success");
+        showToast(
+          "Cập nhật thành công! Ghi nhận trạng thái hoàn thành.",
+          "success",
+        );
         fetchTasks();
       }
     } catch (err) {
@@ -131,7 +136,8 @@ function CleanerDashboard() {
     if (!damageForm.description.trim() || !reportingTask) return;
 
     try {
-      const studentId = reportingTask.studentId?._id || reportingTask.studentId || null;
+      const studentId =
+        reportingTask.studentId?._id || reportingTask.studentId || null;
 
       const res = await createStaffTicket({
         taskId: reportingTask._id,
@@ -155,7 +161,10 @@ function CleanerDashboard() {
           },
         }));
 
-        showToast("Báo cáo hỏng hóc thành công! Đã ghi nhận sự cố của phòng.", "success");
+        showToast(
+          "Báo cáo hỏng hóc thành công! Đã ghi nhận sự cố của phòng.",
+          "success",
+        );
         fetchTasks();
       }
     } catch (err) {
@@ -201,14 +210,15 @@ function CleanerDashboard() {
   }).length;
 
   return (
-    <div className="cleaner-dashboard-container" id="cleaner-dashboard-container">
+    <div
+      className="cleaner-dashboard-container"
+      id="cleaner-dashboard-container"
+    >
       <Sidebar />
 
       {/* Main dashboard contents */}
       <main className="cleaner-main">
         <Header avatarText="LC" />
-
-
 
         {/* Dashboard index content */}
         {activeTab === "Trang chủ" && (
@@ -393,12 +403,19 @@ function CleanerDashboard() {
                   gap: 8,
                 }}
               >
-                {Array.from(new Set(cleanTasks.map((t) => t.buildingName).filter(Boolean)))
+                {Array.from(
+                  new Set(
+                    cleanTasks.map((t) => t.buildingName).filter(Boolean),
+                  ),
+                )
                   .sort()
                   .map((building) => {
-                    const totalInBuilding = cleanTasks.filter((t) => t.buildingName === building).length;
+                    const totalInBuilding = cleanTasks.filter(
+                      (t) => t.buildingName === building,
+                    ).length;
                     const completedInBuilding = cleanTasks.filter(
-                      (t) => t.buildingName === building && t.status === "completed"
+                      (t) =>
+                        t.buildingName === building && t.status === "completed",
                     ).length;
                     return (
                       <div
@@ -411,13 +428,21 @@ function CleanerDashboard() {
                       >
                         <span>Tòa KTX {building}</span>
                         <strong>
-                          {completedInBuilding} / {totalInBuilding} phòng đã xong
+                          {completedInBuilding} / {totalInBuilding} phòng đã
+                          xong
                         </strong>
                       </div>
                     );
                   })}
                 {cleanTasks.length === 0 && (
-                  <div style={{ fontSize: 13, color: "#64748B", textAlign: "center", padding: "10px 0" }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "#64748B",
+                      textAlign: "center",
+                      padding: "10px 0",
+                    }}
+                  >
                     Chưa có phòng nào được phân bổ vệ sinh
                   </div>
                 )}
@@ -499,8 +524,10 @@ function CleanerDashboard() {
                 }}
               >
                 {filteredTasks.map((task) => {
-                  const damageData = task.damageReported || reportedDamages[task._id];
-                  const dbDamage = (damageData && damageData.description) ? damageData : null;
+                  const damageData =
+                    task.damageReported || reportedDamages[task._id];
+                  const dbDamage =
+                    damageData && damageData.description ? damageData : null;
                   return (
                     <div
                       key={task._id}
@@ -703,7 +730,7 @@ function CleanerDashboard() {
                   width: "100%",
                   borderCollapse: "collapse",
                   textAlign: "left",
-                  minWidth: "600px"
+                  minWidth: "600px",
                 }}
               >
                 <thead>
@@ -732,9 +759,17 @@ function CleanerDashboard() {
                 </thead>
                 <tbody>
                   {cleanTasks
-                    .filter((t) => (t.damageReported && t.damageReported.description) || (reportedDamages[t._id] && reportedDamages[t._id].description))
+                    .filter(
+                      (t) =>
+                        (t.damageReported && t.damageReported.description) ||
+                        (reportedDamages[t._id] &&
+                          reportedDamages[t._id].description),
+                    )
                     .map((t) => {
-                      const damage = (t.damageReported && t.damageReported.description) ? t.damageReported : reportedDamages[t._id];
+                      const damage =
+                        t.damageReported && t.damageReported.description
+                          ? t.damageReported
+                          : reportedDamages[t._id];
                       return (
                         <tr
                           key={t._id}
@@ -752,9 +787,7 @@ function CleanerDashboard() {
                           <td style={{ padding: 12 }}>
                             Phòng {t.roomNumber} - Tòa KTX {t.buildingName}
                           </td>
-                          <td style={{ padding: 12 }}>
-                            {damage.description}
-                          </td>
+                          <td style={{ padding: 12 }}>{damage.description}</td>
                           <td style={{ padding: 12, fontSize: 13 }}>
                             {damage.date}
                           </td>
@@ -775,7 +808,9 @@ function CleanerDashboard() {
                                 fontWeight: 700,
                               }}
                             >
-                              {damage.severity === "HIGH" ? "Nghiêm trọng" : "Trung bình"}
+                              {damage.severity === "HIGH"
+                                ? "Nghiêm trọng"
+                                : "Trung bình"}
                             </span>
                           </td>
                         </tr>
@@ -833,7 +868,8 @@ function CleanerDashboard() {
             <p style={{ fontSize: 13, color: "#64748B", marginBottom: 16 }}>
               Khởi tạo yêu cầu kỹ thuật cho{" "}
               <strong>
-                Phòng {reportingTask.roomNumber} (Tòa KTX {reportingTask.buildingName})
+                Phòng {reportingTask.roomNumber} (Tòa KTX{" "}
+                {reportingTask.buildingName})
               </strong>
             </p>
 
@@ -950,7 +986,8 @@ function CleanerDashboard() {
             color: "white",
             padding: "16px 24px",
             borderRadius: 12,
-            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+            boxShadow:
+              "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
             zIndex: 1000,
             display: "flex",
             alignItems: "center",
