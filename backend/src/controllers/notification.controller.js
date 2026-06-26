@@ -1,39 +1,64 @@
 const Notification = require("../models/notification.model");
 const NotificationReceipt = require("../models/notificationReceipt.model");
+const Student = require("../models/student.model");
 const { getIO } = require("../socket");
 
 class NotificationController {
   async createNotification(req, res) {
     try {
-      const { title, content, targetType, targetRoles, targetUsers } = req.body;
+      const {
+        title,
+        content,
+        targetType,
+        targetRoles = [],
+        targetUsers = [],
+        studentCode,
+      } = req.body;
+
+      let finalTargetType = targetType;
+      let finalTargetUsers = targetUsers;
+
+      if (targetType === "studentCode") {
+        const student = await Student.findOne({
+          studentCode: studentCode?.trim(),
+        });
+
+        if (!student) {
+          return res.status(404).json({
+            success: false,
+            message: "Không tìm thấy sinh viên với mã này",
+          });
+        }
+
+        finalTargetType = "users";
+        finalTargetUsers = [student._id];
+      }
 
       const notification = await Notification.create({
         title,
         content,
-        targetType,
-        targetRoles: targetRoles || [],
-        targetUsers: targetUsers || [],
-        senderId: req.user?.id,
+        targetType: finalTargetType,
+        targetRoles,
+        targetUsers: finalTargetUsers,
+        senderId: req.user?._id || req.user?.id,
       });
 
       const io = getIO();
 
-      switch (targetType) {
-        case "all":
-          io.to("all").emit("new_notification", notification);
-          break;
+      if (finalTargetType === "all") {
+        io.to("all").emit("new_notification", notification);
+      }
 
-        case "roles":
-          (targetRoles || []).forEach((role) => {
-            io.to(`role:${role}`).emit("new_notification", notification);
-          });
-          break;
+      if (finalTargetType === "roles") {
+        targetRoles.forEach((role) => {
+          io.to(`role:${role}`).emit("new_notification", notification);
+        });
+      }
 
-        case "users":
-          (targetUsers || []).forEach((userId) => {
-            io.to(`user:${userId}`).emit("new_notification", notification);
-          });
-          break;
+      if (finalTargetType === "users") {
+        finalTargetUsers.forEach((userId) => {
+          io.to(`user:${userId}`).emit("new_notification", notification);
+        });
       }
 
       return res.status(201).json({
@@ -103,6 +128,10 @@ class NotificationController {
         });
       }
 
+      await NotificationReceipt.deleteMany({
+        notificationId: notification._id,
+      });
+
       return res.status(200).json({
         success: true,
         message: "Xóa thông báo thành công",
@@ -117,8 +146,8 @@ class NotificationController {
 
   async getMyNotifications(req, res) {
     try {
-      const role = req.user.role;
-      const userId = req.user.id;
+      const role = req.auth?.role || req.user?.role;
+      const userId = req.user?._id || req.user?.id;
 
       const notifications = await Notification.find({
         $or: [
@@ -167,7 +196,7 @@ class NotificationController {
   async markAsRead(req, res) {
     try {
       const notificationId = req.params.id;
-      const userId = req.user.id;
+      const userId = req.user?._id || req.user?.id;
 
       await NotificationReceipt.findOneAndUpdate(
         {

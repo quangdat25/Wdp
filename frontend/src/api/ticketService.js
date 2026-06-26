@@ -11,7 +11,9 @@ export const getMyTickets = () => {
 export const deleteMyTicket = (id) => {
   return request.delete(`api/tickets/my/${id}`);
 };
-
+export const getCurrentRoom = () => {
+  return request.get("api/tickets/current-room");
+};
 export const getStaffTickets = () => {
   return request.get("api/tickets/staff");
 };

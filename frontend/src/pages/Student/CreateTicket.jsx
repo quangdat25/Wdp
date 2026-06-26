@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import { showError, showSuccess } from "../../components/alert";
-import { createTicket } from "../../api/ticketService";
+import { createTicket, getCurrentRoom } from "../../api/ticketService";
 import { uploadImage } from "../../api/uploadImageService";
 import Header from "../../components/Headers";
+
 const ticketTypes = [
   { value: "Điện", label: "Điện" },
   { value: "Nước", label: "Nước" },
@@ -15,9 +16,12 @@ const ticketTypes = [
 ];
 
 function CreateTicket() {
-  const [formData, setFormData] = useState({
+  const [currentRoom, setCurrentRoom] = useState({
     buildingName: "",
     roomNumber: "",
+  });
+
+  const [formData, setFormData] = useState({
     title: "",
     type: "",
     description: "",
@@ -25,11 +29,41 @@ function CreateTicket() {
 
   const [imageFile, setImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [roomLoading, setRoomLoading] = useState(true);
+  const [canCreateTicket, setCanCreateTicket] = useState(false);
 
   const previewImage = useMemo(() => {
     if (!imageFile) return "";
     return URL.createObjectURL(imageFile);
   }, [imageFile]);
+
+  useEffect(() => {
+    const fetchCurrentRoom = async () => {
+      try {
+        setRoomLoading(true);
+
+        const res = await getCurrentRoom();
+        const roomData = res.data.data;
+
+        setCurrentRoom({
+          buildingName: roomData.buildingName || "",
+          roomNumber: roomData.roomNumber || "",
+        });
+
+        setCanCreateTicket(true);
+      } catch (error) {
+        setCanCreateTicket(false);
+        showError(
+          error.response?.data?.message ||
+            "Không lấy được thông tin phòng hiện tại"
+        );
+      } finally {
+        setRoomLoading(false);
+      }
+    };
+
+    fetchCurrentRoom();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,8 +91,6 @@ function CreateTicket() {
 
   const resetForm = () => {
     setFormData({
-      buildingName: "",
-      roomNumber: "",
       title: "",
       type: "",
       description: "",
@@ -69,13 +101,12 @@ function CreateTicket() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (
-      !formData.buildingName ||
-      !formData.roomNumber ||
-      !formData.title ||
-      !formData.type ||
-      !formData.description
-    ) {
+    if (!canCreateTicket) {
+      showError("Chỉ sinh viên đang ở ký túc xá mới được gửi yêu cầu hỗ trợ");
+      return;
+    }
+
+    if (!formData.title || !formData.type || !formData.description) {
       showError("Vui lòng nhập đầy đủ thông tin bắt buộc");
       return;
     }
@@ -94,7 +125,9 @@ function CreateTicket() {
       }
 
       await createTicket({
-        ...formData,
+        title: formData.title,
+        type: formData.type,
+        description: formData.description,
         image: imageUrl,
       });
 
@@ -113,42 +146,52 @@ function CreateTicket() {
 
       <main className="ml-[270px] min-h-screen w-[calc(100%-270px)] px-7 py-6">
         <Header />
+
         <div className="mb-6 rounded-3xl border border-slate-200/70 bg-white/80 px-6 py-6 shadow-sm backdrop-blur">
           <h1 className="m-0 text-3xl font-extrabold text-blue-800">
             Gửi yêu cầu hỗ trợ
           </h1>
           <p className="mt-2 text-slate-500">
-            Sinh viên gửi yêu cầu sửa chữa, hỗ trợ phòng ở hoặc vấn đề ký túc
-            xá.
+            Sinh viên gửi yêu cầu sửa chữa, hỗ trợ phòng ở hoặc vấn đề ký túc xá.
           </p>
         </div>
 
         <section className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-lg">
           <form onSubmit={handleSubmit} className="space-y-5">
+            <div
+              className={`rounded-2xl border px-4 py-4 text-sm font-semibold ${
+                canCreateTicket
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-red-200 bg-red-50 text-red-700"
+              }`}
+            >
+              {roomLoading
+                ? "Đang kiểm tra thông tin phòng hiện tại..."
+                : canCreateTicket
+                ? "Thông tin tòa nhà và phòng được lấy tự động từ booking hiện tại."
+                : "Bạn chưa có booking đang ở ký túc xá nên chưa thể gửi yêu cầu hỗ trợ."}
+            </div>
+
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <div>
                 <label className="mb-2 block font-bold text-slate-700">
-                  Tòa nhà <span className="text-red-500">*</span>
+                  Tòa nhà
                 </label>
                 <input
-                  name="buildingName"
-                  value={formData.buildingName}
-                  onChange={handleChange}
-                  placeholder="Ví dụ: Tòa A"
-                  className="h-12 w-full rounded-2xl border border-slate-300 px-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  value={roomLoading ? "Đang tải..." : currentRoom.buildingName}
+                  disabled
+                  className="h-12 w-full cursor-not-allowed rounded-2xl border border-slate-300 bg-slate-100 px-4 font-semibold text-slate-600 outline-none"
                 />
               </div>
 
               <div>
                 <label className="mb-2 block font-bold text-slate-700">
-                  Phòng <span className="text-red-500">*</span>
+                  Phòng
                 </label>
                 <input
-                  name="roomNumber"
-                  value={formData.roomNumber}
-                  onChange={handleChange}
-                  placeholder="Ví dụ: 401"
-                  className="h-12 w-full rounded-2xl border border-slate-300 px-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  value={roomLoading ? "Đang tải..." : currentRoom.roomNumber}
+                  disabled
+                  className="h-12 w-full cursor-not-allowed rounded-2xl border border-slate-300 bg-slate-100 px-4 font-semibold text-slate-600 outline-none"
                 />
               </div>
             </div>
@@ -161,8 +204,9 @@ function CreateTicket() {
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
+                disabled={!canCreateTicket || roomLoading}
                 placeholder="Ví dụ: Bóng đèn phòng bị hỏng"
-                className="h-12 w-full rounded-2xl border border-slate-300 px-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                className="h-12 w-full rounded-2xl border border-slate-300 px-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
               />
             </div>
 
@@ -174,7 +218,8 @@ function CreateTicket() {
                 name="type"
                 value={formData.type}
                 onChange={handleChange}
-                className="h-12 w-full rounded-2xl border border-slate-300 px-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                disabled={!canCreateTicket || roomLoading}
+                className="h-12 w-full rounded-2xl border border-slate-300 px-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
               >
                 <option value="">Chọn loại yêu cầu</option>
                 {ticketTypes.map((item) => (
@@ -193,9 +238,10 @@ function CreateTicket() {
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
+                disabled={!canCreateTicket || roomLoading}
                 rows={6}
                 placeholder="Mô tả rõ vấn đề cần hỗ trợ..."
-                className="w-full resize-none rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                className="w-full resize-none rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
               />
             </div>
 
@@ -204,7 +250,13 @@ function CreateTicket() {
                 Ảnh minh họa
               </label>
 
-              <label className="flex min-h-[150px] cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center transition hover:border-blue-400 hover:bg-blue-50/40">
+              <label
+                className={`flex min-h-[150px] flex-col items-center justify-center rounded-3xl border-2 border-dashed px-5 py-6 text-center transition ${
+                  canCreateTicket && !roomLoading
+                    ? "cursor-pointer border-slate-300 bg-slate-50 hover:border-blue-400 hover:bg-blue-50/40"
+                    : "cursor-not-allowed border-slate-200 bg-slate-100 opacity-70"
+                }`}
+              >
                 <div className="text-base font-extrabold text-slate-800">
                   Chọn 1 ảnh từ máy
                 </div>
@@ -219,6 +271,7 @@ function CreateTicket() {
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
+                  disabled={!canCreateTicket || roomLoading}
                   className="hidden"
                 />
               </label>
@@ -252,7 +305,7 @@ function CreateTicket() {
               <button
                 type="button"
                 onClick={resetForm}
-                disabled={loading}
+                disabled={loading || !canCreateTicket || roomLoading}
                 className="h-12 rounded-2xl border border-slate-300 bg-white px-6 font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Làm mới
@@ -260,7 +313,7 @@ function CreateTicket() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !canCreateTicket || roomLoading}
                 className="h-12 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 px-7 font-bold text-white shadow-lg shadow-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? "Đang gửi..." : "Gửi yêu cầu"}

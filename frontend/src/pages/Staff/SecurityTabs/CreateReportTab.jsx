@@ -6,7 +6,7 @@ function CreateReportTab() {
   const [violationForm, setViolationForm] = useState({
     studentCode: "",
     studentName: "",
-    location: "Sảnh Tòa Nhà",
+    location: "",
     reason: "",
   });
   const [loading, setLoading] = useState(false);
