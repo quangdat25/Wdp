@@ -26,7 +26,6 @@ import ParentStudentInfo from "./pages/Parent/ParentStudentInfo";
 import CleanerDashboard from "./pages/Staff/CleanerDashboard";
 import MaintenanceDashboard from "./pages/Staff/MaintenanceDashboard";
 import SecurityDashboard from "./pages/Staff/SecurityDashboard";
-import CreateTicket from "./pages/Student/CreateTicket";
 import MyTickets from "./pages/Student/MyTickets";
 import TicketManagement from "./pages/Manager/TicketManagement";
 import ViolationManagement from "./pages/Manager/ViolationManagement";
@@ -68,8 +67,7 @@ function App() {
             {/* Student Routes */}
             <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
               <Route path="/student/dashboard" element={<StudentDashboard />} />
-              <Route path="/student/support/request" element={<CreateTicket />} />
-              <Route path="/student/my/tickets" element={<MyTickets />} />
+              <Route path="/student/tickets" element={<MyTickets />} />
             </Route>
 
             {/* Parent Routes */}
