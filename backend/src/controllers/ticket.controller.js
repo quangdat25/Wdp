@@ -18,7 +18,26 @@ exports.createTicket = async (req, res) => {
     });
   }
 };
+exports.getCurrentRoom = async (req, res) => {
+  try {
+    const data = await ticketService.getCurrentRoom(req.user._id);
 
+    return res.status(200).json({
+      success: true,
+      message: "Lấy thông tin phòng hiện tại thành công",
+      data,
+    });
+  } catch (error) {
+    const status = error.status || 500;
+    return res.status(status).json({
+      success: false,
+      message: error.status
+        ? error.message
+        : "Lỗi khi lấy thông tin phòng hiện tại",
+      error: error.message,
+    });
+  }
+};
 exports.getMyTickets = async (req, res) => {
   try {
     const tickets = await ticketService.getMyTickets(req.user._id);
@@ -31,7 +50,9 @@ exports.getMyTickets = async (req, res) => {
     const status = error.status || 500;
     return res.status(status).json({
       success: false,
-      message: error.status ? error.message : "Lỗi khi lấy danh sách yêu cầu hỗ trợ",
+      message: error.status
+        ? error.message
+        : "Lỗi khi lấy danh sách yêu cầu hỗ trợ",
       error: error.message,
     });
   }

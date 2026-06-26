@@ -1,7 +1,7 @@
 const Ticket = require("../models/ticket.model");
 const User = require("../models/user.model");
 const Student = require("../models/student.model");
-
+const Booking = require("../models/booking.model");
 class TicketRepository {
   async createTicket(data) {
     return await Ticket.create(data);
@@ -35,7 +35,7 @@ class TicketRepository {
   async findTicketByIdWithStudent(ticketId) {
     return await Ticket.findById(ticketId).populate(
       "studentId",
-      "fullName username studentCode phone email"
+      "fullName username studentCode phone email",
     );
   }
 
@@ -53,8 +53,23 @@ class TicketRepository {
 
   async getStaffList() {
     return await User.find({ role: "staff" }).select(
-      "fullName username phone email role staffType"
+      "fullName username phone email role staffType",
     );
+  }
+
+  async findCurrentBookingByStudentId(studentId) {
+    return await Booking.findOne({
+      studentId,
+      status: "checked_in",
+    })
+      .populate({
+        path: "roomId",
+        populate: {
+          path: "building",
+          model: "Building",
+        },
+      })
+      .sort({ createdAt: -1 });
   }
 }
 

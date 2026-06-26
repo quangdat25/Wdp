@@ -1,26 +1,31 @@
 const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+const User = require("./user.model");
 
-const adminSchema = new Schema(
-  {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      unique: true,
-    },
-    department: {
-      type: String,
-      default: "General",
-      trim: true,
-    },
-    permissionLevel: {
-      type: String,
-      enum: ["super_admin", "admin"],
-      default: "admin",
-    },
+const adminSchema = new mongoose.Schema({
+  adminCode: {
+    type: String,
+    unique: true,
+    sparse: true,
+    index: true,
+    trim: true,
   },
-  { timestamps: true }
-);
 
-module.exports = mongoose.model("Admin", adminSchema);
+  phone: {
+    type: String,
+    default: "",
+  },
+
+  department: {
+    type: String,
+    default: "General",
+    trim: true,
+  },
+
+  permissionLevel: {
+    type: String,
+    enum: ["super_admin", "admin"],
+    default: "admin",
+  },
+});
+
+module.exports = User.discriminator("admin", adminSchema);

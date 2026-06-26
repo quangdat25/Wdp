@@ -71,9 +71,9 @@ const sendTicketMail = async ({ ticket, type }) => {
 
 class TicketService {
   async createTicket(userId, data) {
-    const { buildingName, roomNumber, title, type, description, image } = data;
+    const { title, type, description, image } = data;
 
-    if (!buildingName || !roomNumber || !title || !type || !description) {
+    if (!title || !type || !description) {
       throw createError(400, "Vui lòng nhập đầy đủ thông tin bắt buộc");
     }
 
@@ -83,10 +83,34 @@ class TicketService {
       throw createError(404, "Không tìm thấy thông tin sinh viên");
     }
 
+    const currentBooking = await ticketRepository.findCurrentBookingByStudentId(
+      student._id,
+    );
+
+    if (!currentBooking) {
+      throw createError(
+        403,
+        "Chỉ sinh viên đang ở ký túc xá mới được gửi yêu cầu hỗ trợ",
+      );
+    }
+
+    const room = currentBooking.roomId;
+
+    if (!room) {
+      throw createError(404, "Không tìm thấy thông tin phòng hiện tại");
+    }
+
+    const building = room.building;
+
+    if (!building) {
+      throw createError(404, "Không tìm thấy thông tin tòa nhà hiện tại");
+    }
+
     const ticket = await ticketRepository.createTicket({
       studentId: student._id,
-      buildingName,
-      roomNumber,
+      buildingName:
+        building.name || building.buildingName || building.displayName,
+      roomNumber: room.roomNumber,
       title,
       type,
       description,
@@ -96,7 +120,32 @@ class TicketService {
 
     return ticket;
   }
+  async getCurrentRoom(userId) {
+    const student = await ticketRepository.findStudentById(userId);
 
+    if (!student) {
+      throw createError(404, "Không tìm thấy thông tin sinh viên");
+    }
+
+    const currentBooking = await ticketRepository.findCurrentBookingByStudentId(
+      student._id,
+    );
+
+    if (!currentBooking) {
+      throw createError(
+        403,
+        "Bạn chưa ở ký túc xá nên không thể gửi yêu cầu hỗ trợ",
+      );
+    }
+
+    const room = currentBooking.roomId;
+    const building = room?.building;
+
+    return {
+      buildingName: building?.name || "",
+      roomNumber: room?.roomNumber || "",
+    };
+  }
   async getMyTickets(userId) {
     const student = await ticketRepository.findStudentById(userId);
 
@@ -109,14 +158,20 @@ class TicketService {
   }
 
   async deleteMyTicket(userId, ticketId) {
-    const ticket = await ticketRepository.findTicketByIdAndStudent(ticketId, userId);
+    const ticket = await ticketRepository.findTicketByIdAndStudent(
+      ticketId,
+      userId,
+    );
 
     if (!ticket) {
       throw createError(404, "Không tìm thấy yêu cầu hỗ trợ");
     }
 
     if (!["pending", "rejected", "cancelled"].includes(ticket.status)) {
-      throw createError(400, "Chỉ có thể xóa yêu cầu đang chờ duyệt, đã từ chối hoặc đã hủy");
+      throw createError(
+        400,
+        "Chỉ có thể xóa yêu cầu đang chờ duyệt, đã từ chối hoặc đã hủy",
+      );
     }
 
     await ticketRepository.deleteTicketById(ticketId);
@@ -192,7 +247,10 @@ class TicketService {
     }
 
     if (ticket.status !== "approved") {
-      throw createError(400, "Chỉ có thể giao việc sau khi yêu cầu đã được duyệt");
+      throw createError(
+        400,
+        "Chỉ có thể giao việc sau khi yêu cầu đã được duyệt",
+      );
     }
 
     const staff = await ticketRepository.findStaffById(staffId);

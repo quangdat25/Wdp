@@ -5,6 +5,7 @@ const {
   createTicket,
   getMyTickets,
   deleteMyTicket,
+  getCurrentRoom,
   getStaffTickets,
   updateTicketStatus,
   createStaffTicket,
@@ -14,6 +15,12 @@ const { authenticate, authorize } = require("../middleware/authUser");
 
 // Student Routes
 router.post("/", authenticate, authorize("student"), createTicket);
+router.get(
+  "/current-room",
+  authenticate,
+  authorize("student"),
+  getCurrentRoom,
+);
 router.get("/my", authenticate, authorize("student"), getMyTickets);
 router.delete("/my/:id", authenticate, authorize("student"), deleteMyTicket);
 
