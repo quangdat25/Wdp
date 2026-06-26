@@ -1,14 +1,48 @@
 const bcrypt = require("bcryptjs");
+const mongoose = require("mongoose");
+
 const Staff = require("../models/staff.model");
 const Manager = require("../models/manager.model");
 const User = require("../models/user.model");
+const Building = require("../models/building.model");
+
+const PERSONNEL_ROLES = ["staff", "manager"];
+const STAFF_TYPES = ["security", "maintenance", "cleaner"];
+
+const populateBuilding = {
+  path: "buildingId",
+  select: "buildingName name code address",
+};
+
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+const validateSecurityBuilding = async (staffType, buildingId) => {
+  if (staffType !== "security") return null;
+
+  if (!buildingId) {
+    return "Vui lòng chọn tòa nhà làm việc cho bảo vệ";
+  }
+
+  if (!isValidObjectId(buildingId)) {
+    return "Tòa nhà không hợp lệ";
+  }
+
+  const building = await Building.findById(buildingId);
+
+  if (!building) {
+    return "Không tìm thấy tòa nhà";
+  }
+
+  return null;
+};
 
 exports.getAllPersonnel = async (req, res) => {
   try {
     const personnel = await User.find({
-      role: { $in: ["staff", "manager"] },
+      role: { $in: PERSONNEL_ROLES },
     })
       .select("-password")
+      .populate(populateBuilding)
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -27,10 +61,19 @@ exports.getAllPersonnel = async (req, res) => {
 
 exports.getPersonnelById = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "ID nhân sự không hợp lệ",
+      });
+    }
+
     const personnel = await User.findOne({
       _id: req.params.id,
-      role: { $in: ["staff", "manager"] },
-    }).select("-password");
+      role: { $in: PERSONNEL_ROLES },
+    })
+      .select("-password")
+      .populate(populateBuilding);
 
     if (!personnel) {
       return res.status(404).json({
@@ -69,9 +112,10 @@ exports.createPersonnel = async (req, res) => {
       department,
       startDate,
       note,
+      buildingId,
     } = req.body;
 
-    if (!role || !["staff", "manager"].includes(role)) {
+    if (!role || !PERSONNEL_ROLES.includes(role)) {
       return res.status(400).json({
         success: false,
         message: "Role không hợp lệ",
@@ -97,7 +141,6 @@ exports.createPersonnel = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     let personnel;
 
     if (role === "staff") {
@@ -105,6 +148,25 @@ exports.createPersonnel = async (req, res) => {
         return res.status(400).json({
           success: false,
           message: "Vui lòng nhập mã nhân viên và loại staff",
+        });
+      }
+
+      if (!STAFF_TYPES.includes(staffType)) {
+        return res.status(400).json({
+          success: false,
+          message: "Loại staff không hợp lệ",
+        });
+      }
+
+      const buildingError = await validateSecurityBuilding(
+        staffType,
+        buildingId
+      );
+
+      if (buildingError) {
+        return res.status(400).json({
+          success: false,
+          message: buildingError,
         });
       }
 
@@ -130,6 +192,7 @@ exports.createPersonnel = async (req, res) => {
         shift: shift || "office",
         startDate,
         note,
+        buildingId: staffType === "security" ? buildingId : undefined,
       });
     }
 
@@ -165,8 +228,9 @@ exports.createPersonnel = async (req, res) => {
       });
     }
 
-    const result = personnel.toObject();
-    delete result.password;
+    const result = await User.findById(personnel._id)
+      .select("-password")
+      .populate(populateBuilding);
 
     return res.status(201).json({
       success: true,
@@ -184,9 +248,16 @@ exports.createPersonnel = async (req, res) => {
 
 exports.updatePersonnel = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "ID nhân sự không hợp lệ",
+      });
+    }
+
     const personnel = await User.findOne({
       _id: req.params.id,
-      role: { $in: ["staff", "manager"] },
+      role: { $in: PERSONNEL_ROLES },
     });
 
     if (!personnel) {
@@ -208,10 +279,14 @@ exports.updatePersonnel = async (req, res) => {
       department,
       startDate,
       note,
+      buildingId,
     } = req.body;
 
     if (email && email !== personnel.email) {
-      const existedEmail = await User.findOne({ email });
+      const existedEmail = await User.findOne({
+        _id: { $ne: personnel._id },
+        email,
+      });
 
       if (existedEmail) {
         return res.status(400).json({
@@ -222,7 +297,10 @@ exports.updatePersonnel = async (req, res) => {
     }
 
     if (username && username !== personnel.username) {
-      const existedUsername = await User.findOne({ username });
+      const existedUsername = await User.findOne({
+        _id: { $ne: personnel._id },
+        username,
+      });
 
       if (existedUsername) {
         return res.status(400).json({
@@ -245,8 +323,38 @@ exports.updatePersonnel = async (req, res) => {
     }
 
     if (personnel.role === "staff") {
-      personnel.staffType = staffType ?? personnel.staffType;
+      const nextStaffType = staffType ?? personnel.staffType;
+
+      if (!STAFF_TYPES.includes(nextStaffType)) {
+        return res.status(400).json({
+          success: false,
+          message: "Loại staff không hợp lệ",
+        });
+      }
+
+      const nextBuildingId =
+        buildingId !== undefined ? buildingId : personnel.buildingId;
+
+      const buildingError = await validateSecurityBuilding(
+        nextStaffType,
+        nextBuildingId
+      );
+
+      if (buildingError) {
+        return res.status(400).json({
+          success: false,
+          message: buildingError,
+        });
+      }
+
+      personnel.staffType = nextStaffType;
       personnel.shift = shift ?? personnel.shift;
+
+      if (nextStaffType === "security") {
+        personnel.buildingId = nextBuildingId;
+      } else {
+        personnel.buildingId = undefined;
+      }
     }
 
     if (personnel.role === "manager") {
@@ -255,8 +363,9 @@ exports.updatePersonnel = async (req, res) => {
 
     await personnel.save();
 
-    const result = personnel.toObject();
-    delete result.password;
+    const result = await User.findById(personnel._id)
+      .select("-password")
+      .populate(populateBuilding);
 
     return res.status(200).json({
       success: true,
@@ -274,9 +383,16 @@ exports.updatePersonnel = async (req, res) => {
 
 exports.deletePersonnel = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "ID nhân sự không hợp lệ",
+      });
+    }
+
     const personnel = await User.findOneAndDelete({
       _id: req.params.id,
-      role: { $in: ["staff", "manager"] },
+      role: { $in: PERSONNEL_ROLES },
     });
 
     if (!personnel) {

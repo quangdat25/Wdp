@@ -98,7 +98,10 @@ function TicketManagement() {
   }, [statusFilter]);
 
   useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(filteredTickets.length / pageSize));
+    const totalPages = Math.max(
+      1,
+      Math.ceil(filteredTickets.length / pageSize),
+    );
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, filteredTickets.length, pageSize]);
 
@@ -241,7 +244,6 @@ function TicketManagement() {
                   <TableHead>Tòa / Phòng</TableHead>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead>Người xử lý</TableHead>
-                  <TableHead>Ngày gửi</TableHead>
                   <TableHead>Chi tiết</TableHead>
                 </tr>
               </thead>
@@ -291,9 +293,10 @@ function TicketManagement() {
 
                       <TableCell>
                         <span
-                          className={`inline-flex rounded-full px-3 py-1 text-sm font-bold ${statusClasses[ticket.status] ||
+                          className={`inline-flex rounded-full px-3 py-1 text-sm font-bold ${
+                            statusClasses[ticket.status] ||
                             "bg-slate-100 text-slate-600"
-                            }`}
+                          }`}
                         >
                           {statusLabels[ticket.status] || ticket.status}
                         </span>
@@ -304,9 +307,6 @@ function TicketManagement() {
                           ticket.assignedTo?.username ||
                           "Chưa phân công"}
                       </TableCell>
-
-                      <TableCell>{formatDate(ticket.createdAt)}</TableCell>
-
                       <TableCell>
                         <button
                           type="button"
@@ -426,6 +426,10 @@ function TicketDetailModal({
             <DetailBox label="Tòa nhà" value={ticket.buildingName} />
             <DetailBox label="Phòng" value={ticket.roomNumber} />
             <DetailBox label="Ngày gửi" value={formatDate(ticket.createdAt)} />
+            <DetailBox
+              label="Thời gian hoàn thành"
+              value={formatDate(ticket.completedAt)}
+            />
             <DetailBox
               label="Người xử lý"
               value={

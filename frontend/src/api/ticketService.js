@@ -14,3 +14,14 @@ export const deleteMyTicket = (id) => {
 export const getCurrentRoom = () => {
   return request.get("api/tickets/current-room");
 };
+export const getStaffTickets = () => {
+  return request.get("api/tickets/staff");
+};
+
+export const updateTicketStatus = (id, data) => {
+  return request.patch(`api/tickets/staff/${id}/status`, data);
+};
+
+export const createStaffTicket = (data) => {
+  return request.post("api/tickets/staff-report", data);
+};

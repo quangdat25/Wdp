@@ -3,7 +3,7 @@ import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import authService from "../../api/authService";
 import { FaBell } from "react-icons/fa";
-
+import Header from "../../components/Headers";
 import OverviewTab from "./SecurityTabs/OverviewTab";
 import GateHistoryTab from "./SecurityTabs/GateHistoryTab";
 import CreateReportTab from "./SecurityTabs/CreateReportTab";
@@ -114,61 +114,7 @@ function SecurityDashboard() {
         }}
       >
         {/* Top bar header */}
-        <header
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 24,
-          }}
-        >
-          <h1
-            style={{
-              fontSize: 28,
-              color: "#0A4E9B",
-              fontWeight: 800,
-              margin: 0,
-            }}
-          >
-            {pageTitle}
-          </h1>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: "#000000",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#FFFFFF",
-                cursor: "pointer",
-              }}
-            >
-              <FaBell size={18} />
-            </div>
-
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: "#00E676",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#000000",
-                fontWeight: 700,
-                fontSize: 16,
-                cursor: "pointer",
-              }}
-            >
-              BV
-            </div>
-          </div>
-        </header>
+        <Header/>
 
         {/* Tab content rendering via Routes */}
         <Routes>

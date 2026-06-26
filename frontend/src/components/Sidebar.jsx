@@ -141,16 +141,15 @@ function Sidebar() {
       },
     ],
 
-    cleaning: [
-      { path: "/staff/dashboard/cleaning", label: "Trang chủ", icon: <FaChartPie /> },
-      { path: "/staff/dashboard/cleaning?tab=Dọn dẹp phòng", label: "Dọn dẹp phòng", icon: <FaClipboardList /> },
-      { path: "/staff/dashboard/cleaning?tab=Sự cố kỹ thuật", label: "Sự cố kỹ thuật", icon: <FaTools /> },
+    cleaner: [
+      { path: "/staff/dashboard/cleaner", label: "Trang chủ", icon: <FaChartPie /> },
+      { path: "/staff/dashboard/cleaner/tasks", label: "Dọn dẹp phòng", icon: <FaClipboardList /> },
+      { path: "/staff/dashboard/cleaner/issues", label: "Sự cố kỹ thuật", icon: <FaTools /> },
     ],
 
     maintenance: [
       { path: "/staff/dashboard/maintenance", label: "Trang chủ", icon: <FaChartPie /> },
-      { path: "/staff/dashboard/maintenance?tab=Danh sách sự cố", label: "Danh sách sự cố", icon: <FaWrench /> },
-      { path: "/staff/dashboard/maintenance?tab=Lập phiếu sự cố", label: "Lập phiếu sự cố", icon: <FaPlusCircle /> },
+      { path: "/staff/dashboard/maintenance/tasks", label: "Danh sách sự cố", icon: <FaWrench /> },
     ],
 
     security: [
