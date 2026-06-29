@@ -27,10 +27,10 @@ const violationSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    building: {
-      type: String,
+    buildingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Building",
       required: true,
-      trim: true,
     },
     pointsDeducted: {
       type: Number,
@@ -38,8 +38,13 @@ const violationSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["PENDING", "APPROVED", "REJECTED"],
+      enum: ["PENDING", "APPROVED", "REJECTED", "REVOKED"],
       default: "PENDING",
+    },
+    revokeReason: {
+      type: String,
+      trim: true,
+      default: null,
     },
   },
   { timestamps: true }

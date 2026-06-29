@@ -59,7 +59,10 @@ const getMyChildRoom = async (req, res) => {
 
 const getStudentInfo = async (req, res) => {
     try {
-        const student = await User.findById(req.user).select("-password -parent.password");
+        const student = await User.findById(req.user)
+            .select("-password -parent.password")
+            .populate("buildingId", "name")
+            .populate("roomId", "roomNumber");
         
         if (!student || student.role !== "student") {
             return res.status(404).json({
