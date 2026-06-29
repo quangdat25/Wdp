@@ -8,6 +8,7 @@ import {
   FaSignOutAlt,
   FaUsers,
   FaBell,
+  FaBuilding,
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -21,17 +22,17 @@ function AdminSidebar() {
 
   const menuStyle = (path) => ({
     border: "none",
-    height: 54,
-    borderRadius: 14,
+    height: 46,
+    borderRadius: 12,
     background: isActive(path)
       ? "rgba(255,255,255,0.25)"
       : "rgba(255,255,255,0.08)",
     color: "#fff",
     display: "flex",
     alignItems: "center",
-    gap: 14,
-    padding: "0 18px",
-    fontSize: 15,
+    gap: 12,
+    padding: "0 16px",
+    fontSize: 14,
     fontWeight: isActive(path) ? 700 : 500,
     cursor: "pointer",
     backdropFilter: "blur(10px)",
@@ -49,27 +50,29 @@ function AdminSidebar() {
         height: "100vh",
         background:
           "linear-gradient(180deg, #34d399 0%, #22c55e 50%, #16a34a 100%)",
-        padding: "24px 16px",
+        padding: "16px 16px",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
         boxSizing: "border-box",
+        overflow: "hidden",
       }}
     >
-      <div>
+      <div style={{ overflowY: "auto", flex: 1, paddingRight: 2 }}>
         {/* Logo */}
         <div
           style={{
             background: "rgba(255,255,255,0.15)",
-            borderRadius: 20,
-            padding: 18,
-            marginBottom: 28,
+            borderRadius: 16,
+            padding: 14,
+            marginBottom: 16,
           }}
         >
           <h2
             style={{
               margin: 0,
               color: "#fff",
+              fontSize: 18,
             }}
           >
             FPT Dormitory
@@ -77,106 +80,46 @@ function AdminSidebar() {
 
           <p
             style={{
-              marginTop: 8,
+              marginTop: 4,
               color: "#fff",
-              fontSize: 13,
+              fontSize: 12,
+              margin: "4px 0 0",
             }}
           >
             Dormitory Management System
           </p>
         </div>
 
-        {/* Dashboard */}
-        <button
-          style={menuStyle("/admin/dashboard")}
-          onClick={() => navigate("/admin/dashboard")}
-        >
-          <FaChartPie />
-          Bảng điều khiển
-        </button>
-
-        {/* Room */}
-        <button
-          style={{
-            ...menuStyle("/admin/rooms"),
-            marginTop: 10,
-          }}
-          onClick={() => navigate("/admin/rooms")}
-        >
-          <FaBed />
-          Quản lý phòng ở
-        </button>
-
-        {/* Student */}
-        <button
-          style={{
-            ...menuStyle("/admin/students"),
-            marginTop: 10,
-          }}
-          onClick={() => navigate("/admin/students")}
-        >
-          <FaUserGraduate />
-          Quản lý sinh viên
-        </button>
-
-        <button
-          style={{
-            ...menuStyle("/admin/personnel"),
-            marginTop: 10,
-          }}
-          onClick={() => navigate("/admin/personnel")}
-        >
-          <FaUsers />
-          Quản lý nhân sự
-        </button>
-
-        {/* Room */}
-        <button
-          style={{
-            ...menuStyle("/admin/notifications"),
-            marginTop: 10,
-          }}
-          onClick={() => navigate("/admin/notifications")}
-        >
-          <FaBell />
-          Quản lý thông báo
-        </button>
-
-        {/* Payment */}
-        <button
-          style={{
-            ...menuStyle("/admin/payments"),
-            marginTop: 10,
-          }}
-          onClick={() => navigate("/admin/payments")}
-        >
-          <FaMoneyBillWave />
-          Thanh toán
-        </button>
-
-        {/* Request */}
-        <button
-          style={{
-            ...menuStyle("/admin/requests"),
-            marginTop: 10,
-          }}
-          onClick={() => navigate("/admin/requests")}
-        >
-          <FaTools />
-          Yêu cầu
-        </button>
-
-        {/* Account */}
-        <button
-          style={{
-            ...menuStyle("/admin/accounts"),
-            marginTop: 10,
-          }}
-          onClick={() => navigate("/admin/accounts")}
-        >
-          <FaUsersCog />
-          Tài khoản
-        </button>
+        {/* Nav menu */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <button style={menuStyle("/admin/dashboard")} onClick={() => navigate("/admin/dashboard")}>
+            <FaChartPie /> Bảng điều khiển
+          </button>
+          <button style={menuStyle("/admin/rooms")} onClick={() => navigate("/admin/rooms")}>
+            <FaBed /> Quản lý phòng ở
+          </button>
+          <button style={menuStyle("/admin/buildings")} onClick={() => navigate("/admin/buildings")}>
+            <FaBuilding /> Quản lý tòa nhà
+          </button>
+          <button style={menuStyle("/admin/students")} onClick={() => navigate("/admin/students")}>
+            <FaUserGraduate /> Quản lý sinh viên
+          </button>
+          <button style={menuStyle("/admin/personnel")} onClick={() => navigate("/admin/personnel")}>
+            <FaUsers /> Quản lý nhân sự
+          </button>
+          <button style={menuStyle("/admin/notifications")} onClick={() => navigate("/admin/notifications")}>
+            <FaBell /> Quản lý thông báo
+          </button>
+          <button style={menuStyle("/admin/payments")} onClick={() => navigate("/admin/payments")}>
+            <FaMoneyBillWave /> Thanh toán
+          </button>
+          <button style={menuStyle("/admin/requests")} onClick={() => navigate("/admin/requests")}>
+            <FaTools /> Yêu cầu
+          </button>
+          <button style={menuStyle("/admin/accounts")} onClick={() => navigate("/admin/accounts")}>
+            <FaUsersCog /> Tài khoản
+          </button>
+        </div>
       </div>
 
       {/* Logout */}

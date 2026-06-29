@@ -22,6 +22,11 @@ const buildingSchema = new mongoose.Schema(
       default: "active",
     },
 
+    managerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
     totalFloors: {
       type: Number,
       default: 5,

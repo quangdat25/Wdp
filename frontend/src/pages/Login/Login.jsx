@@ -70,7 +70,6 @@ function Login() {
         // lưu token
         if (result.tokens) {
           localStorage.setItem("accessToken", result.tokens.accessToken);
-
           localStorage.setItem("refreshToken", result.tokens.refreshToken);
         }
 
@@ -105,7 +104,8 @@ function Login() {
           localStorage.setItem("refreshToken", result.tokens.refreshToken);
         }
 
-        navigate(getRedirectPath(user));
+        const redirectPath = getRedirectPath(user);
+        navigate(redirectPath);
       }
     } catch (err) {
       setError(err.response?.data?.message || "Đăng nhập Google thất bại");
@@ -195,7 +195,7 @@ function Login() {
               <span className="material-symbols-outlined text-[20px]">
                 shield
               </span>
-              <span>Staff / Admin</span>
+              <span>Staff/Admin/Manager</span>
             </button>
           </div>
 

@@ -5,13 +5,28 @@ const {
   createTicket,
   getMyTickets,
   deleteMyTicket,
+  getCurrentRoom,
+  getStaffTickets,
+  updateTicketStatus,
+  createStaffTicket,
 } = require("../controllers/ticket.controller");
 
-const { verifyToken, authorizeRoles } = require("../middleware/checkAuth");
+const { authenticate, authorize } = require("../middleware/authUser");
 
-router.post("/", verifyToken, authorizeRoles("student"), createTicket);
+// Student Routes
+router.post("/", authenticate, authorize("student"), createTicket);
+router.get(
+  "/current-room",
+  authenticate,
+  authorize("student"),
+  getCurrentRoom,
+);
+router.get("/my", authenticate, authorize("student"), getMyTickets);
+router.delete("/my/:id", authenticate, authorize("student"), deleteMyTicket);
 
-router.get("/my", verifyToken, authorizeRoles("student"), getMyTickets);
+// Staff Routes
+router.get("/staff", authenticate, authorize("staff"), getStaffTickets);
+router.patch("/staff/:id/status", authenticate, authorize("staff"), updateTicketStatus);
+router.post("/staff-report", authenticate, authorize("staff"), createStaffTicket);
 
-router.delete("/my/:id", verifyToken, authorizeRoles("student"), deleteMyTicket);
 module.exports = router;

@@ -1,4 +1,4 @@
-import request from "../config/request";
+import request from "../config/axiosConfig";
 
 // ===== BUILDINGS =====
 
@@ -69,6 +69,8 @@ export const getAvailableStudents = async (search) => {
   const res = await request.get(url);
   return res.data;
 };
+
+
 
 // Kiểm tra kết nối server
 export const healthCheck = async () => {

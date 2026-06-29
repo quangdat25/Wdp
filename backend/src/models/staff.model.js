@@ -31,6 +31,10 @@ const staffSchema = new mongoose.Schema({
     type: Date,
   },
 
+  buildingId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Building",
+  },
 });
 
 module.exports = User.discriminator("staff", staffSchema);

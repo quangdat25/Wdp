@@ -19,6 +19,7 @@ import {
 } from "../../api/personnelService";
 import Sidebar from "../../components/Sidebar";
 
+import { getAllBuildings } from "../../api/roomService";
 const CONFIG = {
   status: {
     active: { background: "#dcfce7", color: "#166534", label: "Đang làm việc" },
@@ -57,6 +58,7 @@ const defaultForm = {
   password: "",
   phone: "",
   staffType: "security",
+  buildingId: "",
   department: "",
   shift: "office",
   status: "active",
@@ -71,6 +73,7 @@ const tableHeads = [
   "SĐT",
   "Vai trò",
   "Loại/Bộ phận",
+  "Tòa nhà",
   "Ca làm",
   "Trạng thái",
   "Thao tác",
@@ -82,18 +85,43 @@ const getCode = (personnel) =>
 const getStatusBadge = (status) =>
   CONFIG.status[status] || CONFIG.status.active;
 
+const getBuildingName = (building) => {
+  if (!building) return "Chưa phân tòa";
+
+  if (typeof building === "string") return building;
+
+  return (
+    building.name ||
+    building.buildingName ||
+    building.code ||
+    building._id ||
+    "Chưa phân tòa"
+  );
+};
+
+const getBuildingIdValue = (buildingId) => {
+  if (!buildingId) return "";
+  if (typeof buildingId === "object") return buildingId._id || "";
+  return buildingId;
+};
+
 const buildPayload = (formData, isEditing) => {
   const payload = { ...formData };
 
   if (payload.role === "staff") {
     delete payload.managerCode;
     delete payload.department;
+
+    if (payload.staffType !== "security") {
+      delete payload.buildingId;
+    }
   }
 
   if (payload.role === "manager") {
     delete payload.staffCode;
     delete payload.staffType;
     delete payload.shift;
+    delete payload.buildingId;
   }
 
   if (isEditing && !payload.password) {
@@ -105,12 +133,14 @@ const buildPayload = (formData, isEditing) => {
 
 function PersonnelManagement() {
   const [personnelList, setPersonnelList] = useState([]);
+  const [buildingList, setBuildingList] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [selectedPersonnel, setSelectedPersonnel] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPersonnelId, setEditingPersonnelId] = useState(null);
   const [formData, setFormData] = useState(defaultForm);
   const [loading, setLoading] = useState(false);
+  const [buildingLoading, setBuildingLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
@@ -128,8 +158,23 @@ function PersonnelManagement() {
     }
   };
 
+  const fetchBuildings = async () => {
+    try {
+      setBuildingLoading(true);
+      const res = await getAllBuildings();
+      setBuildingList(res.data || []);
+    } catch (error) {
+      showError(
+        error.response?.data?.message || "Không thể tải danh sách tòa nhà"
+      );
+    } finally {
+      setBuildingLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchPersonnel();
+    fetchBuildings();
   }, []);
 
   const filteredPersonnel = useMemo(() => {
@@ -150,6 +195,7 @@ function PersonnelManagement() {
         item.department,
         item.shift,
         item.status,
+        getBuildingName(item.buildingId),
       ]
         .filter(Boolean)
         .join(" ")
@@ -168,7 +214,10 @@ function PersonnelManagement() {
   }, [searchText]);
 
   useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(filteredPersonnel.length / pageSize));
+    const totalPages = Math.max(
+      1,
+      Math.ceil(filteredPersonnel.length / pageSize)
+    );
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, filteredPersonnel.length, pageSize]);
 
@@ -196,6 +245,7 @@ function PersonnelManagement() {
       ...defaultForm,
       ...personnel,
       password: "",
+      buildingId: getBuildingIdValue(personnel.buildingId),
       startDate: personnel.startDate ? personnel.startDate.slice(0, 10) : "",
     });
 
@@ -209,10 +259,24 @@ function PersonnelManagement() {
   };
 
   const handleChange = ({ target: { name, value } }) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => {
+      const next = {
+        ...prev,
+        [name]: value,
+      };
+
+      if (name === "role" && value === "manager") {
+        next.staffType = "security";
+        next.shift = "office";
+        next.buildingId = "";
+      }
+
+      if (name === "staffType" && value !== "security") {
+        next.buildingId = "";
+      }
+
+      return next;
+    });
   };
 
   const handleSubmit = async (event) => {
@@ -225,6 +289,13 @@ function PersonnelManagement() {
       if (!isEditing && !payload.password) {
         showError("Vui lòng nhập mật khẩu");
         return;
+      }
+
+      if (payload.role === "staff" && payload.staffType === "security") {
+        if (!payload.buildingId) {
+          showError("Vui lòng chọn tòa nhà làm việc cho bảo vệ");
+          return;
+        }
       }
 
       if (isEditing) {
@@ -270,8 +341,8 @@ function PersonnelManagement() {
               Quản lý nhân sự
             </h1>
             <p style={styles.subtitle}>
-              Theo dõi staff, manager, tài khoản đăng nhập và trạng thái làm
-              việc.
+              Theo dõi staff, manager, tài khoản đăng nhập, tòa nhà làm việc và
+              trạng thái làm việc.
             </p>
           </div>
 
@@ -318,7 +389,7 @@ function PersonnelManagement() {
             <input
               value={searchText}
               onChange={(event) => setSearchText(event.target.value)}
-              placeholder="Tìm theo mã, tên, email, username..."
+              placeholder="Tìm theo mã, tên, email, username, tòa nhà..."
               style={styles.searchInput}
             />
           </div>
@@ -338,13 +409,16 @@ function PersonnelManagement() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={10} style={{ padding: 20, textAlign: "center" }}>
+                    <td
+                      colSpan={11}
+                      style={{ padding: 20, textAlign: "center" }}
+                    >
                       Đang tải dữ liệu...
                     </td>
                   </tr>
                 ) : paginatedPersonnel.length === 0 ? (
                   <tr>
-                    <td colSpan={10} style={styles.emptyState}>
+                    <td colSpan={11} style={styles.emptyState}>
                       Không có nhân sự nào phù hợp.
                     </td>
                   </tr>
@@ -362,7 +436,10 @@ function PersonnelManagement() {
               </tbody>
             </table>
           </div>
-          <div style={{ display: "flex", justifyContent: "center", marginTop: 20 }}>
+
+          <div
+            style={{ display: "flex", justifyContent: "center", marginTop: 20 }}
+          >
             <Pagination
               current={currentPage}
               total={filteredPersonnel.length}
@@ -389,6 +466,8 @@ function PersonnelManagement() {
         <PersonnelFormModal
           editing={Boolean(editingPersonnelId)}
           formData={formData}
+          buildingList={buildingList}
+          buildingLoading={buildingLoading}
           onChange={handleChange}
           onClose={closeForm}
           onSubmit={handleSubmit}
@@ -413,6 +492,11 @@ function PersonnelRow({ item, onView, onEdit, onDelete }) {
         {item.role === "staff"
           ? CONFIG.staffType[item.staffType] || item.staffType
           : item.department || "Quản lý ký túc xá"}
+      </td>
+      <td style={styles.bodyCell}>
+        {item.role === "staff" && item.staffType === "security"
+          ? getBuildingName(item.buildingId)
+          : "-"}
       </td>
       <td style={styles.bodyCell}>
         {item.role === "staff"
@@ -517,6 +601,12 @@ function PersonnelDetailModal({ personnel, onClose }) {
         : personnel.department || "Quản lý ký túc xá",
     ],
     [
+      "Tòa nhà làm việc",
+      personnel.role === "staff" && personnel.staffType === "security"
+        ? getBuildingName(personnel.buildingId)
+        : "-",
+    ],
+    [
       "Ca làm",
       personnel.role === "staff" ? CONFIG.shift[personnel.shift] : "Hành chính",
     ],
@@ -552,7 +642,15 @@ function PersonnelDetailModal({ personnel, onClose }) {
   );
 }
 
-function PersonnelFormModal({ editing, formData, onChange, onClose, onSubmit }) {
+function PersonnelFormModal({
+  editing,
+  formData,
+  buildingList,
+  buildingLoading,
+  onChange,
+  onClose,
+  onSubmit,
+}) {
   return (
     <div style={styles.modalOverlay}>
       <button
@@ -578,6 +676,7 @@ function PersonnelFormModal({ editing, formData, onChange, onClose, onSubmit }) 
             value={formData.role}
             onChange={onChange}
             as="select"
+            disabled={editing}
           >
             <option value="staff">Staff</option>
             <option value="manager">Manager</option>
@@ -589,6 +688,7 @@ function PersonnelFormModal({ editing, formData, onChange, onClose, onSubmit }) 
               name="staffCode"
               value={formData.staffCode}
               onChange={onChange}
+              disabled={editing}
             />
           ) : (
             <Field
@@ -596,6 +696,7 @@ function PersonnelFormModal({ editing, formData, onChange, onClose, onSubmit }) 
               name="managerCode"
               value={formData.managerCode}
               onChange={onChange}
+              disabled={editing}
             />
           )}
 
@@ -649,6 +750,26 @@ function PersonnelFormModal({ editing, formData, onChange, onClose, onSubmit }) 
                 <option value="maintenance">Bảo trì</option>
                 <option value="cleaner">Tạp vụ</option>
               </Field>
+
+              {formData.staffType === "security" && (
+                <Field
+                  label="Tòa nhà làm việc"
+                  name="buildingId"
+                  value={formData.buildingId}
+                  onChange={onChange}
+                  as="select"
+                >
+                  <option value="">
+                    {buildingLoading ? "Đang tải tòa nhà..." : "Chọn tòa nhà"}
+                  </option>
+
+                  {buildingList.map((building) => (
+                    <option key={building._id} value={building._id}>
+                      {getBuildingName(building)}
+                    </option>
+                  ))}
+                </Field>
+              )}
 
               <Field
                 label="Ca làm"
@@ -739,12 +860,17 @@ function Field({
   type = "text",
   as = "input",
   children,
+  disabled = false,
 }) {
   const commonProps = {
     name,
     value,
     onChange,
-    style: styles.fieldControl,
+    disabled,
+    style: {
+      ...styles.fieldControl,
+      ...(disabled ? styles.disabledField : {}),
+    },
   };
 
   return (
@@ -865,7 +991,7 @@ const styles = {
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    minWidth: 1300,
+    minWidth: 1420,
     background: "#fff",
     borderRadius: 18,
     overflow: "hidden",
@@ -945,7 +1071,7 @@ const styles = {
   modalCard: {
     position: "relative",
     zIndex: 1,
-    width: 760,
+    width: 820,
     maxWidth: "100%",
     background: "#fff",
     borderRadius: 24,
@@ -1013,6 +1139,11 @@ const styles = {
     background: "#fff",
     outline: "none",
     boxSizing: "border-box",
+  },
+  disabledField: {
+    background: "#f1f5f9",
+    color: "#64748b",
+    cursor: "not-allowed",
   },
   formActions: {
     display: "flex",

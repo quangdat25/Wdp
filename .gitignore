@@ -17,3 +17,7 @@ frontend/skills/
 
 # Logs
 *.log
+
+# Ignore data folders
+frontend/db/
+scratch/

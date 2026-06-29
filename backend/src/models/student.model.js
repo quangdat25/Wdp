@@ -6,8 +6,7 @@ const parentSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    
-    
+
     password: {
       type: String,
     },
@@ -23,13 +22,13 @@ const parentSchema = new mongoose.Schema(
       type: String,
       default: "parent",
     },
-    
+
     role: {
       type: String,
       default: "parent",
     },
   },
-  { _id: false }
+  { _id: false },
 );
 const studentSchema = new mongoose.Schema({
   studentCode: {
@@ -48,6 +47,7 @@ const studentSchema = new mongoose.Schema({
     enum: ["male", "female", "other", ""],
     default: "",
   },
+  CFDScore: { type: Number, default: 100 },
   dateOfBirth: Date,
   major: {
     type: String,
@@ -57,10 +57,14 @@ const studentSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
-  type: { type: String, required: true, enum: ['login', 'loginGoogle'] },
+  buildingId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Building",
+  },
+  roomId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Room",
+  },
   parent: parentSchema,
 });
-module.exports = User.discriminator(
-  "student",
-  studentSchema
-);
+module.exports = User.discriminator("student", studentSchema);

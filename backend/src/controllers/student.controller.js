@@ -169,7 +169,7 @@ exports.importStudents = async (req, res) => {
           studentCode,
           reason: "Mã sinh viên đã tồn tại",
         });
-        continue;
+        continue
       }
 
       if (existedByEmail) {
@@ -208,7 +208,7 @@ exports.importStudents = async (req, res) => {
     for (const item of validStudents) {
       const row = item.row;
 
-      const parentPasswordHash = await bcrypt.hash(item.parentPassword, 10);
+      const parentPassword = await bcrypt.hash(item.parentPassword, 10);
 
       const student = await Student.create({
         role: "student",
@@ -232,7 +232,7 @@ exports.importStudents = async (req, res) => {
 
         parent: {
           username: item.parentUsername,
-          passwordHash: parentPasswordHash,
+          password: parentPassword,
           fullName: String(row["Họ tên phụ huynh"] || "").trim(),
           phone: String(row["Số điện thoại phụ huynh"] || "").trim(),
           relationship: "parent",

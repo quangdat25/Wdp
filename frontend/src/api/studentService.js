@@ -1,4 +1,4 @@
-import request from "../config/request";
+import request from "../config/axiosConfig";
 
 export const getAllStudents = () => {
   return request.get("api/students");
