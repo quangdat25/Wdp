@@ -25,7 +25,7 @@ import {
   FaUserPlus,
   FaUserMinus,
 } from "react-icons/fa";
-
+import { Modal } from "antd";
 const statusConfig = {
   available: {
     label: "Trống",
@@ -79,7 +79,7 @@ function RoomManagement() {
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [removing, setRemoving] = useState(false);
-
+const { confirm } = Modal;
   // Fetch buildings
   const fetchBuildings = useCallback(async () => {
     try {
@@ -269,20 +269,30 @@ function RoomManagement() {
   };
 
   // Remove student from room
-  const handleRemoveStudent = async (studentId) => {
-    if (!selectedRoom) return;
-    try {
-      setRemoving(true);
-      const res = await removeStudentFromRoom(selectedRoom._id, studentId);
-      setSelectedRoom(res.data);
-      await fetchRooms();
-      await fetchBuildings();
-    } catch (error) {
-      alert(error.response?.data?.message || "Lỗi xóa sinh viên");
-    } finally {
-      setRemoving(false);
-    }
-  };
+const handleRemoveStudent = (studentId) => {
+  if (!selectedRoom) return;
+
+  confirm({
+    title: "Xác nhận",
+    content: "Bạn có chắc chắn muốn xóa sinh viên khỏi phòng này không?",
+    okText: "Xóa",
+    cancelText: "Hủy",
+    okType: "danger",
+    async onOk() {
+      try {
+        setRemoving(true);
+        const res = await removeStudentFromRoom(selectedRoom._id, studentId);
+        setSelectedRoom(res.data);
+        await fetchRooms();
+        await fetchBuildings();
+      } catch (error) {
+        alert(error.response?.data?.message || "Lỗi xóa sinh viên");
+      } finally {
+        setRemoving(false);
+      }
+    },
+  });
+};
 
   // Select building
   const selectBuilding = (building) => {

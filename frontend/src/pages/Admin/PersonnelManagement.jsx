@@ -17,10 +17,9 @@ import {
   updatePersonnel,
   deletePersonnel,
 } from "../../api/personnelService";
-
-import { getAllBuildings } from "../../api/roomService";
 import Sidebar from "../../components/Sidebar";
 
+import { getAllBuildings } from "../../api/roomService";
 const CONFIG = {
   status: {
     active: { background: "#dcfce7", color: "#166534", label: "Đang làm việc" },

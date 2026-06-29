@@ -20,6 +20,7 @@ import AdminDashboard from "./pages/Admin/AdminDashboard";
 
 import ManagerDashboard from "./pages/Manager/ManagerDashboard";
 import StudentDashboard from "./pages/Student/StudentDashboard";
+import BookingRoom from "./pages/Student/BookingRoom";
 import ParentDashboard from "./pages/Parent/ParentDashboard";
 import ParentStudentInfo from "./pages/Parent/ParentStudentInfo";
 
@@ -67,6 +68,7 @@ function App() {
             {/* Student Routes */}
             <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
               <Route path="/student/dashboard" element={<StudentDashboard />} />
+              <Route path="/student/booking" element={<BookingRoom />} />
               <Route path="/student/tickets" element={<MyTickets />} />
             </Route>
 

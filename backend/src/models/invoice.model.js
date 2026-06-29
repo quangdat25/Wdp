@@ -1,8 +1,16 @@
+const mongoose = require("mongoose");
+
 const invoiceSchema = new mongoose.Schema(
   {
     bookingId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Booking",
+      required: true,
+    },
+
+    studentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
     },
 
@@ -51,3 +59,5 @@ const invoiceSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+module.exports = mongoose.model("Invoice", invoiceSchema);

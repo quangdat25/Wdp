@@ -13,10 +13,12 @@ const bookingSchema = new mongoose.Schema(
       required: true,
     },
 
-    // bedId: {
-    //   type: mongoose.Schema.Types.ObjectId,
-    //   ref: "Bed",
-    // },
+    bedNumber: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 4,
+    },
 
     semester: {
       type: String,

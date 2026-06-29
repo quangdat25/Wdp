@@ -31,7 +31,6 @@ const initSocket = (server) => {
   });
 
   io.on("connection", (socket) => {
-    console.log("Socket connected:", socket.id);
 
     socket.join("all");
 
