@@ -95,6 +95,18 @@ function AdminSidebar() {
           Bảng điều khiển
         </button>
 
+        {/* Room */}
+        <button
+          style={{
+            ...menuStyle("/admin/rooms"),
+            marginTop: 10,
+          }}
+          onClick={() => navigate("/admin/rooms")}
+        >
+          <FaBed />
+          Quản lý phòng ở
+        </button>
+
         {/* Student */}
         <button
           style={{
