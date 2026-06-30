@@ -903,3 +903,155 @@
     padding: 24px;
   }
 }
+
+/* =============== PAYMENT STEP =============== */
+.booking-payment {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 32px;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #d9e4f0;
+  box-shadow: 0 4px 24px rgba(15, 31, 53, 0.06);
+  text-align: center;
+}
+
+.booking-payment__header {
+  margin-bottom: 24px;
+}
+
+.booking-payment__icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0066cc, #0099ff);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  margin: 0 auto 16px;
+  box-shadow: 0 4px 16px rgba(0, 102, 204, 0.3);
+}
+
+.booking-payment__header h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 6px;
+}
+
+.booking-payment__header p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+.booking-payment__summary {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.booking-payment__summary h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #334155;
+  margin: 0 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.booking-payment__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.booking-payment__row span:first-child {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.booking-payment__row span:last-child {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.booking-payment__divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 12px 0;
+}
+
+.booking-payment__row--total {
+  padding: 12px 0 4px;
+}
+
+.booking-payment__row--total span:first-child {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+}
+
+.booking-payment__price {
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  color: #dc2626 !important;
+}
+
+.booking-payment__status--pending {
+  background: #fef3c7;
+  color: #d97706;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.booking-payment__actions {
+  margin-bottom: 16px;
+}
+
+.booking-btn-vnpay {
+  width: 100%;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0066cc, #004999);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0, 102, 204, 0.3);
+}
+
+.booking-btn-vnpay:hover:not(:disabled) {
+  background: linear-gradient(135deg, #004999, #003366);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 102, 204, 0.4);
+}
+
+.booking-btn-vnpay:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.booking-payment__note {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin: 0;
+}
