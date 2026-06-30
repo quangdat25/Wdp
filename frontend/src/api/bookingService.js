@@ -26,9 +26,16 @@ export const getMyBooking = async () => {
   return res.data;
 };
 
+// Tạo URL thanh toán VNPAY cho booking
+export const createBookingPayment = async (bookingId) => {
+  const res = await request.post("/api/payment/create-booking-payment", { bookingId });
+  return res.data;
+};
+
 export default {
   checkEligibility,
   getAvailableRooms,
   createBooking,
   getMyBooking,
+  createBookingPayment,
 };

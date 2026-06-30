@@ -36,10 +36,10 @@ const checkBookingEligibility = async (req, res) => {
       });
     }
 
-    // Kiểm tra có booking đang pending/confirmed không
+    // Kiểm tra có booking đang confirmed/checked_in không
     const existingBooking = await Booking.findOne({
       studentId: studentId,
-      status: { $in: ["pending", "confirmed", "checked_in"] },
+      status: { $in: ["confirmed", "checked_in"] },
     });
     if (existingBooking) {
       return res.status(400).json({
@@ -220,10 +220,16 @@ const createBooking = async (req, res) => {
       });
     }
 
+    // Xóa các booking pending (nếu có) do user thoát giữa chừng trước đó
+    await Booking.deleteMany({
+      studentId: studentId,
+      status: "pending"
+    });
+
     // Check booking đang active
     const existingBooking = await Booking.findOne({
       studentId: studentId,
-      status: { $in: ["pending", "confirmed", "checked_in"] },
+      status: { $in: ["confirmed", "checked_in"] },
     });
     if (existingBooking) {
       return res.status(400).json({
@@ -306,22 +312,11 @@ const createBooking = async (req, res) => {
       semester: bookingSemester,
       startDate: now,
       endDate: new Date(now.getFullYear(), now.getMonth() + 4, now.getDate()),
-      status: "confirmed",
+      status: "pending",
       checkInDate: now,
     });
 
-    // === Tự động gán sinh viên vào phòng (Room.students) ===
-    room.students.push({ student: studentId, bedNumber: bedNumber });
-    room.currentOccupants = room.students.length;
-    if (room.status !== "maintenance") {
-      room.status = room.students.length >= room.capacity ? "occupied" : "available";
-    }
-    await room.save();
-
-    // Cập nhật roomId và buildingId cho sinh viên
-    student.roomId = room._id;
-    student.buildingId = room.building;
-    await student.save();
+    // Không gán sinh viên vào phòng ở bước này nữa, sẽ gán sau khi thanh toán thành công
 
     // Populate room info để trả về
     const populatedRoom = await Room.findById(roomId)
@@ -333,11 +328,12 @@ const createBooking = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `Đặt phòng thành công! Phòng ${room.displayName}, Giường số ${bedNumber}.`,
+      message: `Đặt phòng thành công! Vui lòng thanh toán để xác nhận.`,
       data: {
         booking: booking,
         room: populatedRoom,
         bedNumber: bedNumber,
+        price: room.price || 2000000,
       },
     });
   } catch (error) {
@@ -356,7 +352,7 @@ const getMyBooking = async (req, res) => {
 
     const booking = await Booking.findOne({
       studentId: studentId,
-      status: { $in: ["pending", "confirmed", "checked_in"] },
+      status: { $in: ["confirmed", "checked_in"] },
     })
       .populate({
         path: "roomId",

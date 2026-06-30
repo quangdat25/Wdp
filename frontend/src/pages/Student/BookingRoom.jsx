@@ -11,12 +11,14 @@ import {
   FaStar,
   FaFileInvoice,
   FaCheck,
+  FaCreditCard,
+  FaMoneyBillWave,
 } from "react-icons/fa";
 
 import "./BookingRoom.css";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Headers";
-import { checkEligibility, getAvailableRooms, createBooking } from "../../api/bookingService";
+import { checkEligibility, getAvailableRooms, createBooking, createBookingPayment } from "../../api/bookingService";
 import { getAllBuildings } from "../../api/roomService";
 
 function BookingRoom() {
@@ -139,8 +141,9 @@ function BookingRoom() {
         semester: "Summer 2026",
       });
       setBookingResult(res);
-      setBookingSuccess(true);
       setShowConfirmModal(false);
+      // Chuyển sang bước thanh toán thay vì thành công
+      setCurrentStep(4);
     } catch (err) {
       const msg = err.response?.data?.message || "Đặt phòng thất bại. Vui lòng thử lại.";
       alert(msg);
@@ -149,10 +152,27 @@ function BookingRoom() {
     }
   };
 
+  // Xử lý thanh toán VNPAY
+  const handlePayVNPay = async () => {
+    if (!bookingResult?.data?.booking?._id) return;
+    setSubmitting(true);
+    try {
+      const res = await createBookingPayment(bookingResult.data.booking._id);
+      if (res.data && res.data.paymentUrl) {
+        window.location.href = res.data.paymentUrl;
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || "Không thể tạo thanh toán. Vui lòng thử lại.";
+      alert(msg);
+      setSubmitting(false);
+    }
+  };
+
   const steps = [
     { id: 1, label: "Kiểm tra điều kiện" },
     { id: 2, label: "Chọn phòng" },
-    { id: 3, label: "Chọn giường & Xác nhận" },
+    { id: 3, label: "Chọn giường" },
+    { id: 4, label: "Thanh toán" },
   ];
 
   // ============= RENDER =============
@@ -211,6 +231,15 @@ function BookingRoom() {
                   setSelectedRoom(null);
                   setSelectedBed(null);
                 }}
+              />
+            )}
+
+            {/* Step 4: Payment */}
+            {currentStep === 4 && bookingResult && (
+              <PaymentScreen
+                result={bookingResult}
+                submitting={submitting}
+                onPayVNPay={handlePayVNPay}
               />
             )}
 
@@ -622,6 +651,80 @@ function ConfirmModal({ room, bedNumber, submitting, onConfirm, onCancel }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PaymentScreen({ result, submitting, onPayVNPay }) {
+  const roomData = result?.data?.room;
+  const price = result?.data?.price || 2000000;
+  const bedNumber = result?.data?.bedNumber;
+  const booking = result?.data?.booking;
+
+  return (
+    <div className="booking-payment">
+      <div className="booking-payment__header">
+        <div className="booking-payment__icon">
+          <FaCreditCard />
+        </div>
+        <h3>Thanh toán đặt phòng</h3>
+        <p>Vui lòng thanh toán để hoàn tất việc đặt phòng</p>
+      </div>
+
+      <div className="booking-payment__summary">
+        <h4>Thông tin đơn đặt phòng</h4>
+        <div className="booking-payment__row">
+          <span>Phòng</span>
+          <span>{roomData?.displayName || roomData?.roomNumber || "N/A"}</span>
+        </div>
+        <div className="booking-payment__row">
+          <span>Tòa nhà</span>
+          <span>Tòa {roomData?.building?.name || "N/A"}</span>
+        </div>
+        <div className="booking-payment__row">
+          <span>Tầng</span>
+          <span>Tầng {roomData?.floor || "N/A"}</span>
+        </div>
+        <div className="booking-payment__row">
+          <span>Giường</span>
+          <span>Giường số {bedNumber}</span>
+        </div>
+        <div className="booking-payment__row">
+          <span>Học kỳ</span>
+          <span>{booking?.semester || "Summer 2026"}</span>
+        </div>
+        <div className="booking-payment__row">
+          <span>Trạng thái</span>
+          <span className="booking-payment__status--pending">Chờ thanh toán</span>
+        </div>
+        <div className="booking-payment__divider" />
+        <div className="booking-payment__row booking-payment__row--total">
+          <span><FaMoneyBillWave style={{ marginRight: 6 }} />Tổng tiền</span>
+          <span className="booking-payment__price">{price.toLocaleString("vi-VN")}đ</span>
+        </div>
+      </div>
+
+      <div className="booking-payment__actions">
+        <button
+          className="booking-btn-vnpay"
+          onClick={onPayVNPay}
+          disabled={submitting}
+        >
+          {submitting ? (
+            "Đang xử lý..."
+          ) : (
+            <>
+              <FaCreditCard style={{ marginRight: 8 }} />
+              Thanh toán qua VNPAY
+            </>
+          )}
+        </button>
+      </div>
+
+      <p className="booking-payment__note">
+        Bạn sẽ được chuyển hướng đến cổng thanh toán VNPAY để hoàn tất giao dịch.
+        Sau khi thanh toán thành công, đơn đặt phòng sẽ được xác nhận tự động.
+      </p>
     </div>
   );
 }
