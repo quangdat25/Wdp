@@ -31,7 +31,6 @@ const initSocket = (server) => {
   });
 
   io.on("connection", (socket) => {
-    console.log("Socket connected:", socket.id);
 
     socket.join("all");
 
@@ -41,9 +40,7 @@ const initSocket = (server) => {
     // room theo user
     socket.join(`user:${socket.user.id}`);
 
-    console.log(`${socket.user.role} joined`);
-    console.log(`${socket.user.id} joined`);
-
+ 
     socket.on("disconnect", () => {
       console.log("Socket disconnected:", socket.id);
     });

@@ -1,6 +1,7 @@
 const Building = require("../models/building.model");
 const Room = require("../models/room.models");
 const User = require("../models/user.model");
+const Booking = require("../models/booking.model");
 
 // Lấy tất cả tòa nhà
 const getAllBuildings = async (req, res) => {
@@ -364,9 +365,32 @@ const assignStudent = async (req, res) => {
     room.students.push({ student: studentId, bedNumber });
     room.currentOccupants = room.students.length;
     if (room.status !== "maintenance") {
-      room.status = "occupied";
+      room.status = room.students.length >= room.capacity ? "occupied" : "available";
     }
     await room.save();
+
+    // Cập nhật roomId và buildingId cho sinh viên
+    student.roomId = room._id;
+    student.buildingId = room.building;
+    await student.save();
+
+    // Tạo booking tự động nếu admin gán
+    const existingBooking = await Booking.findOne({
+      studentId: studentId,
+      status: { $in: ["pending", "confirmed", "checked_in"] },
+    });
+    if (!existingBooking) {
+      const now = new Date();
+      await Booking.create({
+        studentId: studentId,
+        roomId: room._id,
+        semester: "Summer 2026",
+        startDate: now,
+        endDate: new Date(now.getFullYear(), now.getMonth() + 4, now.getDate()),
+        status: "confirmed",
+        checkInDate: now,
+      });
+    }
 
     const updatedRoom = await Room.findById(id)
       .populate("building", "name")
@@ -416,13 +440,23 @@ const removeStudent = async (req, res) => {
     room.students.splice(studentIndex, 1);
     room.currentOccupants = room.students.length;
     if (room.status !== "maintenance") {
-      if (room.students.length === 0) {
-        room.status = "available";
-      } else {
-        room.status = "occupied";
-      }
+      room.status = room.students.length >= room.capacity ? "occupied" : "available";
     }
     await room.save();
+
+    // Xóa roomId và buildingId của sinh viên
+    const student = await User.findById(studentId);
+    if (student) {
+      student.roomId = null;
+      student.buildingId = null;
+      await student.save();
+    }
+
+    // Xóa đơn booking tương ứng
+    await Booking.deleteMany({
+      studentId: studentId,
+      roomId: id,
+    });
 
     const updatedRoom = await Room.findById(id)
       .populate("building", "name")
