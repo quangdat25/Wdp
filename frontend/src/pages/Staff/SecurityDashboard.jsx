@@ -3,7 +3,7 @@ import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import authService from "../../api/authService";
 import { FaBell } from "react-icons/fa";
-
+import Header from "../../components/Headers";
 import OverviewTab from "./SecurityTabs/OverviewTab";
 import GateHistoryTab from "./SecurityTabs/GateHistoryTab";
 import CreateReportTab from "./SecurityTabs/CreateReportTab";
@@ -88,96 +88,24 @@ function SecurityDashboard() {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "#F5F6F8",
-        fontFamily: "'Inter', sans-serif",
-      }}
-      id="security-dashboard-container"
-    >
+    <div className="flex bg-white min-h-screen font-sans text-[#0b1c30]">
       {/* Sidebar navigation */}
       <Sidebar />
 
       {/* Main dashboard contents */}
-      <main
-        style={{
-          marginLeft: 270,
-          flex: 1,
-          padding: "24px 32px",
-          display: "flex",
-          flexDirection: "column",
-          boxSizing: "border-box",
-          overflowY: "auto",
-          height: "100vh",
-        }}
-      >
+      <main className="ml-[270px] flex-1">
         {/* Top bar header */}
-        <header
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 24,
-          }}
-        >
-          <h1
-            style={{
-              fontSize: 28,
-              color: "#0A4E9B",
-              fontWeight: 800,
-              margin: 0,
-            }}
-          >
-            {pageTitle}
-          </h1>
+        <Header/>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: "#000000",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#FFFFFF",
-                cursor: "pointer",
-              }}
-            >
-              <FaBell size={18} />
-            </div>
-
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: "#00E676",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#000000",
-                fontWeight: 700,
-                fontSize: 16,
-                cursor: "pointer",
-              }}
-            >
-              BV
-            </div>
-          </div>
-        </header>
-
-        {/* Tab content rendering via Routes */}
-        <Routes>
-          <Route path="/" element={<OverviewTab gateLogs={gateLogs} students={students} navigate={navigate} />} />
-          <Route path="history" element={<GateHistoryTab gateLogs={gateLogs} setGateLogs={setGateLogs} students={students} setSelectedStudent={setSelectedStudent} navigate={navigate} />} />
-          <Route path="create-report" element={<CreateReportTab students={students} setStudents={setStudents} />} />
-          <Route path="search" element={<SearchStudentTab students={students} selectedStudent={selectedStudent} setSelectedStudent={setSelectedStudent} />} />
-        </Routes>
-
+        <div className="p-8 max-w-[1400px] mx-auto">
+          {/* Tab content rendering via Routes */}
+          <Routes>
+            <Route path="/" element={<OverviewTab gateLogs={gateLogs} students={students} navigate={navigate} />} />
+            <Route path="history" element={<GateHistoryTab gateLogs={gateLogs} setGateLogs={setGateLogs} students={students} setSelectedStudent={setSelectedStudent} navigate={navigate} />} />
+            <Route path="create-report" element={<CreateReportTab students={students} setStudents={setStudents} />} />
+            <Route path="search" element={<SearchStudentTab students={students} selectedStudent={selectedStudent} setSelectedStudent={setSelectedStudent} />} />
+          </Routes>
+        </div>
       </main>
     </div>
   );

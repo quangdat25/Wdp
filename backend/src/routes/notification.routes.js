@@ -16,3 +16,4 @@ router.get("/:id", authenticate, notificationController.getNotificationById);
 router.delete("/:id", authenticate, notificationController.deleteNotification);
 
 module.exports = router;
+    

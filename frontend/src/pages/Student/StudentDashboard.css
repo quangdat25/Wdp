@@ -131,7 +131,7 @@
 }
 
 .data-table-header {
-  background-color: #F8FAFC;
+  background-color: transparent;
 }
 
 /* Hero Banner */
@@ -234,7 +234,7 @@
 
 .metric-card {
   padding: 12px 16px;
-  background-color: white;
+  background-color: #F6FAF5;
   transition: border-color 0.3s;
 }
 
@@ -500,7 +500,7 @@
   justify-content: center;
   min-height: 300px;
   border-radius: 10px;
-  background: #ffffff;
+  background: #F6FAF5;
   border: 1px solid #E2E8F0;
   color: var(--md-sys-color-secondary);
   gap: 12px;

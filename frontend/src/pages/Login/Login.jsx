@@ -195,7 +195,7 @@ function Login() {
               <span className="material-symbols-outlined text-[20px]">
                 shield
               </span>
-              <span>Staff / Admin</span>
+              <span>Staff/Admin/Manager</span>
             </button>
           </div>
 

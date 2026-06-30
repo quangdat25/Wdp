@@ -220,7 +220,7 @@ function BookedHomeScreen({ setActiveModule, navigate }) {
 function HomeInfoGrid({ setActiveModule, navigate }) {
   return (
     <section className="bottom-grid">
-      <div className="sharp-border bg-white news-panel">
+      <div className="sharp-border bg-[#F6FAF5] news-panel">
         <div className="panel-header data-table-header">
           <h4 className="font-headline-sm text-on-surface">
             <FaBullhorn className="text-primary" style={{ marginRight: '8px' }} />
@@ -252,7 +252,7 @@ function HomeInfoGrid({ setActiveModule, navigate }) {
         </div>
       </div>
 
-      <div className="sharp-border bg-white support-panel">
+      <div className="sharp-border bg-[#F6FAF5] support-panel">
         <div className="panel-header data-table-header">
           <h4 className="font-headline-sm text-on-surface">
             <FaHeadset className="text-primary" style={{ marginRight: '8px' }} />

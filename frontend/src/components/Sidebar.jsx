@@ -18,6 +18,7 @@ import {
   FaPlusCircle,
   FaSearch,
   FaBuilding,
+  FaDoorOpen
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -162,6 +163,11 @@ function Sidebar() {
         path: "/student/dashboard",
         label: "Bảng điều khiển",
         icon: <FaChartPie />,
+      },
+      {
+        path: "/student/booking",
+        label: "Đặt phòng",
+        icon: <FaDoorOpen />,
       },
       {
         path: "/student/room",
