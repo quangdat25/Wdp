@@ -14,6 +14,7 @@ import {
   FaShieldAlt,
   FaPlusCircle,
   FaSearch,
+  FaBuilding,
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -62,6 +63,11 @@ function Sidebar() {
         path: "/admin/rooms",
         label: "Quản lý phòng ở",
         icon: <FaBed />,
+      },
+      {
+        path: "/admin/buildings",
+        label: "Quản lý tòa nhà",
+        icon: <FaBuilding />,
       },
       {
         path: "/admin/students",
