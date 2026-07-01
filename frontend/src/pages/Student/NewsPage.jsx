@@ -1,33 +1,12 @@
-import { useState, useMemo } from "react";
-import { useNotifications } from "../../hooks/useNotifications";
+import { useState } from "react";
+import { useNews } from "../../hooks/useNews";
 import { formatRelativeTime } from "../../utils/date";
-import NotificationDetailModal from "../../components/NotificationDetailModal";
+import NewsDetailModal from "../../components/NewsDetailModal";
 
-const TABS = [
-  { id: "all", label: "Tất cả" },
-  { id: "unread", label: "Chưa đọc" },
-  { id: "read", label: "Đã đọc" },
-];
-
-// Trang danh sách thông báo đầy đủ cho module "news"
+// Trang danh sách bản tin đầy đủ cho module "news"
 function NewsPage() {
-  const { notifications, loading, markAsRead } = useNotifications();
-  const [activeTab, setActiveTab] = useState("all");
+  const { news, loading } = useNews();
   const [selected, setSelected] = useState(null);
-
-  // Filter bằng state (không gọi lại API)
-  const filtered = useMemo(() => {
-    if (activeTab === "unread") return notifications.filter((n) => !n.isRead);
-    if (activeTab === "read") return notifications.filter((n) => n.isRead);
-    return notifications;
-  }, [notifications, activeTab]);
-
-  const handleClick = async (item) => {
-    if (!item.isRead) {
-      await markAsRead(item._id);
-    }
-    setSelected({ ...item, isRead: true });
-  };
 
   return (
     <div className="student-stack">
@@ -50,72 +29,11 @@ function NewsPage() {
             color: "#637386",
           }}
         >
-          Toàn bộ thông báo từ Ban Quản Lý Ký túc xá
+          Toàn bộ bản tin từ Ban Quản Lý Ký túc xá
         </p>
       </div>
 
-      {/* Filter tabs */}
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          flexWrap: "wrap",
-        }}
-      >
-        {TABS.map((tab) => {
-          const count =
-            tab.id === "all"
-              ? notifications.length
-              : tab.id === "unread"
-                ? notifications.filter((n) => !n.isRead).length
-                : notifications.filter((n) => n.isRead).length;
-
-          const isActive = activeTab === tab.id;
-
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: "10px 18px",
-                borderRadius: 10,
-                border: `1px solid ${isActive ? "#16a34a" : "#d9e4f0"}`,
-                background: isActive ? "#16a34a" : "#ffffff",
-                color: isActive ? "#ffffff" : "#637386",
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                transition: "all 0.15s",
-              }}
-            >
-              {tab.label}
-              <span
-                style={{
-                  minWidth: 20,
-                  height: 20,
-                  padding: "0 6px",
-                  borderRadius: 999,
-                  background: isActive ? "rgba(255,255,255,0.25)" : "#f0fdf4",
-                  color: isActive ? "#ffffff" : "#16a34a",
-                  fontSize: 11,
-                  fontWeight: 800,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Danh sách thông báo */}
+      {/* Danh sách thông báo (News) */}
       <div className="student-panel">
         {loading ? (
           <div className="student-news-list">
@@ -151,7 +69,7 @@ function NewsPage() {
               </div>
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : news.length === 0 ? (
           /* Empty state có icon */
           <div
             style={{
@@ -162,24 +80,27 @@ function NewsPage() {
           >
             <div style={{ fontSize: 40, marginBottom: 12 }}>📰</div>
             <span style={{ fontSize: 14, fontWeight: 600 }}>
-              Chưa có thông báo nào.
+              Chưa có bản tin nào.
             </span>
           </div>
         ) : (
           <div className="student-news-list">
-            {filtered.map((item) => (
+            {news.map((item) => (
               <div
                 key={item._id}
                 className="student-news-item"
-                onClick={() => handleClick(item)}
+                onClick={() => setSelected(item)}
               >
                 <span
                   className="student-news-item__dot"
                   style={{
-                    background: item.isRead ? "#cbd5e1" : "#16a34a",
+                    background: item.isPinned ? "#dc2626" : "#16a34a",
                   }}
                 />
-                <span className="student-news-item__text">{item.title}</span>
+                <span className="student-news-item__text">
+                  {item.isPinned && "📌 "}
+                  {item.title}
+                </span>
                 <span className="student-news-item__date">
                   {formatRelativeTime(item.createdAt)}
                 </span>
@@ -191,10 +112,7 @@ function NewsPage() {
 
       {/* Modal chi tiết */}
       {selected && (
-        <NotificationDetailModal
-          notification={selected}
-          onClose={() => setSelected(null)}
-        />
+        <NewsDetailModal news={selected} onClose={() => setSelected(null)} />
       )}
     </div>
   );

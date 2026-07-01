@@ -1,23 +1,15 @@
 import { useState } from "react";
-import { useNotifications } from "../../hooks/useNotifications";
+import { useNews } from "../../hooks/useNews";
 import { formatRelativeTime } from "../../utils/date";
-import NotificationDetailModal from "../../components/NotificationDetailModal";
+import NewsDetailModal from "../../components/NewsDetailModal";
 
-// Widget hiển thị 5 thông báo gần nhất trên trang chủ Student
+// Widget hiển thị 5 bản tin gần nhất trên trang chủ Student
 function NewsWidget({ onViewMore }) {
-  const { notifications, loading, markAsRead } = useNotifications();
+  const { news, loading } = useNews();
   const [selected, setSelected] = useState(null);
 
-  // Chỉ lấy 5 tin gần nhất (API đã sort mới nhất trước)
-  const recent = notifications.slice(0, 5);
-
-  const handleClick = async (item) => {
-    // Đánh dấu đã đọc nếu chưa, rồi mở modal
-    if (!item.isRead) {
-      await markAsRead(item._id);
-    }
-    setSelected({ ...item, isRead: true });
-  };
+  // Chỉ lấy 5 tin gần nhất (API đã sort: isPinned trước, rồi createdAt giảm dần)
+  const recent = news.slice(0, 5);
 
   return (
     <div className="student-panel">
@@ -27,7 +19,7 @@ function NewsWidget({ onViewMore }) {
           <p>Thông báo từ Ban Quản Lý KTX</p>
         </div>
 
-        {notifications.length > 5 && (
+        {news.length > 5 && (
           <button
             type="button"
             className="student-panel__see-more"
@@ -84,7 +76,7 @@ function NewsWidget({ onViewMore }) {
         >
           <div style={{ fontSize: 32, marginBottom: 8 }}>📰</div>
           <span style={{ fontSize: 14, fontWeight: 600 }}>
-            Chưa có thông báo nào.
+            Chưa có bản tin nào.
           </span>
         </div>
       ) : (
@@ -93,16 +85,16 @@ function NewsWidget({ onViewMore }) {
             <div
               key={item._id}
               className="student-news-item"
-              onClick={() => handleClick(item)}
+              onClick={() => setSelected(item)}
             >
-              {/* Dot đậm cho chưa đọc, nhạt cho đã đọc */}
               <span
                 className="student-news-item__dot"
                 style={{
-                  background: item.isRead ? "#cbd5e1" : "#16a34a",
+                  background: item.isPinned ? "#dc2626" : "#16a34a",
                 }}
               />
               <span className="student-news-item__text">
+                {item.isPinned && "📌 "}
                 {item.title}
               </span>
               <span className="student-news-item__date">
@@ -115,10 +107,7 @@ function NewsWidget({ onViewMore }) {
 
       {/* Modal chi tiết */}
       {selected && (
-        <NotificationDetailModal
-          notification={selected}
-          onClose={() => setSelected(null)}
-        />
+        <NewsDetailModal news={selected} onClose={() => setSelected(null)} />
       )}
     </div>
   );

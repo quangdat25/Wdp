@@ -1,11 +1,12 @@
 import { FaTimes } from "react-icons/fa";
 import { formatDateTime } from "../utils/date";
 
-// Modal chi tiết thông báo - dùng chung cho Header + NewsWidget + NewsPage
-function NotificationDetailModal({ notification, onClose }) {
-  if (!notification) return null;
+// Modal chi tiết bản tin - dùng cho NewsWidget + NewsPage
+function NewsDetailModal({ news, onClose }) {
+  if (!news) return null;
 
-  const senderName = notification.senderId?.fullName || "Hệ thống";
+  const authorName = news.authorId?.fullName || "Ban Quản Lý";
+  const buildingName = news.buildingId?.name;
 
   return (
     <div
@@ -50,6 +51,21 @@ function NotificationDetailModal({ notification, onClose }) {
           }}
         >
           <div style={{ flex: 1, minWidth: 0 }}>
+            {news.isPinned && (
+              <span
+                style={{
+                  display: "inline-block",
+                  background: "rgba(255,255,255,0.25)",
+                  padding: "2px 10px",
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  marginBottom: 8,
+                }}
+              >
+                📌 GHIM
+              </span>
+            )}
             <h2
               style={{
                 margin: 0,
@@ -59,7 +75,7 @@ function NotificationDetailModal({ notification, onClose }) {
                 wordBreak: "break-word",
               }}
             >
-              {notification.title}
+              {news.title}
             </h2>
           </div>
 
@@ -104,10 +120,16 @@ function NotificationDetailModal({ notification, onClose }) {
               fontWeight: 600,
             }}
           >
-            Từ: <strong style={{ color: "#0F172A" }}>{senderName}</strong>
+            Đăng bởi: <strong style={{ color: "#0F172A" }}>{authorName}</strong>
+            {buildingName && (
+              <>
+                {" • Tòa "}
+                <strong style={{ color: "#0F172A" }}>{buildingName}</strong>
+              </>
+            )}
           </span>
           <span style={{ fontSize: 13, color: "#94A3B8" }}>
-            {formatDateTime(notification.createdAt)}
+            {formatDateTime(news.createdAt)}
           </span>
         </div>
 
@@ -125,7 +147,7 @@ function NotificationDetailModal({ notification, onClose }) {
               wordBreak: "break-word",
             }}
           >
-            {notification.content}
+            {news.content}
           </div>
         </div>
       </div>
@@ -133,4 +155,4 @@ function NotificationDetailModal({ notification, onClose }) {
   );
 }
 
-export default NotificationDetailModal;
+export default NewsDetailModal;

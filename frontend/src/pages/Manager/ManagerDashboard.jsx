@@ -1,4 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { createNews, getAllNews } from "../../api/newsService";
+import { showSuccess, showError } from "../../components/Alert";
+import { formatDateTime } from "../../utils/date";
 import {
   FaBell,
   FaBed,
@@ -19,6 +22,7 @@ import {
 import "./ManagerDashboard.css";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Headers";
+import { useLocation } from "react-router-dom";
 
 
 const buildings = [
@@ -91,7 +95,17 @@ const settings = [
 ];
 
 function ManagerDashboard() {
+  const location = useLocation();
   const [activeModule, setActiveModule] = useState("overview");
+
+  useEffect(() => {
+    if (location.pathname === "/manager/notifications") {
+      setActiveModule("settings");
+    } else {
+      setActiveModule("overview");
+    }
+  }, [location.pathname]);
+
   const [query, setQuery] = useState("");
 
   const totalBeds = buildings.reduce((sum, building) => sum + building.beds, 0);
@@ -109,10 +123,10 @@ function ManagerDashboard() {
 
   return (
     <div className="manager-shell">
-      <Sidebar/>
+      <Sidebar />
 
       <main className="manager-main">
-        <Header/>
+        <Header />
 
         {activeModule === "overview" && (
           <OverviewScreen
@@ -357,14 +371,157 @@ function StaffScreen() {
 }
 
 function SettingsScreen() {
+  const [newsList, setNewsList] = useState([]);
+  const [loadingNews, setLoadingNews] = useState(true);
+  const [newsForm, setNewsForm] = useState({ title: "", content: "", isPinned: false });
+  const [sending, setSending] = useState(false);
+
+  const fetchNews = async () => {
+    try {
+      setLoadingNews(true);
+      const res = await getAllNews();
+      if (res.success) {
+        setNewsList(res.data || []);
+      }
+    } catch (err) {
+      console.error(err);
+      showError("Không thể tải danh sách bản tin");
+    } finally {
+      setLoadingNews(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNews();
+  }, []);
+
+  const handlePostNews = async (e) => {
+    e.preventDefault();
+    if (!newsForm.title.trim() || !newsForm.content.trim()) {
+      showError("Vui lòng điền đầy đủ tiêu đề và nội dung.");
+      return;
+    }
+
+    try {
+      setSending(true);
+      const res = await createNews({
+        title: newsForm.title.trim(),
+        content: newsForm.content.trim(),
+        status: "published",
+        isPinned: newsForm.isPinned
+      });
+      if (res.success) {
+        showSuccess("Đăng bản tin thành công!");
+        setNewsForm({ title: "", content: "", isPinned: false });
+        fetchNews();
+      } else {
+        showError(res.message || "Lỗi khi đăng bản tin");
+      }
+    } catch (err) {
+      console.error(err);
+      showError(err.response?.data?.message || "Lỗi kết nối server");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="manager-stack">
       <section className="manager-grid manager-grid--wide">
+        <Panel title="Đăng bản tin mới" subtitle="Đăng tin tức/thông báo cho toàn bộ Sinh viên KTX">
+          <form onSubmit={handlePostNews} style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#64748B", marginBottom: 6 }}>Tiêu đề bản tin</label>
+              <input
+                type="text"
+                placeholder="Nhập tiêu đề thông báo..."
+                value={newsForm.title}
+                onChange={(e) => setNewsForm(prev => ({ ...prev, title: e.target.value }))}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 6,
+                  border: "1px solid #CBD5E1",
+                  fontSize: 14,
+                  boxSizing: "border-box"
+                }}
+                disabled={sending}
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#64748B", marginBottom: 6 }}>Nội dung chi tiết</label>
+              <textarea
+                placeholder="Nhập nội dung chi tiết bản tin..."
+                rows={5}
+                value={newsForm.content}
+                onChange={(e) => setNewsForm(prev => ({ ...prev, content: e.target.value }))}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 6,
+                  border: "1px solid #CBD5E1",
+                  fontSize: 14,
+                  boxSizing: "border-box",
+                  fontFamily: "inherit",
+                  resize: "vertical"
+                }}
+                disabled={sending}
+              />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0" }}>
+              <input
+                type="checkbox"
+                id="isPinned"
+                checked={newsForm.isPinned}
+                onChange={(e) => setNewsForm(prev => ({ ...prev, isPinned: e.target.checked }))}
+                style={{
+                  width: 16,
+                  height: 16,
+                  cursor: "pointer"
+                }}
+                disabled={sending}
+              />
+              <label htmlFor="isPinned" style={{ fontSize: 13, fontWeight: 700, color: "#64748B", cursor: "pointer", userSelect: "none" }}>
+                Ghim bài viết này lên đầu bảng tin 📌
+              </label>
+            </div>
+            <div>
+              <button
+                type="submit"
+                disabled={sending}
+                style={{
+                  padding: "10px 24px",
+                  background: "#16a34a",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 6,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontSize: 14
+                }}
+              >
+                {sending ? "Đang gửi..." : "Đăng tin"}
+              </button>
+            </div>
+          </form>
+        </Panel>
+
         <DataPanel
-          title="Thông báo"
-          subtitle="Gửi theo user role: STUDENT, PARENT, STAFF."
-          columns={["Tiêu đề", "Đối tượng", "Ngày", "Trạng thái"]}
-          rows={notifications.map((item) => [item.title, item.target, item.date, item.status])}
+          title="Bản tin đã đăng"
+          subtitle="Danh sách các thông báo đã gửi cho Sinh viên"
+          columns={["Tiêu đề", "Người đăng", "Ngày", "Trạng thái"]}
+          rows={
+            loadingNews
+              ? [[<span key="loading" style={{ color: "#64748B" }}>Đang tải bản tin...</span>, "", "", ""]]
+              : newsList.length === 0
+              ? [[<span key="empty" style={{ color: "#64748B" }}>Chưa có bản tin nào được đăng.</span>, "", "", ""]]
+              : newsList.map((item) => [
+                  item.title,
+                  item.authorId?.fullName || "Quản trị viên",
+                  formatDateTime(item.createdAt),
+                  <StatusBadge key={item._id} status={item.status === 'published' ? 'Đã gửi' : 'Nháp'} />
+                ])
+          }
         />
         <DataPanel
           title="Cài đặt hệ thống"
