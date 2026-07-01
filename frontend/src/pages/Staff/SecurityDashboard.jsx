@@ -118,10 +118,10 @@ function SecurityDashboard() {
 
         {/* Tab content rendering via Routes */}
         <Routes>
-          <Route path="/" element={<OverviewTab gateLogs={gateLogs} students={students} navigate={navigate} />} />
+          <Route path="/" element={<OverviewTab />} />
           <Route path="history" element={<GateHistoryTab gateLogs={gateLogs} setGateLogs={setGateLogs} students={students} setSelectedStudent={setSelectedStudent} navigate={navigate} />} />
           <Route path="create-report" element={<CreateReportTab students={students} setStudents={setStudents} />} />
-          <Route path="search" element={<SearchStudentTab students={students} selectedStudent={selectedStudent} setSelectedStudent={setSelectedStudent} />} />
+          <Route path="search" element={<SearchStudentTab />} />
         </Routes>
 
       </main>

@@ -1,6 +1,9 @@
 const xlsx = require("xlsx");
 const bcrypt = require("bcryptjs");
+const mongoose = require("mongoose");
 const Student = require("../models/student.model");
+const Room = require("../models/room.models");
+const Violation = require("../models/violation.model");
 
 const normalizeGender = (gender) => {
   if (!gender) return "other";
@@ -277,6 +280,116 @@ exports.getAllStudents = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Lỗi khi lấy danh sách sinh viên",
+      error: error.message,
+    });
+  }
+};
+
+// Che phần giữa chuỗi, giữ lại 3 ký tự đầu
+const maskField = (value) => {
+  if (!value) return "";
+  const str = String(value);
+  if (str.length <= 3) return str;
+  return str.slice(0, 3) + "****";
+};
+
+// Security tra cứu sinh viên (theo MSSV, tên, SĐT)
+// Phân tầng: SV cùng tòa → xem đủ, SV khác tòa → che field nhạy cảm
+exports.searchStudents = async (req, res) => {
+  try {
+    const { q } = req.query;
+    const securityBuildingId = req.user.buildingId || null;
+
+    if (!q || q.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Từ khóa tìm kiếm cần ít nhất 2 ký tự",
+      });
+    }
+
+    const keyword = q.trim();
+    const query = {
+      $or: [
+        { fullName: { $regex: keyword, $options: "i" } },
+        { studentCode: { $regex: keyword, $options: "i" } },
+        { phone: { $regex: keyword, $options: "i" } },
+      ],
+    };
+
+    const students = await Student.find(query)
+      .populate("buildingId", "name")
+      .populate("roomId", "roomNumber floor displayName")
+      .select("-password -username")
+      .limit(20)
+      .sort({ fullName: 1 });
+
+    if (!students || students.length === 0) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: [],
+      });
+    }
+
+    // Batch lookup bedNumber từ Room
+    const studentIds = students.map((s) => s._id);
+    const roomsWithTheseStudents = await Room.find({
+      "students.student": { $in: studentIds },
+    }).select("students.student students.bedNumber");
+
+    const bedMap = {};
+    for (const room of roomsWithTheseStudents) {
+      for (const entry of room.students) {
+        const sid = entry.student.toString();
+        if (studentIds.some((s) => s.toString() === sid)) {
+          bedMap[sid] = entry.bedNumber;
+        }
+      }
+    }
+
+    // Post-process: phân tầng field theo tòa
+    const result = [];
+    for (const student of students) {
+      const studentObj = student.toObject();
+      const isSameBuilding =
+        securityBuildingId &&
+        student.buildingId &&
+        student.buildingId._id.toString() === securityBuildingId.toString();
+
+      studentObj.isSameBuilding = isSameBuilding;
+      studentObj.bedNumber = bedMap[student._id.toString()] || null;
+
+      if (isSameBuilding) {
+        // SV cùng tòa: lấy thêm lịch sử vi phạm
+        const violations = await Violation.find({
+          studentId: student._id,
+        })
+          .select("reason location pointsDeducted status createdAt")
+          .sort({ createdAt: -1 })
+          .limit(10);
+        studentObj.violations = violations;
+      } else {
+        // SV khác tòa: che field nhạy cảm
+        studentObj.phone = maskField(studentObj.phone);
+        studentObj.email = maskField(studentObj.email);
+        studentObj.CFDScore = null;
+        studentObj.violations = [];
+        studentObj.parent = null;
+      }
+
+      result.push(studentObj);
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: result.length,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Search students error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi khi tìm kiếm sinh viên",
       error: error.message,
     });
   }
