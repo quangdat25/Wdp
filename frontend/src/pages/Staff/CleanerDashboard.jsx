@@ -120,16 +120,8 @@ function CleanerDashboard() {
     if (!damageForm.description.trim() || !reportingTask) return;
 
     try {
-      const studentId =
-        reportingTask.studentId?._id || reportingTask.studentId || null;
-
       const res = await createStaffTicket({
         taskId: reportingTask._id,
-        studentId,
-        buildingName: reportingTask.buildingName,
-        roomNumber: reportingTask.roomNumber,
-        title: `Phòng ${reportingTask.roomNumber} - Hư hỏng báo bởi Cleaner`,
-        type: "Khác",
         description: damageForm.description.trim(),
         severity: damageForm.severity || "MEDIUM",
       });
@@ -619,6 +611,9 @@ function CleanerDashboard() {
                       Mô tả Hỏng Hóc
                     </th>
                     <th style={{ padding: 12, fontSize: 13, color: "#64748B" }}>
+                      Người báo
+                    </th>
+                    <th style={{ padding: 12, fontSize: 13, color: "#64748B" }}>
                       Ngày báo
                     </th>
                     <th style={{ padding: 12, fontSize: 13, color: "#64748B" }}>
@@ -696,11 +691,10 @@ function CleanerDashboard() {
             position: "fixed",
             inset: 0,
             zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            justifyContent: "center",
-            alignContent: "center",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              alignContent: "center",
             padding: 20,
           }}
         >
@@ -802,7 +796,6 @@ function CleanerDashboard() {
             <div
               style={{
                 display: "flex",
-                justifyEnd: "flex-end",
                 gap: 8,
                 justifyContent: "flex-end",
               }}

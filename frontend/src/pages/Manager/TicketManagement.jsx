@@ -6,6 +6,7 @@ import {
   approveTicket,
   rejectTicket,
   assignTicket,
+  approveStaffDamageReport,
 } from "../../api/ticketManagementService";
 import { showSuccess, showError, showConfirm } from "../../components/Alert";
 import Sidebar from "../../components/Sidebar";
@@ -46,6 +47,7 @@ function TicketManagement() {
   const [staffList, setStaffList] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [activeSourceTab, setActiveSourceTab] = useState("student"); // "student" or "cleaner"
   const [rejectReason, setRejectReason] = useState("");
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,6 +64,7 @@ function TicketManagement() {
       showError(
         error.response?.data?.message || "Lỗi khi lấy danh sách yêu cầu",
       );
+      return [];
     } finally {
       setLoading(false);
     }
@@ -83,10 +86,49 @@ function TicketManagement() {
     fetchStaffList();
   }, []);
 
+  const sourceFilteredTickets = useMemo(() => {
+    if (activeSourceTab === "cleaner") {
+      return tickets.filter((ticket) =>
+        ticket.damageReported &&
+        ticket.damageReported.description &&
+        (ticket.type === "Vệ sinh" || ticket.type === "Cleaning" || ticket.type === "cleaning" || (ticket.isStudentTicket ?? !!ticket.studentId))
+      );
+    }
+    if (activeSourceTab === "internal") {
+      return tickets.filter((ticket) => {
+        const isStudent = ticket.isStudentTicket ?? !!ticket.studentId;
+        const isCleaning = ticket.type === "Vệ sinh" || ticket.type === "Cleaning" || ticket.type === "cleaning";
+        return !isStudent && !isCleaning;
+      });
+    }
+    // "student"
+    return tickets.filter((ticket) => {
+      const isStudent = ticket.isStudentTicket ?? !!ticket.studentId;
+      return (
+        isStudent &&
+        (!ticket.damageReported || !ticket.damageReported.description || !!ticket.damageReported.ticketId)
+      );
+    });
+  }, [tickets, activeSourceTab]);
+
   const filteredTickets = useMemo(() => {
-    if (statusFilter === "all") return tickets;
-    return tickets.filter((ticket) => ticket.status === statusFilter);
-  }, [tickets, statusFilter]);
+    if (activeSourceTab === "cleaner") {
+      if (statusFilter === "all") return sourceFilteredTickets;
+      if (statusFilter === "pending") {
+        // Return only cleaner reports that are NOT yet approved (no ticketId)
+        return sourceFilteredTickets.filter((ticket) => !ticket.damageReported?.ticketId);
+      }
+      if (statusFilter === "approved") {
+        // Return cleaner reports that ARE already approved (have a ticketId)
+        return sourceFilteredTickets.filter((ticket) => !!ticket.damageReported?.ticketId);
+      }
+      // For other specific statuses, fallback to filtering by the task status itself
+      return sourceFilteredTickets.filter((ticket) => ticket.status === statusFilter);
+    }
+
+    if (statusFilter === "all") return sourceFilteredTickets;
+    return sourceFilteredTickets.filter((ticket) => ticket.status === statusFilter);
+  }, [sourceFilteredTickets, statusFilter, activeSourceTab]);
 
   const paginatedTickets = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -95,7 +137,7 @@ function TicketManagement() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, activeSourceTab]);
 
   useEffect(() => {
     const totalPages = Math.max(
@@ -167,6 +209,54 @@ function TicketManagement() {
     }
   };
 
+  const handleApproveDamage = async (ticketId) => {
+    const confirm = await showConfirm(
+      "Kiến tạo phiếu sửa chữa?",
+      "Hệ thống sẽ tạo một yêu cầu bảo trì/sửa chữa mới dựa trên báo cáo này.",
+      "Tạo phiếu"
+    );
+
+    if (!confirm) return;
+
+    try {
+      const res = await approveStaffDamageReport(ticketId);
+      closeModal();
+
+      const fetchNew = await getAllTicketsForManagement();
+      const updatedList = fetchNew.data.data || [];
+      setTickets(updatedList);
+      showSuccess("Đã duyệt báo cáo và tạo phiếu sửa chữa thành công");
+
+      // Auto switch to internal maintenance tab
+      setActiveSourceTab("internal");
+
+      // Immediately open the details modal of the newly created repair ticket for allocation
+      const newRepairTicketId = res.data?.data?._id;
+      if (newRepairTicketId) {
+        const found = updatedList.find((t) => t._id === newRepairTicketId);
+        if (found) {
+          setSelectedTicket(found);
+          setRejectReason("");
+          setSelectedStaffId(found.assignedTo?._id || "");
+        }
+      }
+    } catch (error) {
+      showError(error.response?.data?.message || "Tạo phiếu sửa chữa thất bại");
+    }
+  };
+
+  const handleViewLinkedTicket = (linkedTicketId) => {
+    const foundTicket = tickets.find((t) => t._id === linkedTicketId);
+    if (foundTicket) {
+      setSelectedTicket(foundTicket);
+      setRejectReason("");
+      setSelectedStaffId(foundTicket.assignedTo?._id || "");
+      setActiveSourceTab("internal"); // Switch to internal tickets tab
+    } else {
+      showError("Không tìm thấy thông tin phiếu sửa chữa liên quan.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-emerald-50">
       <Sidebar />
@@ -206,6 +296,39 @@ function TicketManagement() {
         </section>
 
         <section className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-lg">
+          <div className="mb-6 flex border-b border-slate-100">
+            <button
+              onClick={() => setActiveSourceTab("student")}
+              className={`pb-3 px-4 font-extrabold text-base border-b-2 transition-all outline-none ${activeSourceTab === "student"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-slate-400 hover:text-slate-600"
+                }`}
+            >
+              Yêu cầu từ Sinh viên
+            </button>
+            <button
+              onClick={() => setActiveSourceTab("internal")}
+              className={`pb-3 px-4 font-extrabold text-base border-b-2 transition-all outline-none ${activeSourceTab === "internal"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-slate-400 hover:text-slate-600"
+                }`}
+            >
+              Bảo trì nội bộ (Staff)
+            </button>
+            <button
+              onClick={() => setActiveSourceTab("cleaner")}
+              className={`pb-3 px-4 font-extrabold text-base border-b-2 transition-all outline-none flex items-center gap-2 ${activeSourceTab === "cleaner"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-slate-400 hover:text-slate-600"
+                }`}
+            >
+              <span>Báo hỏng từ Cleaner</span>
+              {tickets.filter((t) => t.damageReported && t.damageReported.description && !t.damageReported.ticketId).length > 0 && (
+                <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+              )}
+            </button>
+          </div>
+
           <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-extrabold text-slate-800">
@@ -238,7 +361,9 @@ function TicketManagement() {
             <table className="w-full min-w-[1150px] overflow-hidden rounded-2xl bg-white text-left">
               <thead>
                 <tr className="bg-slate-50 text-sm text-slate-600">
-                  <TableHead>Sinh viên</TableHead>
+                  <TableHead>
+                    {activeSourceTab === "internal" ? "Người báo cáo" : "Sinh viên"}
+                  </TableHead>
                   <TableHead>Tiêu đề</TableHead>
                   <TableHead>Loại</TableHead>
                   <TableHead>Tòa / Phòng</TableHead>
@@ -271,16 +396,41 @@ function TicketManagement() {
                   paginatedTickets.map((ticket) => (
                     <tr key={ticket._id} className="hover:bg-slate-50">
                       <TableCell>
-                        <div className="font-bold text-slate-800">
-                          {ticket.studentId?.fullName || "Không rõ"}
-                        </div>
-                        <div className="text-sm text-slate-500">
-                          {ticket.studentId?.studentCode || "Không có mã SV"}
-                        </div>
+                        {activeSourceTab === "internal" && ticket.damageReported?.reportedBy ? (
+                          <>
+                            <div className="font-bold text-slate-800">
+                              {ticket.damageReported.reportedBy.fullName || "Nhân viên"}
+                            </div>
+                            <div className="text-sm text-slate-500">
+                              {ticket.damageReported.reportedBy.username || "Nhân viên"} (Staff)
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="font-bold text-slate-800">
+                              {ticket.studentId?.fullName || (ticket.isStudentTicket ? "Sinh viên (đã xóa)" : "Không rõ")}
+                            </div>
+                            <div className="text-sm text-slate-500">
+                              {ticket.studentId?.studentCode || (ticket.isStudentTicket ? "Không rõ mã SV" : "Không có mã SV")}
+                            </div>
+                          </>
+                        )}
                       </TableCell>
 
                       <TableCell className="font-bold text-slate-800">
-                        {ticket.title}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>{ticket.title}</span>
+                          {ticket.damageReported && ticket.damageReported.description && (
+                            <span
+                              className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ${ticket.damageReported.ticketId
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800 animate-pulse"
+                                }`}
+                            >
+                              {ticket.damageReported.ticketId ? "✓ Đã tạo sửa chữa" : "⚠️ Cleaner báo hỏng"}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
 
                       <TableCell>
@@ -359,6 +509,8 @@ function TicketManagement() {
           onApprove={handleApprove}
           onReject={handleReject}
           onAssign={handleAssign}
+          onApproveDamage={handleApproveDamage}
+          onViewLinkedTicket={handleViewLinkedTicket}
           onClose={closeModal}
           formatDate={formatDate}
         />
@@ -377,6 +529,8 @@ function TicketDetailModal({
   onApprove,
   onReject,
   onAssign,
+  onApproveDamage,
+  onViewLinkedTicket,
   onClose,
   formatDate,
 }) {
@@ -446,35 +600,66 @@ function TicketDetailModal({
             </p>
           </div>
 
-          {ticket.damageReported && ticket.damageReported.description && (
-            <div className="mt-5 rounded-3xl bg-amber-50 border border-amber-200 p-5">
-              <h3 className="mb-2 font-extrabold text-amber-800">
-                Sự cố hỏng hóc do nhân viên báo cáo
-              </h3>
-              <p className="text-sm font-semibold text-amber-700">
-                Mức độ nghiêm trọng:{" "}
-                <span className="font-extrabold">
-                  {ticket.damageReported.severity === "HIGH"
-                    ? "Nghiêm trọng"
-                    : ticket.damageReported.severity === "LOW"
-                      ? "Thấp"
-                      : "Trung bình"}
-                </span>
-              </p>
-              <p className="mt-2 text-slate-700 whitespace-pre-wrap">
-                {ticket.damageReported.description}
-              </p>
-              <p className="mt-2 text-xs text-slate-500">
-                Báo cáo bởi:{" "}
-                <strong>
-                  {ticket.damageReported.reportedBy?.fullName ||
-                    ticket.damageReported.reportedBy?.username ||
-                    "Nhân viên dọn dẹp"}
-                </strong>{" "}
-                vào {ticket.damageReported.date}
-              </p>
-            </div>
-          )}
+          {ticket.damageReported && ticket.damageReported.description && (() => {
+            const isOriginalReport = ticket.type === "Vệ sinh" || ticket.type === "Cleaning" || ticket.type === "cleaning" || (ticket.isStudentTicket ?? !!ticket.studentId);
+            return (
+              <div className="mt-5 rounded-3xl bg-amber-50 border border-amber-200 p-5">
+                <h3 className="mb-2 font-extrabold text-amber-800">
+                  {isOriginalReport ? "Sự cố hỏng hóc do nhân viên báo cáo" : "Thông tin báo cáo hỏng hóc liên quan"}
+                </h3>
+                <p className="text-sm font-semibold text-amber-700">
+                  Mức độ nghiêm trọng:{" "}
+                  <span className="font-extrabold">
+                    {ticket.damageReported.severity === "HIGH"
+                      ? "Nghiêm trọng"
+                      : ticket.damageReported.severity === "LOW"
+                        ? "Thấp"
+                        : "Trung bình"}
+                  </span>
+                </p>
+                <p className="mt-2 text-slate-700 whitespace-pre-wrap">
+                  {ticket.damageReported.description}
+                </p>
+                <p className="mt-2 text-xs text-slate-500">
+                  Báo cáo bởi:{" "}
+                  <strong>
+                    {ticket.damageReported.reportedBy?.fullName ||
+                      ticket.damageReported.reportedBy?.username ||
+                      "Nhân viên dọn dẹp"}
+                  </strong>{" "}
+                  vào {ticket.damageReported.date}
+                </p>
+                {isOriginalReport ? (
+                  ticket.damageReported.ticketId ? (
+                    <div className="mt-3 text-sm text-green-700 font-extrabold flex items-center flex-wrap gap-1">
+                      <span>✓ Đã tạo phiếu sửa chữa:</span>
+                      <button
+                        type="button"
+                        onClick={() => onViewLinkedTicket(ticket.damageReported.ticketId)}
+                        className="text-blue-600 hover:text-blue-800 underline font-bold outline-none cursor-pointer"
+                      >
+                        #{ticket.damageReported.ticketId.slice(-6).toUpperCase()}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        onClick={() => onApproveDamage(ticket._id)}
+                        className="h-10 rounded-2xl bg-amber-600 px-4 font-bold text-white shadow-md hover:bg-amber-700 hover:shadow-lg transition-all"
+                      >
+                        Tạo phiếu sửa chữa
+                      </button>
+                    </div>
+                  )
+                ) : (
+                  <p className="mt-3 text-xs text-emerald-700 font-extrabold">
+                    ℹ Phiếu sửa chữa này được kiến tạo từ báo cáo hư hại trên.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {ticket.rejectedReason && (
             <div className="mt-5 rounded-3xl bg-red-50 p-5">

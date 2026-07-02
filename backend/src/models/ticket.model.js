@@ -5,7 +5,7 @@ const ticketSchema = new mongoose.Schema(
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "student",
-      required: true,
+      required: false,
     },
 
     buildingName: {
@@ -36,6 +36,8 @@ const ticketSchema = new mongoose.Schema(
         "Vệ sinh",
         "An ninh",
         "Khác",
+        "Cleaning",
+        "cleaning",
       ],
       required: true,
     },

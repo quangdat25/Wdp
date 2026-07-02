@@ -4,10 +4,16 @@ const ticketService = require("../services/ticket.service");
 exports.getAllTickets = async (req, res) => {
   try {
     const tickets = await ticketService.getAllTickets();
+    const formattedTickets = tickets.map((t) => {
+      const ticketObj = t.toObject();
+      // true if studentId exists (even if populate returned null because the student was deleted/not found)
+      ticketObj.isStudentTicket = !!t.populated("studentId");
+      return ticketObj;
+    });
     res.status(200).json({
       success: true,
       message: "Lấy danh sách yêu cầu thành công",
-      data: tickets,
+      data: formattedTickets,
     });
   } catch (error) {
     const status = error.status || 500;
@@ -90,6 +96,28 @@ exports.getStaffList = async (req, res) => {
     res.status(status).json({
       success: false,
       message: error.status ? error.message : "Lỗi khi lấy danh sách nhân viên",
+      error: error.message,
+    });
+  }
+};
+
+// Duyệt báo cáo sự cố từ staff
+exports.approveStaffDamageReport = async (req, res) => {
+  try {
+    const ticket = await ticketService.approveStaffDamageReport(
+      req.params.ticketId,
+      req.user._id
+    );
+    res.status(200).json({
+      success: true,
+      message: "Duyệt báo cáo và tạo phiếu sửa chữa thành công",
+      data: ticket,
+    });
+  } catch (error) {
+    const status = error.status || 500;
+    res.status(status).json({
+      success: false,
+      message: error.message || "Lỗi khi duyệt công việc",
       error: error.message,
     });
   }

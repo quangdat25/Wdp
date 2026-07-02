@@ -177,7 +177,6 @@ function Sidebar() {
 
     security: [
       { path: "/staff/dashboard/security", label: "Trang chủ", icon: <FaChartPie /> },
-      { path: "/staff/dashboard/security/history", label: "Lịch sử ra vào", icon: <FaShieldAlt /> },
       { path: "/staff/dashboard/security/create-report", label: "Lập biên bản", icon: <FaPlusCircle /> },
       { path: "/staff/dashboard/security/search", label: "Tìm kiếm sinh viên", icon: <FaSearch /> },
     ],
