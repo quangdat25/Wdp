@@ -12,9 +12,9 @@ class ViolationService {
     }
 
     if (student.fullName.trim().toLowerCase() !== studentName.trim().toLowerCase()) {
-      throw { 
-        status: 400, 
-        message: `Tên sinh viên không khớp với mã số. Tên đúng trên hệ thống là: ${student.fullName}. Vui lòng kiểm tra lại!` 
+      throw {
+        status: 400,
+        message: `Tên sinh viên không khớp với mã số. Tên đúng trên hệ thống là: ${student.fullName}. Vui lòng kiểm tra lại!`
       };
     }
 
@@ -23,7 +23,7 @@ class ViolationService {
       securityId,
       reason,
       location,
-      buildingId: securityBuildingId,
+      building: securityBuilding || student.building || "Unknown",
       status: "PENDING",
     });
 
@@ -47,7 +47,7 @@ class ViolationService {
     if (io) {
       // Bắn sự kiện nạp lại bảng
       io.emit("new_violation_created", violation);
-      
+
       // Bắn sự kiện "có thông báo mới" vào thẳng phòng của Manager
       io.to("role:manager").emit("new_notification", notification);
     }
@@ -150,19 +150,19 @@ class ViolationService {
     violation.status = "REVOKED";
     violation.revokeReason = revokeReason;
     const pointsToRestore = violation.pointsDeducted || 0;
-    
+
     // Cộng lại điểm cho sinh viên
     const student = await studentRepository.findById(violation.studentId);
     if (student && pointsToRestore > 0) {
       student.CFDScore += pointsToRestore;
       await studentRepository.save(student);
     }
-    
+
     // Save violation
     await violationRepository.save(violation);
 
     const buildingName = violation.buildingId?.name || "N/A";
-    
+
     // Tạo Notification
     const notification = await notificationRepository.create({
       title: "Thông báo thu hồi biên bản vi phạm",

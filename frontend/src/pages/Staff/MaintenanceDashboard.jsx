@@ -266,14 +266,14 @@ function MaintenanceDashboard() {
                           : "low";
                     const statusColor =
                       task.status?.toUpperCase() === "PENDING" ||
-                      task.status?.toUpperCase() === "ASSIGNED"
+                        task.status?.toUpperCase() === "ASSIGNED"
                         ? "#F59E0B"
                         : task.status?.toUpperCase() === "IN_PROGRESS"
                           ? "#2563EB"
                           : "#10B981";
                     const statusLabel =
                       task.status?.toUpperCase() === "PENDING" ||
-                      task.status?.toUpperCase() === "ASSIGNED"
+                        task.status?.toUpperCase() === "ASSIGNED"
                         ? "Chờ xử lý"
                         : task.status?.toUpperCase() === "IN_PROGRESS"
                           ? "Đang tiến hành"
@@ -367,17 +367,17 @@ function MaintenanceDashboard() {
                         border: "none",
                         cursor:
                           activeTask.status?.toUpperCase() === "PENDING" ||
-                          activeTask.status?.toUpperCase() === "ASSIGNED"
+                            activeTask.status?.toUpperCase() === "ASSIGNED"
                             ? "not-allowed"
                             : "pointer",
                         background:
                           activeTask.status?.toUpperCase() === "PENDING" ||
-                          activeTask.status?.toUpperCase() === "ASSIGNED"
+                            activeTask.status?.toUpperCase() === "ASSIGNED"
                             ? "#F59E0B"
                             : "#E2E8F0",
                         color:
                           activeTask.status?.toUpperCase() === "PENDING" ||
-                          activeTask.status?.toUpperCase() === "ASSIGNED"
+                            activeTask.status?.toUpperCase() === "ASSIGNED"
                             ? "white"
                             : "#475569",
                       }}

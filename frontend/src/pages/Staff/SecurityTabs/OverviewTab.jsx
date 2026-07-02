@@ -2,88 +2,61 @@ import React from "react";
 
 function OverviewTab({ gateLogs, students, navigate }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      {/* Quick alert */}
-      <div
-        style={{
-          background: "#FFEEC2",
-          borderRadius: 12,
-          padding: "20px 24px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          border: "1px solid #FFD085"
-        }}
+    <div className="flex flex-col gap-6">
+    {/* Quick alert */}
+    <div className="bg-[#FFEEC2] rounded-xl p-6 flex justify-between items-center border border-[#FFD085]">
+      <span className="text-base text-[#9E5700] font-bold">
+        Cảnh báo an ninh: Phát hiện {gateLogs.filter(l => l.status === 'LATE').length} trường hợp ký túc vào muộn quá 23h hôm nay.
+      </span>
+      <button
+        onClick={() => navigate("/staff/dashboard/security/history")}
+        className="bg-[#D84315] hover:bg-[#b53710] text-white border-none rounded-lg px-5 py-2.5 text-sm font-bold cursor-pointer transition-colors"
       >
-        <span style={{ fontSize: 16, color: "#9E5700", fontWeight: 700 }}>
-          Cảnh báo an ninh: Phát hiện {gateLogs.filter(l => l.status === 'LATE').length} trường hợp ký túc vào muộn quá 23h hôm nay.
-        </span>
-        <button
-          onClick={() => navigate("/staff/dashboard/security/history")}
-          style={{
-            background: "#D84315",
-            color: "#FFFFFF",
-            border: "none",
-            borderRadius: 8,
-            padding: "10px 20px",
-            fontSize: 14,
-            fontWeight: 700,
-            cursor: "pointer",
-            transition: "background 0.2s",
-          }}
-        >
-          Xem ngay
-        </button>
-      </div>
+        Xem ngay
+      </button>
+    </div>
 
-      {/* Quick Stats Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-        <div style={{ background: "#FFFFFF", padding: "20px", borderRadius: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.03)", border: "1px solid #E2E8F0" }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}>TỔNG SỐ XE RA VÀO / NGÀY</span>
-          <h3 style={{ fontSize: 28, margin: "8px 0 0", color: "#0A4E9B", fontWeight: 800 }}>8,421</h3>
-        </div>
-        <div style={{ background: "#FFFFFF", padding: "20px", borderRadius: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.03)", border: "1px solid #E2E8F0" }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}>SINH VIÊN ĐÃ ĐIỂM DANH</span>
-          <h3 style={{ fontSize: 28, margin: "8px 0 0", color: "#10B981", fontWeight: 800 }}>98.2%</h3>
-        </div>
-        <div style={{ background: "#FFFFFF", padding: "20px", borderRadius: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.03)", border: "1px solid #E2E8F0" }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}>VI PHẠM GHI NHẬN HÔM NAY</span>
-          <h3 style={{ fontSize: 28, margin: "8px 0 0", color: "#EF4444", fontWeight: 800 }}>{students.reduce((acc, curr) => acc + curr.violations.length, 0)}</h3>
-        </div>
+    {/* Quick Stats Grid */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="bg-[#F6FAF5] p-6 rounded-xl border border-gray-200 shadow-sm transition-transform hover:-translate-y-1">
+        <span className="text-xs font-bold text-gray-500 tracking-wider">TỔNG SỐ XE RA VÀO / NGÀY</span>
+        <h3 className="text-3xl font-extrabold m-0 mt-2 text-[#0A4E9B]">8,421</h3>
       </div>
-
-      {/* Recent violations card logs */}
-      <div style={{ background: "#FFFFFF", borderRadius: 12, boxShadow: "0 6px 20px rgba(0,0,0,0.06)", overflow: "hidden" }}>
-        <div style={{ background: "#0A4E9B", padding: "14px 20px", color: "#FFFFFF", fontSize: 18, fontWeight: 700 }}>
-          Nhật Ký Vi Phạm An Ninh Mới Nhất
-        </div>
-        <div style={{ maxHeight: 300, overflowY: "auto" }}>
-          {students.flatMap(s => s.violations.map(v => ({ ...v, studentName: s.name, studentId: s.id, room: s.room, dom: s.dom }))).map((violation, index) => (
-            <div
-              key={index}
-              style={{
-                padding: "16px 20px",
-                background: index % 2 === 0 ? "#F8FAFC" : "#FFFFFF",
-                borderBottom: "1px solid #E2E8F0",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center"
-              }}
-            >
-              <div>
-                <strong style={{ color: "#EF4444" }}>[{violation.type}]</strong> - {violation.studentName} ({violation.studentId})
-                <p style={{ margin: "4px 0 0", fontSize: 12, color: "#64748B" }}>
-                  Phòng {violation.room} - Tòa {violation.dom} • Lý do: {violation.description}
-                </p>
-              </div>
-              <div style={{ fontWeight: 700, color: "#DC2626", fontSize: 13 }}>
-                -{violation.pointsDeducted} điểm CFD
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="bg-[#F6FAF5] p-6 rounded-xl border border-gray-200 shadow-sm transition-transform hover:-translate-y-1">
+        <span className="text-xs font-bold text-gray-500 tracking-wider">SINH VIÊN ĐÃ ĐIỂM DANH</span>
+        <h3 className="text-3xl font-extrabold m-0 mt-2 text-[#10B981]">98.2%</h3>
+      </div>
+      <div className="bg-[#F6FAF5] p-6 rounded-xl border border-gray-200 shadow-sm transition-transform hover:-translate-y-1">
+        <span className="text-xs font-bold text-gray-500 tracking-wider">VI PHẠM GHI NHẬN HÔM NAY</span>
+        <h3 className="text-3xl font-extrabold m-0 mt-2 text-[#EF4444]">{students.reduce((acc, curr) => acc + curr.violations.length, 0)}</h3>
       </div>
     </div>
+
+    {/* Recent violations card logs */}
+    <div className="bg-[#F6FAF5] rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-[#0A4E9B] px-6 py-4 text-white text-lg font-bold">
+        Nhật Ký Vi Phạm An Ninh Mới Nhất
+      </div>
+      <div className="max-h-[300px] overflow-y-auto">
+        {students.flatMap(s => s.violations.map(v => ({ ...v, studentName: s.name, studentId: s.id, room: s.room, dom: s.dom }))).map((violation, index) => (
+          <div
+            key={index}
+            className={`p-5 flex justify-between items-center border-b border-gray-200 ${index % 2 === 0 ? "bg-white" : "bg-[#F6FAF5]"}`}
+          >
+            <div>
+              <strong className="text-red-500">[{violation.type}]</strong> - {violation.studentName} ({violation.studentId})
+              <p className="m-0 mt-1 text-xs text-gray-500">
+                Phòng {violation.room} - Tòa {violation.dom} • Lý do: {violation.description}
+              </p>
+            </div>
+            <div className="font-bold text-red-600 text-sm">
+              -{violation.pointsDeducted} điểm CFD
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
   );
 }
 

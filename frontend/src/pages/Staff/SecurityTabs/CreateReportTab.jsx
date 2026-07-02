@@ -38,56 +38,56 @@ function CreateReportTab() {
   };
 
   return (
-    <div style={{ background: "#FFFFFF", borderRadius: 16, padding: 28, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
-      <h3 style={{ margin: "0 0 20px 0", color: "#0A4E9B" }}>Khai báo biên bản sự vụ quy chế</h3>
-      <form onSubmit={handleCreateViolation} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="bg-[#F6FAF5] rounded-2xl p-7 shadow-sm border border-gray-200">
+      <h3 className="m-0 mb-5 text-[#0A4E9B] text-xl font-bold">Khai báo biên bản sự vụ quy chế</h3>
+      <form onSubmit={handleCreateViolation} className="flex flex-col gap-4">
         
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={{ fontSize: 13, fontWeight: 700, color: "#475569" }}>MSSV vi phạm</label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-bold text-gray-700">MSSV vi phạm</label>
             <input
               type="text"
               placeholder="VD: HE150000"
               value={violationForm.studentCode}
               onChange={(e) => setViolationForm({ ...violationForm, studentCode: e.target.value.toUpperCase() })}
-              style={{ padding: 10, borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 14 }}
+              className="p-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#006948]"
               required
             />
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={{ fontSize: 13, fontWeight: 700, color: "#475569" }}>Họ tên sinh viên</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-bold text-gray-700">Họ tên sinh viên</label>
             <input
               type="text"
               placeholder="VD: Nguyễn Văn A"
               value={violationForm.studentName}
               onChange={(e) => setViolationForm({ ...violationForm, studentName: e.target.value })}
-              style={{ padding: 10, borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 14 }}
+              className="p-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#006948]"
               required
             />
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 13, fontWeight: 700, color: "#475569" }}>Địa điểm phát hiện</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-bold text-gray-700">Địa điểm phát hiện</label>
           <input
             type="text"
             placeholder="VD: Sảnh Tòa Nhà, Hành lang tầng 3..."
             value={violationForm.location}
             onChange={(e) => setViolationForm({ ...violationForm, location: e.target.value })}
-            style={{ padding: 10, borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 14 }}
+            className="p-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#006948]"
             required
           />
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 13, fontWeight: 700, color: "#475569" }}>Lý do / Hành vi vi phạm chi tiết</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-bold text-gray-700">Lý do / Hành vi vi phạm chi tiết</label>
           <textarea
             rows="4"
             placeholder="Mô tả cụ thể hành vi vi phạm (VD: Vào muộn lúc 23:45, nồng nặc mùi bia rượu...)"
             value={violationForm.reason}
             onChange={(e) => setViolationForm({ ...violationForm, reason: e.target.value })}
-            style={{ padding: 10, borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 14 }}
+            className="p-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#006948]"
             required
           />
         </div>
@@ -95,18 +95,7 @@ function CreateReportTab() {
         <button
           type="submit"
           disabled={loading}
-          style={{
-            background: loading ? "#94A3B8" : "#DC2626",
-            color: "#FFFFFF",
-            border: "none",
-            borderRadius: 8,
-            padding: "12px 24px",
-            fontSize: 15,
-            fontWeight: 700,
-            cursor: loading ? "not-allowed" : "pointer",
-            marginTop: 10,
-            transition: "all 0.2s"
-          }}
+          className={`mt-2.5 py-3 px-6 rounded-lg text-white font-bold text-[15px] border-none transition-all ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700 cursor-pointer"}`}
         >
           {loading ? "Đang xử lý..." : "Lập Biên Bản & Gửi Lên Manager"}
         </button>

@@ -12,6 +12,11 @@ import {
   FaWater,
   FaCalendarAlt,
   FaChartPie,
+  FaArrowRight,
+  FaBullhorn,
+  FaHeadset,
+  FaComments,
+  FaArrowUp
 } from "react-icons/fa";
 
 import "./StudentDashboard.css";
@@ -20,20 +25,22 @@ import Header from "../../components/Headers";
 
 const newsItems = [
   {
-    title: "Thông báo về việc đóng tiền nước sinh hoạt tháng 06/2026",
-    date: "10/06/2026",
+    type: "THÔNG BÁO",
+    title: "Thông báo về việc đăng ký ở KTX kỳ Summer 2026 đợt 1",
+    desc: "Sinh viên lưu ý thời gian đăng ký và nộp lệ phí đúng hạn để đảm bảo suất ở trong học kỳ tới...",
+    date: "24/05/2026",
   },
   {
-    title: "Lịch bảo trì điều hòa toàn bộ tòa nhà KTX từ 10/06 đến 15/06",
-    date: "09/06/2026",
+    type: "SỰ KIỆN",
+    title: "Ngày hội văn hóa KTX - Dorm Festival 2026",
+    desc: "Chuỗi hoạt động giao lưu văn nghệ, thể thao và ẩm thực dành riêng cho sinh viên nội trú...",
+    date: "22/05/2026",
   },
   {
-    title: "Giải bóng đá thường niên Dormitory Cup 2026 chính thức khởi tranh",
-    date: "08/06/2026",
-  },
-  {
-    title: "Quy định mới về giờ giấc ra vào cổng KTX áp dụng từ tuần sau",
-    date: "07/06/2026",
+    type: "BẢO TRÌ",
+    title: "Lịch bảo trì hệ thống điện nước khu nhà A và B",
+    desc: "Thời gian bảo trì dự kiến từ 08:00 đến 12:00 ngày 26/05. Rất mong sinh viên thông cảm...",
+    date: "20/05/2026",
   },
 ];
 
@@ -66,9 +73,9 @@ function StudentDashboard() {
 
         {activeModule === "home" &&
           (hasBooked ? (
-            <BookedHomeScreen setActiveModule={setActiveModule} />
+            <BookedHomeScreen setActiveModule={setActiveModule} navigate={navigate} />
           ) : (
-            <UnbookedHomeScreen setActiveModule={setActiveModule} />
+            <UnbookedHomeScreen setActiveModule={setActiveModule} navigate={navigate} />
           ))}
 
         {activeModule !== "home" && (
@@ -94,168 +101,173 @@ function PlaceholderScreen({ activeConfig }) {
   );
 }
 
-function UnbookedHomeScreen({ setActiveModule }) {
+function UnbookedHomeScreen({ setActiveModule, navigate }) {
   return (
-    <div className="student-stack">
-      <div className="student-cta-banner">
-        <div className="student-cta-banner__left">
-          <div className="student-cta-banner__icon">
-            <FaDoorOpen />
+    <>
+      <section className="mb-stack-lg">
+        <div className="hero-banner group">
+          <div className="hero-pattern"></div>
+          <div className="hero-content text-on-primary">
+            <h2 className="font-display-lg">Bạn chưa có phòng ở kỳ Summer 2026.</h2>
+            <div className="hero-actions">
+              <p className="font-body-lg font-medium" style={{ opacity: 0.9 }}>
+                Hiện đang có <span style={{ fontWeight: 700, textDecoration: 'underline' }}>300 phòng trống</span> sẵn sàng đón sinh viên.
+              </p>
+              <button className="hero-btn" onClick={() => setActiveModule("booking")}>
+                <span>Đặt phòng ngay!</span>
+                <FaArrowRight />
+              </button>
+            </div>
           </div>
-
-          <div>
-            <strong>Bạn chưa có phòng ở kỳ Summer 2026</strong>
-            <span>
-              Hiện còn <b>300 phòng</b> đang trống – đặt sớm để có lựa chọn tốt
-              nhất!
-            </span>
+          <div className="hero-icon-bg">
+            <FaBed style={{ fontSize: '120px' }} />
           </div>
         </div>
+      </section>
 
-       
-      </div>
-
-      <section className="student-metrics">
+      <section className="metrics-grid">
         <MetricCard
-          icon={<FaBed />}
+          icon={<FaDoorOpen />}
+          tagLabel="REAL-TIME"
           label="Phòng còn trống"
           value="300"
-          note="Kỳ Summer 2026"
-          tone="blue"
+          bottomIcon={<FaArrowUp />}
+          bottomText="Cập nhật 5 phút trước"
         />
 
         <MetricCard
-          icon={<FaCheckCircle />}
+          icon={<FaBed />}
+          tagLabel="STANDARD"
           label="Phòng 4 giường"
           value="120"
-          note="Giá từ 950.000đ/tháng"
-          tone="green"
-        />
-
-        <MetricCard
-          icon={<FaCheckCircle />}
-          label="Phòng 6 giường"
-          value="132"
-          note="Giá từ 750.000đ/tháng"
-          tone="amber"
+          isProgress={true}
+          progressPercent="40%"
         />
 
         <MetricCard
           icon={<FaStar />}
+          tagLabel="STUDENT"
           label="Điểm ý thức"
-          value="96"
-          note="CFD Score hiện tại"
-          tone="purple"
+          value="96%"
+          bottomIcon={<FaCheckCircle />}
+          bottomText="Xếp loại: Tốt"
         />
       </section>
 
-      <HomeInfoGrid setActiveModule={setActiveModule} />
-    </div>
+      <HomeInfoGrid setActiveModule={setActiveModule} navigate={navigate} />
+    </>
   );
 }
 
-function BookedHomeScreen({ setActiveModule }) {
+function BookedHomeScreen({ setActiveModule, navigate }) {
   return (
-    <div className="student-stack">
-      <div className="student-room-banner">
-        <div className="student-room-banner__info">
-          <div className="student-room-banner__icon">
-            <FaBed />
+    <>
+      <section className="mb-stack-lg">
+        <div className="hero-banner group">
+          <div className="hero-pattern"></div>
+          <div className="hero-content text-on-primary">
+            <h2 className="font-display-lg">Phòng đang ở: A-203 – Tòa Dorm A</h2>
+            <div className="hero-actions">
+              <p className="font-body-lg font-medium" style={{ opacity: 0.9 }}>
+                Giường số 3 · Summer 2026 · Đang hoạt động
+              </p>
+              <button className="hero-btn" onClick={() => setActiveModule("room-history")}>
+                <span>Xem chi tiết</span>
+                <FaArrowRight />
+              </button>
+            </div>
           </div>
-
-          <div className="student-room-banner__text">
-            <strong>Phòng đang ở: A-203 – Tòa Dorm A</strong>
-            <span>Giường số 3 · Summer 2026 · Đang hoạt động</span>
+          <div className="hero-icon-bg">
+            <FaBed style={{ fontSize: '120px' }} />
           </div>
         </div>
+      </section>
 
-        <button
-          type="button"
-          className="student-primary-button"
-          onClick={() => setActiveModule("room-history")}
-        >
-          Xem chi tiết
-        </button>
-      </div>
-
-      <section className="student-metrics">
+      <section className="metrics-grid">
         <MetricCard
           icon={<FaBolt />}
+          tagLabel="UTILITY"
           label="Điện tháng 06"
           value="4.210 kWh"
-          note="Cập nhật 08/06/2026"
-          tone="amber"
+          bottomIcon={<FaCheckCircle />}
+          bottomText="Cập nhật 08/06/2026"
         />
 
         <MetricCard
           icon={<FaWater />}
+          tagLabel="UTILITY"
           label="Nước tháng 06"
           value="782 m³"
-          note="Cập nhật 08/06/2026"
-          tone="blue"
+          bottomIcon={<FaCheckCircle />}
+          bottomText="Cập nhật 08/06/2026"
         />
 
         <MetricCard
           icon={<FaStar />}
+          tagLabel="STUDENT"
           label="Điểm ý thức"
-          value="96"
-          note="CFD Score hiện tại"
-          tone="green"
-        />
-
-        <MetricCard
-          icon={<FaCalendarAlt />}
-          label="Hóa đơn tháng 06"
-          value="1.200.000đ"
-          note="Hạn: 15/06/2026"
-          tone="purple"
+          value="96%"
+          bottomIcon={<FaCheckCircle />}
+          bottomText="Xếp loại: Tốt"
         />
       </section>
 
-      <HomeInfoGrid setActiveModule={setActiveModule} />
-    </div>
+      <HomeInfoGrid setActiveModule={setActiveModule} navigate={navigate} />
+    </>
   );
 }
 
-function HomeInfoGrid({ setActiveModule }) {
+function HomeInfoGrid({ setActiveModule, navigate }) {
   return (
-    <section className="student-grid student-grid--wide">
-      <div className="student-panel">
-        <div className="student-panel__header">
-          <div>
-            <h3>Tin tức mới nhất</h3>
-            <p>Thông báo từ Ban Quản Lý KTX</p>
-          </div>
-
+    <section className="bottom-grid">
+      <div className="sharp-border bg-[#F6FAF5] news-panel">
+        <div className="panel-header data-table-header">
+          <h4 className="font-headline-sm text-on-surface">
+            <FaBullhorn className="text-primary" style={{ marginRight: '8px' }} />
+            Tin tức mới nhất
+          </h4>
           <button
-            type="button"
-            className="student-panel__see-more"
+            className="text-primary font-bold font-label-sm"
             onClick={() => setActiveModule("news")}
           >
-            Xem thêm
+            XEM TẤT CẢ
           </button>
         </div>
 
-        <div className="student-news-list">
+        <div className="news-list">
           {newsItems.map((item, idx) => (
-            <div key={idx} className="student-news-item">
-              <span className="student-news-item__dot" />
-              <span className="student-news-item__text">{item.title}</span>
-              <span className="student-news-item__date">{item.date}</span>
+            <div key={idx} className="news-item group">
+              <div className="news-item-meta">
+                <span className={`news-tag ${item.type === 'SỰ KIỆN' ? 'tag-event' :
+                  item.type === 'BẢO TRÌ' ? 'tag-maintenance' : 'tag-notice'
+                  }`}>
+                  {item.type}
+                </span>
+                <span className="font-label-sm text-secondary">{item.date}</span>
+              </div>
+              <h5 className="font-body-lg font-bold text-on-surface">{item.title}</h5>
+              <p className="text-secondary font-body-md">{item.desc}</p>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="student-panel">
-        <div className="student-panel__header">
-          <div>
-            <h3>Liên hệ hỗ trợ</h3>
-            <p>Ban Quản Lý KTX Đại Học FPT</p>
-          </div>
+      <div className="sharp-border bg-[#F6FAF5] support-panel">
+        <div className="panel-header data-table-header">
+          <h4 className="font-headline-sm text-on-surface">
+            <FaHeadset className="text-primary" style={{ marginRight: '8px' }} />
+            Liên hệ hỗ trợ
+          </h4>
         </div>
 
-        <ContactList />
+        <div className="support-content">
+
+          <ContactList />
+          <button className="support-btn" onClick={() => navigate('/student/support/request')} >
+            <FaComments />
+            <span>Gửi yêu cầu hỗ trợ</span>
+          </button>
+        </div>
       </div>
     </section>
   );
@@ -263,52 +275,60 @@ function HomeInfoGrid({ setActiveModule }) {
 
 function ContactList() {
   return (
-    <div className="student-contact-list">
-      <div className="student-contact-item">
-        <div className="student-contact-item__icon">
+    <div className="contact-list">
+      <div className="contact-item">
+        <div className="contact-icon">
           <FaPhoneAlt />
         </div>
-
         <div>
-          <div className="student-contact-item__label">Hotline hỗ trợ</div>
-          <div className="student-contact-item__value">024.7300.5588</div>
+          <p className="font-label-sm text-secondary uppercase font-bold" style={{ marginBottom: '2px' }}>Hotline</p>
+          <p className="font-body-lg font-bold text-on-surface">1900 1234 (Ext: 101)</p>
         </div>
       </div>
 
-      <div className="student-contact-item">
-        <div className="student-contact-item__icon">
+      <div className="contact-item">
+        <div className="contact-icon">
           <FaEnvelope />
         </div>
-
         <div>
-          <div className="student-contact-item__label">Email liên hệ</div>
-          <div className="student-contact-item__value">ktx@fpt.edu.vn</div>
+          <p className="font-label-sm text-secondary uppercase font-bold" style={{ marginBottom: '2px' }}>Email</p>
+          <p className="font-body-lg font-bold text-on-surface">ktx@university.edu.vn</p>
         </div>
       </div>
 
-      <div className="student-contact-item">
-        <div className="student-contact-item__icon">
+      <div className="contact-item">
+        <div className="contact-icon">
           <FaMapMarkerAlt />
         </div>
-
         <div>
-          <div className="student-contact-item__label">Văn phòng</div>
-          <div className="student-contact-item__value">
-            Phòng 102 – Tòa KTX A1
-          </div>
+          <p className="font-label-sm text-secondary uppercase font-bold" style={{ marginBottom: '2px' }}>Văn phòng</p>
+          <p className="font-body-lg font-bold text-on-surface">Tầng 1, KTX Nhà A1</p>
         </div>
       </div>
     </div>
   );
 }
 
-function MetricCard({ icon, label, value, note, tone }) {
+function MetricCard({ icon, tagLabel, label, value, bottomIcon, bottomText, isProgress, progressPercent }) {
   return (
-    <div className={`student-metric-card student-metric-card--${tone}`}>
-      <div className="student-metric-card__icon">{icon}</div>
-      <span className="metric-label">{label}</span>
-      <strong className="metric-value">{value}</strong>
-      <p className="metric-note">{note}</p>
+    <div className="sharp-border metric-card">
+      <div className="metric-header">
+        <span className="text-primary metric-icon" style={{ fontSize: '20px' }}>{icon}</span>
+        <span className="font-label-sm text-secondary metric-tag">{tagLabel}</span>
+      </div>
+      <p className="text-secondary font-body-md font-medium">{label}</p>
+      <h3 className="font-display-lg text-on-surface">{value}</h3>
+
+      {isProgress ? (
+        <div className="metric-progress-track">
+          <div className="metric-progress-bar" style={{ width: progressPercent }}></div>
+        </div>
+      ) : (
+        <div className="metric-bottom-info text-primary font-label-sm">
+          <span style={{ fontSize: '14px', marginRight: '4px' }}>{bottomIcon}</span>
+          <span>{bottomText}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import authService from "../../api/authService";
-import { FaBell, FaExclamationTriangle } from "react-icons/fa";
+import { FaExclamationTriangle } from "react-icons/fa";
 import Header from "../../components/Headers";
 
 import {
@@ -10,16 +10,13 @@ import {
   updateTicketStatus,
   createStaffTicket,
 } from "../../api/ticketService";
-import "./CleanerDashboard.css";
-
-const initialCleanTasks = [];
+// import "./CleanerDashboard.css"; // DELETED
 
 function CleanerDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const [activeTab, setActiveTab] = useState("Trang chủ");
-
 
   useEffect(() => {
     const path = location.pathname.toLowerCase();
@@ -32,7 +29,6 @@ function CleanerDashboard() {
     }
   }, [location.pathname]);
 
-  // State management inside the file
   const [cleanTasks, setCleanTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,7 +46,6 @@ function CleanerDashboard() {
     localStorage.setItem("cleaner_reported_damages", JSON.stringify(reportedDamages));
   }, [reportedDamages]);
 
-  // Defect reporting modal overlay states
   const [reportingTask, setReportingTask] = useState(null);
   const [damageForm, setDamageForm] = useState({
     description: "",
@@ -62,8 +57,6 @@ function CleanerDashboard() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
-
-  const menuItems = ["Trang chủ", "Dọn dẹp phòng"];
 
   const fetchTasks = async () => {
     try {
@@ -97,7 +90,6 @@ function CleanerDashboard() {
     }
   };
 
-  // Start working on the task
   const handleStartTask = async (taskId) => {
     try {
       const res = await updateTicketStatus(taskId, { status: "in_progress" });
@@ -111,7 +103,6 @@ function CleanerDashboard() {
     }
   };
 
-  // Mark room clean ready status handler
   const handleMarkReady = async (taskId) => {
     try {
       const res = await updateTicketStatus(taskId, { status: "completed" });
@@ -125,7 +116,6 @@ function CleanerDashboard() {
     }
   };
 
-  // Housekeeper defect reporting handler
   const handleReportDamageSubmit = async (e) => {
     e.preventDefault();
     if (!damageForm.description.trim() || !reportingTask) return;
@@ -162,7 +152,6 @@ function CleanerDashboard() {
       console.error("Report damage error:", err);
       showToast("Có lỗi xảy ra khi tạo báo cáo hỏng hóc.", "error");
     } finally {
-      // Clear and close modal
       setDamageForm({ description: "", severity: "MEDIUM" });
       setReportingTask(null);
     }
@@ -173,12 +162,8 @@ function CleanerDashboard() {
     return task.status === filterStatus;
   });
 
-  const assignedTasksCount = cleanTasks.filter(
-    (t) => t.status === "assigned",
-  ).length;
-  const inProgressTasksCount = cleanTasks.filter(
-    (t) => t.status === "in_progress",
-  ).length;
+  const assignedTasksCount = cleanTasks.filter((t) => t.status === "assigned").length;
+  const inProgressTasksCount = cleanTasks.filter((t) => t.status === "in_progress").length;
 
   const today = new Date();
   const completedTodayCount = cleanTasks.filter((t) => {
@@ -201,668 +186,236 @@ function CleanerDashboard() {
   }).length;
 
   return (
-    <div className="cleaner-dashboard-container" id="cleaner-dashboard-container">
+    <div className="flex bg-white min-h-screen font-sans text-[#0b1c30]">
       <Sidebar />
-
-      {/* Main dashboard contents */}
-      <main className="cleaner-main">
+      <main className="ml-[270px] flex-1">
         <Header avatarText="LC" />
 
+        <div className="p-8 max-w-[1400px] mx-auto">
+          {/* Header Title */}
+          <h1 className="text-3xl font-bold text-[#0b1c30] mb-8">
+            {activeTab === "Trang chủ" ? "Cleaner Board" : activeTab}
+          </h1>
 
+          {/* Dashboard index content */}
+          {activeTab === "Trang chủ" && (
+            <div className="flex flex-col gap-6">
+              {/* Quick alert bar */}
+              <div className="bg-[#e6f4ea] rounded-xl p-6 flex justify-between items-center border border-[#bccac0]">
+                <span className="text-[#006948] font-bold text-lg">
+                  Kế hoạch hôm nay: Bạn có {cleanTasks.filter((t) => t.status !== "completed").length} phòng đang ở diện vệ sinh dọn dẹp bàn giao.
+                </span>
+                <button
+                  onClick={() => navigate("/staff/dashboard/cleaner/tasks")}
+                  className="bg-[#006948] hover:bg-opacity-90 text-white border-none rounded-lg px-6 py-2.5 text-sm font-bold cursor-pointer transition-colors"
+                >
+                  Nhận lịch
+                </button>
+              </div>
 
-        {/* Dashboard index content */}
-        {activeTab === "Trang chủ" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            {/* Quick alert bar */}
-            <div
-              style={{
-                background: "#D1E9FA",
-                borderRadius: 12,
-                padding: "20px 24px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                border: "1px solid #99D1F9",
-              }}
-            >
-              <span style={{ fontSize: 16, color: "#1D4180", fontWeight: 700 }}>
-                Kế hoạch hôm nay: Bạn có{" "}
-                {cleanTasks.filter((t) => t.status !== "completed").length}{" "}
-                phòng đang ở diện vệ sinh dọn dẹp bàn giao.
-              </span>
-              <button
-                onClick={() => {
-                  navigate("/staff/dashboard/cleaner/tasks");
-                }}
-                style={{
-                  background: "#0D47A1",
-                  color: "#FFFFFF",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "10px 20px",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                Nhận lịch
-              </button>
-            </div>
+              {/* Operational grid */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <MetricCard title="CÔNG VIỆC ĐƯỢC GIAO" value={assignedTasksCount} valueColor="text-amber-500" />
+                <MetricCard title="ĐANG THỰC HIỆN" value={inProgressTasksCount} valueColor="text-blue-600" />
+                <MetricCard title="HOÀN THÀNH HÔM NAY" value={completedTodayCount} valueColor="text-emerald-500" />
+                <MetricCard title="HOÀN THÀNH THÁNG NÀY" value={completedThisMonthCount} valueColor="text-indigo-500" />
+              </div>
 
-            {/* Operational grid */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: 16,
-              }}
-            >
-              <div
-                style={{
-                  background: "#FFFFFF",
-                  padding: "20px",
-                  borderRadius: 12,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
-                  border: "1px solid #E2E8F0",
-                }}
-              >
-                <span
-                  style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}
-                >
-                  CÔNG VIỆC ĐƯỢC GIAO
-                </span>
-                <h3
-                  style={{
-                    fontSize: 28,
-                    margin: "8px 0 0",
-                    color: "#FF9100",
-                    fontWeight: 800,
-                  }}
-                >
-                  {assignedTasksCount}
-                </h3>
-              </div>
-              <div
-                style={{
-                  background: "#FFFFFF",
-                  padding: "20px",
-                  borderRadius: 12,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
-                  border: "1px solid #E2E8F0",
-                }}
-              >
-                <span
-                  style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}
-                >
-                  ĐANG THỰC HIỆN
-                </span>
-                <h3
-                  style={{
-                    fontSize: 28,
-                    margin: "8px 0 0",
-                    color: "#0A4E9B",
-                    fontWeight: 800,
-                  }}
-                >
-                  {inProgressTasksCount}
-                </h3>
-              </div>
-              <div
-                style={{
-                  background: "#FFFFFF",
-                  padding: "20px",
-                  borderRadius: 12,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
-                  border: "1px solid #E2E8F0",
-                }}
-              >
-                <span
-                  style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}
-                >
-                  HOÀN THÀNH HÔM NAY
-                </span>
-                <h3
-                  style={{
-                    fontSize: 28,
-                    margin: "8px 0 0",
-                    color: "#10B981",
-                    fontWeight: 800,
-                  }}
-                >
-                  {completedTodayCount}
-                </h3>
-              </div>
-              <div
-                style={{
-                  background: "#FFFFFF",
-                  padding: "20px",
-                  borderRadius: 12,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
-                  border: "1px solid #E2E8F0",
-                }}
-              >
-                <span
-                  style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}
-                >
-                  HOÀN THÀNH THÁNG NÀY
-                </span>
-                <h3
-                  style={{
-                    fontSize: 28,
-                    margin: "8px 0 0",
-                    color: "#6366F1",
-                    fontWeight: 800,
-                  }}
-                >
-                  {completedThisMonthCount}
-                </h3>
+              {/* List of critical cleaning issues */}
+              <div className="bg-[#F6FAF5] border border-[#bccac0] rounded-xl overflow-hidden shadow-sm">
+                <div className="bg-[#006948] px-6 py-4 flex justify-between items-center text-white">
+                  <span className="font-bold text-lg">Tiến độ phân bổ dọn dẹp các tòa nhà</span>
+                  <span className="text-xs opacity-90">Cập nhật tự động</span>
+                </div>
+                <div className="p-6 flex flex-col gap-3">
+                  {Array.from(new Set(cleanTasks.map((t) => t.buildingName).filter(Boolean)))
+                    .sort()
+                    .map((building) => {
+                      const totalInBuilding = cleanTasks.filter((t) => t.buildingName === building).length;
+                      const completedInBuilding = cleanTasks.filter(
+                        (t) => t.buildingName === building && t.status === "completed"
+                      ).length;
+                      return (
+                        <div key={building} className="flex justify-between text-sm py-2 border-b border-gray-200 last:border-0">
+                          <span>Tòa KTX {building}</span>
+                          <strong className="text-emerald-600">{completedInBuilding} / {totalInBuilding} phòng đã xong</strong>
+                        </div>
+                      );
+                    })}
+                  {cleanTasks.length === 0 && (
+                    <div className="text-sm text-gray-500 text-center py-4">Chưa có phòng nào được phân bổ vệ sinh</div>
+                  )}
+                </div>
               </div>
             </div>
+          )}
 
-            {/* List of critical cleaning issues */}
-            <div
-              style={{
-                background: "#FFFFFF",
-                borderRadius: 12,
-                boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  background: "#0D47A1",
-                  padding: "14px 20px",
-                  color: "#FFFFFF",
-                  fontSize: 18,
-                  fontWeight: 700,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <span>Tiến độ phân bổ dọn dẹp các tòa nhà</span>
-                <span style={{ fontSize: 12, opacity: 0.9 }}>
-                  Cập nhật tự động
-                </span>
+          {/* Cleaning tasks lists */}
+          {activeTab === "Dọn dẹp phòng" && (
+            <div className="flex flex-col gap-6">
+              {/* Status filters */}
+              <div className="flex gap-3">
+                {["ALL", "assigned", "in_progress", "completed"].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setFilterStatus(status)}
+                    className={`px-5 py-2 rounded-full text-xs font-bold transition-colors cursor-pointer border ${
+                      filterStatus === status 
+                        ? "bg-[#006948] text-white border-transparent" 
+                        : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {status === "ALL" ? "Tất cả" : status === "assigned" ? "Chờ dọn" : status === "in_progress" ? "Đang dọn" : "Sẵn sàng"}
+                  </button>
+                ))}
               </div>
-              <div
-                style={{
-                  padding: "20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                {Array.from(new Set(cleanTasks.map((t) => t.buildingName).filter(Boolean)))
-                  .sort()
-                  .map((building) => {
-                    const totalInBuilding = cleanTasks.filter((t) => t.buildingName === building).length;
-                    const completedInBuilding = cleanTasks.filter(
-                      (t) => t.buildingName === building && t.status === "completed"
-                    ).length;
+
+              {loading && <div className="py-10 text-center text-gray-500 text-sm">Đang tải danh sách công việc từ cơ sở dữ liệu...</div>}
+              {!loading && filteredTasks.length === 0 && (
+                <div className="py-10 text-center text-gray-500 text-sm bg-[#F6FAF5] rounded-xl border border-gray-200">
+                  Không có công việc dọn dẹp nào trong trạng thái này.
+                </div>
+              )}
+
+              {/* List grid */}
+              {!loading && filteredTasks.length > 0 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {filteredTasks.map((task) => {
+                    const damageData = task.damageReported || reportedDamages[task._id];
+                    const dbDamage = (damageData && damageData.description) ? damageData : null;
+                    
+                    const statusClass = task.status === "assigned" ? "bg-red-100 text-red-800" : task.status === "in_progress" ? "bg-blue-100 text-blue-800" : "bg-emerald-100 text-emerald-800";
+                    const statusText = task.status === "assigned" ? "Chờ dọn" : task.status === "in_progress" ? "Đang dọn" : "Sẵn sàng";
+
                     return (
-                      <div
-                        key={building}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: 14,
-                        }}
-                      >
-                        <span>Tòa KTX {building}</span>
-                        <strong>
-                          {completedInBuilding} / {totalInBuilding} phòng đã xong
-                        </strong>
+                      <div key={task._id} className="bg-[#F6FAF5] rounded-xl border border-[#bccac0] p-6 shadow-sm flex flex-col justify-between hover:-translate-y-0.5 transition-transform">
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <h4 className="m-0 text-base font-bold text-gray-900">
+                              Phòng {task.roomNumber} - Tòa KTX {task.buildingName}
+                            </h4>
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${statusClass}`}>
+                              {statusText}
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-gray-500 my-1">
+                            Phân loại: <strong>{task.title || task.type}</strong> | Nhận lúc: {task.assignedAt ? new Date(task.assignedAt).toLocaleString("vi-VN") : new Date(task.createdAt).toLocaleString("vi-VN")}
+                          </p>
+                          <p className="text-sm text-gray-700 my-3 leading-relaxed">
+                            {task.description}
+                          </p>
+
+                          {/* Defect banner */}
+                          {dbDamage && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-800 my-2">
+                              <div className="flex items-center gap-2 font-bold mb-1">
+                                <FaExclamationTriangle /> Đã có báo cáo sự cố hư hại:
+                              </div>
+                              <p className="m-0 mt-1">{dbDamage.description}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex gap-3 border-t border-gray-200 pt-4 mt-4">
+                          {task.status === "assigned" && (
+                            <button
+                              onClick={() => handleStartTask(task._id)}
+                              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white border-none rounded-lg py-2 text-xs font-bold cursor-pointer transition-colors"
+                            >
+                              Bắt đầu dọn dẹp
+                            </button>
+                          )}
+                          {task.status === "in_progress" && (
+                            <button
+                              onClick={() => handleMarkReady(task._id)}
+                              className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white border-none rounded-lg py-2 text-xs font-bold cursor-pointer transition-colors"
+                            >
+                              Dọn phòng xong
+                            </button>
+                          )}
+                          {!dbDamage && task.status !== "completed" && (
+                            <button
+                              onClick={() => setReportingTask(task)}
+                              className="flex-1 bg-red-500 hover:bg-red-600 text-white border-none rounded-lg py-2 text-xs font-bold cursor-pointer transition-colors"
+                            >
+                              Báo cáo hỏng hóc
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
-                {cleanTasks.length === 0 && (
-                  <div style={{ fontSize: 13, color: "#64748B", textAlign: "center", padding: "10px 0" }}>
-                    Chưa có phòng nào được phân bổ vệ sinh
-                  </div>
-                )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Reported damages logs */}
+          {activeTab === "Sự cố kỹ thuật" && (
+            <div className="bg-[#F6FAF5] rounded-xl border border-[#bccac0] p-6 shadow-sm overflow-hidden">
+              <h3 className="m-0 mb-6 text-lg font-bold text-[#0b1c30]">
+                Danh Sách Tiện Nghi Sự Cố Đã Báo Cáo
+              </h3>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[600px]">
+                  <thead>
+                    <tr className="bg-white border-b border-gray-200">
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase">Mã Phiếu</th>
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase">Khu vực Phòng</th>
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase">Mô tả Hỏng Hóc</th>
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase">Ngày báo</th>
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase">Mức độ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cleanTasks
+                      .filter((t) => (t.damageReported && t.damageReported.description) || (reportedDamages[t._id] && reportedDamages[t._id].description))
+                      .map((t) => {
+                        const damage = (t.damageReported && t.damageReported.description) ? t.damageReported : reportedDamages[t._id];
+                        return (
+                          <tr key={t._id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors bg-[#F6FAF5]">
+                            <td className="p-4 font-mono font-bold text-sm text-gray-700">{t._id.slice(-6).toUpperCase()}</td>
+                            <td className="p-4 text-sm text-gray-800">Phòng {t.roomNumber} - Tòa KTX {t.buildingName}</td>
+                            <td className="p-4 text-sm text-gray-600">{damage.description}</td>
+                            <td className="p-4 text-sm text-gray-500">{damage.date}</td>
+                            <td className="p-4">
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${damage.severity === "HIGH" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"}`}>
+                                {damage.severity === "HIGH" ? "Nghiêm trọng" : "Trung bình"}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Cleaning tasks check lists list */}
-        {activeTab === "Dọn dẹp phòng" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* Status filters */}
-            {/* Status filters */}
-            <div style={{ display: "flex", gap: 8 }}>
-              {["ALL", "assigned", "in_progress", "completed"].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setFilterStatus(status)}
-                  style={{
-                    padding: "6px 14px",
-                    borderRadius: 14,
-                    border:
-                      filterStatus === status ? "none" : "1px solid #CBD5E1",
-                    background: filterStatus === status ? "#0D47A1" : "white",
-                    color: filterStatus === status ? "white" : "#475569",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  {status === "ALL"
-                    ? "Tất cả"
-                    : status === "assigned"
-                      ? "Chờ dọn"
-                      : status === "in_progress"
-                        ? "Đang dọn"
-                        : "Sẵn sàng"}
-                </button>
-              ))}
-            </div>
-
-            {/* Loading / Empty States */}
-            {loading && (
-              <div
-                style={{
-                  padding: "40px 0",
-                  textAlign: "center",
-                  fontSize: 15,
-                  color: "#64748B",
-                }}
-              >
-                Đang tải danh sách công việc từ cơ sở dữ liệu...
-              </div>
-            )}
-
-            {!loading && filteredTasks.length === 0 && (
-              <div
-                style={{
-                  padding: "40px 0",
-                  textAlign: "center",
-                  fontSize: 15,
-                  color: "#64748B",
-                  background: "white",
-                  borderRadius: 12,
-                  border: "1px solid #E2E8F0",
-                }}
-              >
-                Không có công việc dọn dẹp nào trong trạng thái này.
-              </div>
-            )}
-
-            {/* List grid */}
-            {!loading && filteredTasks.length > 0 && (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 16,
-                }}
-              >
-                {filteredTasks.map((task) => {
-                  const damageData = task.damageReported || reportedDamages[task._id];
-                  const dbDamage = (damageData && damageData.description) ? damageData : null;
-                  return (
-                    <div
-                      key={task._id}
-                      style={{
-                        background: "white",
-                        borderRadius: 12,
-                        border: "1px solid #E2E8F0",
-                        padding: 20,
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            marginBottom: 8,
-                          }}
-                        >
-                          <h4
-                            style={{
-                              margin: 0,
-                              color: "#0F172A",
-                              fontSize: 16,
-                            }}
-                          >
-                            Phòng {task.roomNumber} - Tòa KTX{" "}
-                            {task.buildingName}
-                          </h4>
-                          <span
-                            style={{
-                              padding: "2px 8px",
-                              borderRadius: 10,
-                              fontSize: 10,
-                              fontWeight: 700,
-                              background:
-                                task.status === "assigned"
-                                  ? "#FEE2E2"
-                                  : task.status === "in_progress"
-                                    ? "#DBEAFE"
-                                    : "#D1FAE5",
-                              color:
-                                task.status === "assigned"
-                                  ? "#991B1B"
-                                  : task.status === "in_progress"
-                                    ? "#1E40AF"
-                                    : "#065F46",
-                            }}
-                          >
-                            {task.status === "assigned"
-                              ? "Chờ dọn"
-                              : task.status === "in_progress"
-                                ? "Đang dọn"
-                                : "Sẵn sàng"}
-                          </span>
-                        </div>
-
-                        <p
-                          style={{
-                            fontSize: 11,
-                            color: "#64748B",
-                            margin: "4px 0",
-                          }}
-                        >
-                          Phân loại: <strong>{task.title || task.type}</strong>{" "}
-                          | Nhận lúc:{" "}
-                          {task.assignedAt
-                            ? new Date(task.assignedAt).toLocaleString("vi-VN")
-                            : new Date(task.createdAt).toLocaleString("vi-VN")}
-                        </p>
-                        <p
-                          style={{
-                            fontSize: 13,
-                            color: "#475569",
-                            margin: "10px 0",
-                          }}
-                        >
-                          {task.description}
-                        </p>
-
-                        {/* Defect banner */}
-                        {dbDamage && (
-                          <div
-                            style={{
-                              background: "#FEF2F2",
-                              border: "1px solid #FEE2E2",
-                              borderRadius: 8,
-                              padding: 10,
-                              fontSize: 12,
-                              color: "#991B1B",
-                              margin: "8px 0",
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 4,
-                                fontWeight: 700,
-                              }}
-                            >
-                              <FaExclamationTriangle /> Đã có báo cáo sự cố hư
-                              hại:
-                            </div>
-                            <p style={{ margin: "2px 0 0 0" }}>
-                              {dbDamage.description}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          borderTop: "1px solid #F1F5F9",
-                          paddingTop: 12,
-                          marginTop: 12,
-                        }}
-                      >
-                        {task.status === "assigned" && (
-                          <button
-                            onClick={() => handleStartTask(task._id)}
-                            style={{
-                              flex: 1,
-                              background: "#0D47A1",
-                              color: "white",
-                              border: "none",
-                              borderRadius: 8,
-                              padding: "8px 12px",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                            }}
-                          >
-                            Bắt đầu dọn dẹp
-                          </button>
-                        )}
-
-                        {task.status === "in_progress" && (
-                          <button
-                            onClick={() => handleMarkReady(task._id)}
-                            style={{
-                              flex: 1,
-                              background: "#10B981",
-                              color: "white",
-                              border: "none",
-                              borderRadius: 8,
-                              padding: "8px 12px",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                            }}
-                          >
-                            Dọn phòng xong
-                          </button>
-                        )}
-
-                        {!dbDamage && task.status !== "completed" && (
-                          <button
-                            onClick={() => setReportingTask(task)}
-                            style={{
-                              flex: 1,
-                              background: "#EF4444",
-                              color: "white",
-                              border: "none",
-                              borderRadius: 8,
-                              padding: "8px 12px",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                            }}
-                          >
-                            Báo cáo hỏng hóc
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Reported damages logs */}
-        {activeTab === "Sự cố kỹ thuật" && (
-          <div className="cleaner-ticket-list-card">
-            <h3 style={{ margin: "0 0 16px 0", color: "#0A4E9B" }}>
-              Danh Sách Tiện Nghi Sự Cố Đã Báo Cáo
-            </h3>
-
-            <div style={{ overflowX: "auto" }}>
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  textAlign: "left",
-                  minWidth: "600px"
-                }}
-              >
-                <thead>
-                  <tr
-                    style={{
-                      borderBottom: "2px solid #E2E8F0",
-                      background: "#F8FAFC",
-                    }}
-                  >
-                    <th style={{ padding: 12, fontSize: 13, color: "#64748B" }}>
-                      Mã Phiếu kỹ thuật
-                    </th>
-                    <th style={{ padding: 12, fontSize: 13, color: "#64748B" }}>
-                      Khu vực Phòng
-                    </th>
-                    <th style={{ padding: 12, fontSize: 13, color: "#64748B" }}>
-                      Mô tả Hỏng Hóc
-                    </th>
-                    <th style={{ padding: 12, fontSize: 13, color: "#64748B" }}>
-                      Ngày báo
-                    </th>
-                    <th style={{ padding: 12, fontSize: 13, color: "#64748B" }}>
-                      Mức độ
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cleanTasks
-                    .filter((t) => (t.damageReported && t.damageReported.description) || (reportedDamages[t._id] && reportedDamages[t._id].description))
-                    .map((t) => {
-                      const damage = (t.damageReported && t.damageReported.description) ? t.damageReported : reportedDamages[t._id];
-                      return (
-                        <tr
-                          key={t._id}
-                          style={{ borderBottom: "1px solid #E2E8F0" }}
-                        >
-                          <td
-                            style={{
-                              padding: 12,
-                              fontFamily: "monospace",
-                              fontWeight: 700,
-                            }}
-                          >
-                            {t._id.slice(-6).toUpperCase()}
-                          </td>
-                          <td style={{ padding: 12 }}>
-                            Phòng {t.roomNumber} - Tòa KTX {t.buildingName}
-                          </td>
-                          <td style={{ padding: 12 }}>
-                            {damage.description}
-                          </td>
-                          <td style={{ padding: 12, fontSize: 13 }}>
-                            {damage.date}
-                          </td>
-                          <td style={{ padding: 12 }}>
-                            <span
-                              style={{
-                                padding: "3px 8px",
-                                borderRadius: 12,
-                                fontSize: 10,
-                                background:
-                                  damage.severity === "HIGH"
-                                    ? "#FEE2E2"
-                                    : "#FEF3C7",
-                                color:
-                                  damage.severity === "HIGH"
-                                    ? "#991B1B"
-                                    : "#92400E",
-                                fontWeight: 700,
-                              }}
-                            >
-                              {damage.severity === "HIGH" ? "Nghiêm trọng" : "Trung bình"}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </main>
 
       {/* Report Damage Modal Dialog */}
       {reportingTask && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            justifyContent: "center",
-            alignContent: "center",
-            padding: 20,
-          }}
-        >
-          {/* Backdrop blur */}
-          <div
-            onClick={() => setReportingTask(null)}
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "rgba(0,0,0,0.5)",
-              backdropFilter: "blur(2px)",
-            }}
-          />
-
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setReportingTask(null)} />
           <form
             onSubmit={handleReportDamageSubmit}
-            style={{
-              position: "relative",
-              zIndex: 110,
-              background: "white",
-              padding: 24,
-              borderRadius: 16,
-              width: "100%",
-              maxWidth: 450,
-              boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
-            }}
+            className="relative z-10 bg-[#F6FAF5] p-8 rounded-2xl w-full max-w-md shadow-2xl"
           >
-            <h3 style={{ margin: "0 0 16px 0", color: "#EF4444" }}>
-              Báo cáo hư hại vật tư phòng
-            </h3>
-            <p style={{ fontSize: 13, color: "#64748B", marginBottom: 16 }}>
-              Khởi tạo yêu cầu kỹ thuật cho{" "}
-              <strong>
-                Phòng {reportingTask.roomNumber} (Tòa KTX {reportingTask.buildingName})
-              </strong>
+            <h3 className="m-0 mb-4 text-xl font-bold text-red-600">Báo cáo hư hại vật tư phòng</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Khởi tạo yêu cầu kỹ thuật cho <strong>Phòng {reportingTask.roomNumber} (Tòa KTX {reportingTask.buildingName})</strong>
             </p>
 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-                marginBottom: 20,
-              }}
-            >
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label
-                  style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}
-                >
-                  Mức độ hư hại
-                </label>
+            <div className="flex flex-col gap-4 mb-6">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Mức độ hư hại</label>
                 <select
                   value={damageForm.severity}
-                  onChange={(e) =>
-                    setDamageForm({ ...damageForm, severity: e.target.value })
-                  }
-                  style={{
-                    padding: 8,
-                    borderRadius: 6,
-                    border: "1px solid #CBD5E1",
-                    fontSize: 13,
-                    background: "white",
-                  }}
+                  onChange={(e) => setDamageForm({ ...damageForm, severity: e.target.value })}
+                  className="p-3 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#006948]"
                 >
                   <option value="LOW">Thấp (Chờ khắc phục)</option>
                   <option value="MEDIUM">Vừa phải</option>
@@ -870,68 +423,30 @@ function CleanerDashboard() {
                 </select>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label
-                  style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}
-                >
-                  Mô tả chi tiết
-                </label>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Mô tả chi tiết</label>
                 <textarea
                   rows="3"
                   placeholder="Gương vỡ, vòi nước rò rỉ, bóng đèn chớp tắt..."
                   value={damageForm.description}
-                  onChange={(e) =>
-                    setDamageForm({
-                      ...damageForm,
-                      description: e.target.value,
-                    })
-                  }
-                  style={{
-                    padding: 8,
-                    borderRadius: 6,
-                    border: "1px solid #CBD5E1",
-                    fontSize: 13,
-                  }}
+                  onChange={(e) => setDamageForm({ ...damageForm, description: e.target.value })}
+                  className="p-3 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#006948]"
                   required
                 />
               </div>
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                justifyEnd: "flex-end",
-                gap: 8,
-                justifyContent: "flex-end",
-              }}
-            >
+            <div className="flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setReportingTask(null)}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: 8,
-                  border: "1px solid #CBD5E1",
-                  background: "white",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
+                className="px-5 py-2.5 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold cursor-pointer transition-colors"
               >
                 Hủy
               </button>
               <button
                 type="submit"
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: 8,
-                  border: "none",
-                  background: "#EF4444",
-                  color: "white",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
+                className="px-5 py-2.5 rounded-lg border-none bg-red-500 hover:bg-red-600 text-white text-xs font-bold cursor-pointer transition-colors"
               >
                 Tạo báo cáo
               </button>
@@ -941,26 +456,20 @@ function CleanerDashboard() {
       )}
 
       {toast && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 24,
-            right: 24,
-            background: toast.type === "success" ? "#10B981" : "#EF4444",
-            color: "white",
-            padding: "16px 24px",
-            borderRadius: 12,
-            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-            zIndex: 1000,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            fontWeight: 700,
-          }}
-        >
-          {toast.type === "success" ? "✓" : "✗"} {toast.message}
+        <div className={`fixed bottom-6 right-6 text-white px-6 py-4 rounded-xl shadow-lg z-50 font-bold flex items-center gap-2 ${toast.type === "success" ? "bg-emerald-500" : "bg-red-500"}`}>
+          <span className="material-symbols-outlined">{toast.type === "success" ? "check_circle" : "error"}</span>
+          {toast.message}
         </div>
       )}
+    </div>
+  );
+}
+
+function MetricCard({ title, value, valueColor }) {
+  return (
+    <div className="bg-[#F6FAF5] p-6 rounded-xl border border-[#bccac0] shadow-sm flex flex-col items-center justify-center transition-transform hover:-translate-y-1">
+      <span className="text-xs font-bold text-gray-500 mb-2 tracking-wider">{title}</span>
+      <h3 className={`text-4xl font-extrabold m-0 ${valueColor}`}>{value}</h3>
     </div>
   );
 }
