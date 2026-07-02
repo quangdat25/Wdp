@@ -25,6 +25,11 @@ const authService = {
     const response = await request.get("/api/users/me");
     return response.data;
   },
+
+  getMyProfile: async () => {
+    const response = await request.get("/api/users/profile");
+    return response.data;
+  },
 };
 
 export default authService;

@@ -8,6 +8,8 @@ const ticketRoutes = require("./ticket.routes");
 const uploadRoutes = require("./uploadImage.routes");
 const ticketManagementRoutes = require("./ticketManagement.routes");
 const parentRoutes = require("./parent.routes");
+const bookingRoutes = require("./booking.routes");
+const paymentRoutes = require("./payment.routes");
 
 function routes(app) {
   app.use("/api/students", studentRoutes);
@@ -15,6 +17,8 @@ function routes(app) {
   app.use("/api/users", userRoutes);
   app.use("/api/parents", parentRoutes);
   app.use("/api", roomRoutes);
+  app.use("/api/booking", bookingRoutes);
+  app.use("/api/payment", paymentRoutes);
   app.use("/api/notifications", notificationRoutes);
   app.use("/api/violations", violationRoutes);
   app.use("/api/ticket-management", ticketManagementRoutes);

@@ -112,13 +112,7 @@ function UnbookedHomeScreen({ setActiveModule }) {
           </div>
         </div>
 
-        <button
-          type="button"
-          className="student-primary-button"
-          onClick={() => setActiveModule("booking")}
-        >
-          <FaBed /> Đặt phòng ngay
-        </button>
+       
       </div>
 
       <section className="student-metrics">

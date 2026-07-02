@@ -15,11 +15,12 @@ import {
   FaPlusCircle,
   FaSearch,
   FaBuilding,
+  FaDoorOpen,
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import authService from "../api/authService";
-
+import { showSuccess } from "../components/Alert";
 function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -113,11 +114,6 @@ function Sidebar() {
         icon: <FaUserGraduate />,
       },
       {
-        path: "/manager/rooms",
-        label: "Quản lý phòng",
-        icon: <FaBed />,
-      },
-      {
         path: "/manager/tickets",
         label: "Quản lý yêu cầu",
         icon: <FaClipboardList />,
@@ -152,16 +148,15 @@ function Sidebar() {
       },
     ],
 
-    cleaning: [
-      { path: "/staff/dashboard/cleaning", label: "Trang chủ", icon: <FaChartPie /> },
-      { path: "/staff/dashboard/cleaning?tab=Dọn dẹp phòng", label: "Dọn dẹp phòng", icon: <FaClipboardList /> },
-      { path: "/staff/dashboard/cleaning?tab=Sự cố kỹ thuật", label: "Sự cố kỹ thuật", icon: <FaTools /> },
+    cleaner: [
+      { path: "/staff/dashboard/cleaner", label: "Trang chủ", icon: <FaChartPie /> },
+      { path: "/staff/dashboard/cleaner/tasks", label: "Dọn dẹp phòng", icon: <FaClipboardList /> },
+      { path: "/staff/dashboard/cleaner/issues", label: "Sự cố kỹ thuật", icon: <FaTools /> },
     ],
 
     maintenance: [
       { path: "/staff/dashboard/maintenance", label: "Trang chủ", icon: <FaChartPie /> },
-      { path: "/staff/dashboard/maintenance?tab=Danh sách sự cố", label: "Danh sách sự cố", icon: <FaWrench /> },
-      { path: "/staff/dashboard/maintenance?tab=Lập phiếu sự cố", label: "Lập phiếu sự cố", icon: <FaPlusCircle /> },
+      { path: "/staff/dashboard/maintenance/tasks", label: "Danh sách sự cố", icon: <FaWrench /> },
     ],
 
     security: [
@@ -178,6 +173,11 @@ function Sidebar() {
         icon: <FaChartPie />,
       },
       {
+        path: "/student/booking",
+        label: "Đặt phòng",
+        icon: <FaDoorOpen />,
+      },
+      {
         path: "/student/room",
         label: "Phòng của tôi",
         icon: <FaBed />,
@@ -188,17 +188,7 @@ function Sidebar() {
         icon: <FaMoneyBillWave />,
       },
       {
-        path: "/student/requests",
-        label: "Yêu cầu",
-        icon: <FaTools />,
-      },
-      {
-        path: "/student/support/request",
-        label: "Gửi yêu cầu hỗ trợ",
-        icon: <FaLifeRing />,
-      },
-      {
-        path: "/student/my/tickets",
+        path: "/student/tickets",
         label: "Yêu cầu hỗ trợ",
         icon: <FaClipboardList />,
       },
@@ -250,6 +240,7 @@ function Sidebar() {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       navigate("/");
+      showSuccess("Đăng xuất thành công");
     }
   };
 

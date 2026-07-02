@@ -7,7 +7,7 @@ const { authenticate, authorize } = require("../middleware/authUser");
 // ===== BUILDINGS =====
 
 // Lấy tất cả tòa nhà
-router.get("/buildings", authenticate, authorize("admin", "manager"), roomController.getAllBuildings);
+router.get("/buildings", authenticate, authorize("admin", "manager", "student"), roomController.getAllBuildings);
 
 // Tạo tòa nhà mới (tự động tạo 5 tầng × 14 phòng)
 router.post("/buildings", authenticate, authorize("admin"), roomController.createBuilding);
