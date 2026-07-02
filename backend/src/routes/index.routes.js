@@ -10,6 +10,7 @@ const ticketManagementRoutes = require("./ticketManagement.routes");
 const parentRoutes = require("./parent.routes");
 const bookingRoutes = require("./booking.routes");
 const paymentRoutes = require("./payment.routes");
+const newsRoutes = require("./news.routes");
 
 function routes(app) {
   app.use("/api/students", studentRoutes);
@@ -24,6 +25,7 @@ function routes(app) {
   app.use("/api/ticket-management", ticketManagementRoutes);
   app.use("/api/tickets", ticketRoutes);
   app.use("/api/upload-image", uploadRoutes);
+  app.use("/api/news", newsRoutes);
 }
 
 module.exports = routes;

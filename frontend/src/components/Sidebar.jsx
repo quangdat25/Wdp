@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   FaChartPie,
   FaUserGraduate,
@@ -15,6 +16,7 @@ import {
   FaPlusCircle,
   FaSearch,
   FaDoorOpen,
+  FaTimes,
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -23,6 +25,26 @@ import { showSuccess } from "../components/Alert";
 function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+      if (window.innerWidth > 768) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) {
+      setIsOpen(false);
+    }
+  }, [location.pathname]);
 
   const user = JSON.parse(localStorage.getItem("user"));
   const role = user?.role;
@@ -155,7 +177,6 @@ function Sidebar() {
 
     security: [
       { path: "/staff/dashboard/security", label: "Trang chủ", icon: <FaChartPie /> },
-      { path: "/staff/dashboard/security/history", label: "Lịch sử ra vào", icon: <FaShieldAlt /> },
       { path: "/staff/dashboard/security/create-report", label: "Lập biên bản", icon: <FaPlusCircle /> },
       { path: "/staff/dashboard/security/search", label: "Tìm kiếm sinh viên", icon: <FaSearch /> },
     ],
@@ -239,79 +260,122 @@ function Sidebar() {
   };
 
   return (
-    <aside
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: 270,
-        height: "100vh",
-        background:
-          "linear-gradient(180deg, #34d399 0%, #22c55e 50%, #16a34a 100%)",
-        padding: "24px 16px",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        boxSizing: "border-box",
-      }}
-    >
-      <div>
-        <div
+    <>
+      {isMobile && (
+        <button
+          onClick={() => setIsOpen((prev) => !prev)}
           style={{
-            background: "rgba(255,255,255,0.15)",
-            borderRadius: 20,
-            padding: 18,
-            marginBottom: 28,
+            position: "fixed",
+            top: 13,
+            left: 13,
+            zIndex: 1050,
+            width: 46,
+            height: 46,
+            borderRadius: "50%",
+            background: "#16a34a",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 20,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            cursor: "pointer",
+            border: "none",
           }}
         >
-          <h2 style={{ margin: 0, color: "#fff" }}>FPT Dormitory</h2>
+          {isOpen ? <FaTimes /> : <span style={{ fontSize: 24, lineHeight: 1 }}>☰</span>}
+        </button>
+      )}
 
-          <p
-            style={{
-              marginTop: 8,
-              color: "#fff",
-              fontSize: 13,
-            }}
-          >
-            Dormitory Management System
-          </p>
-        </div>
+      {isMobile && isOpen && (
+        <div
+          onClick={() => setIsOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            backdropFilter: "blur(2px)",
+            zIndex: 1010,
+          }}
+        />
+      )}
 
-        {menus.map((item, index) => (
-          <button
-            key={item.path}
-            style={{
-              ...menuStyle(item.path),
-              marginTop: index === 0 ? 0 : 10,
-            }}
-            onClick={() => navigate(item.path)}
-          >
-            {item.icon}
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      <button
-        onClick={handleLogout}
+      <aside
         style={{
-          border: "none",
-          height: 54,
-          borderRadius: 14,
-          background: "#fff",
-          color: "#16a34a",
-          fontWeight: 700,
-          cursor: "pointer",
+          position: "fixed",
+          top: 0,
+          left: isMobile ? (isOpen ? 0 : -270) : 0,
+          width: 270,
+          height: "100vh",
+          background:
+            "linear-gradient(180deg, #34d399 0%, #22c55e 50%, #16a34a 100%)",
+          padding: "24px 16px",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 10,
+          flexDirection: "column",
+          justifyContent: "space-between",
+          boxSizing: "border-box",
+          zIndex: 1020,
+          transition: "left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
-        <FaSignOutAlt />
-        Đăng xuất
-      </button>
-    </aside>
+        <div>
+          <div
+            style={{
+              background: "rgba(255,255,255,0.15)",
+              borderRadius: 20,
+              padding: 18,
+              marginBottom: 28,
+            }}
+          >
+            <h2 style={{ margin: 0, color: "#fff" }}>FPT Dormitory</h2>
+
+            <p
+              style={{
+                marginTop: 8,
+                color: "#fff",
+                fontSize: 13,
+              }}
+            >
+              Dormitory Management System
+            </p>
+          </div>
+
+          {menus.map((item, index) => (
+            <button
+              key={item.path}
+              style={{
+                ...menuStyle(item.path),
+                marginTop: index === 0 ? 0 : 10,
+              }}
+              onClick={() => navigate(item.path)}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={handleLogout}
+          style={{
+            border: "none",
+            height: 54,
+            borderRadius: 14,
+            background: "#fff",
+            color: "#16a34a",
+            fontWeight: 700,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+          }}
+        >
+          <FaSignOutAlt />
+          Đăng xuất
+        </button>
+      </aside>
+    </>
   );
 }
 
