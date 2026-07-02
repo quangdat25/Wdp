@@ -293,10 +293,9 @@ function TicketManagement() {
 
                       <TableCell>
                         <span
-                          className={`inline-flex rounded-full px-3 py-1 text-sm font-bold ${
-                            statusClasses[ticket.status] ||
+                          className={`inline-flex rounded-full px-3 py-1 text-sm font-bold ${statusClasses[ticket.status] ||
                             "bg-slate-100 text-slate-600"
-                          }`}
+                            }`}
                         >
                           {statusLabels[ticket.status] || ticket.status}
                         </span>
@@ -446,6 +445,36 @@ function TicketDetailModal({
               {ticket.description || "Không có mô tả"}
             </p>
           </div>
+
+          {ticket.damageReported && ticket.damageReported.description && (
+            <div className="mt-5 rounded-3xl bg-amber-50 border border-amber-200 p-5">
+              <h3 className="mb-2 font-extrabold text-amber-800">
+                Sự cố hỏng hóc do nhân viên báo cáo
+              </h3>
+              <p className="text-sm font-semibold text-amber-700">
+                Mức độ nghiêm trọng:{" "}
+                <span className="font-extrabold">
+                  {ticket.damageReported.severity === "HIGH"
+                    ? "Nghiêm trọng"
+                    : ticket.damageReported.severity === "LOW"
+                      ? "Thấp"
+                      : "Trung bình"}
+                </span>
+              </p>
+              <p className="mt-2 text-slate-700 whitespace-pre-wrap">
+                {ticket.damageReported.description}
+              </p>
+              <p className="mt-2 text-xs text-slate-500">
+                Báo cáo bởi:{" "}
+                <strong>
+                  {ticket.damageReported.reportedBy?.fullName ||
+                    ticket.damageReported.reportedBy?.username ||
+                    "Nhân viên dọn dẹp"}
+                </strong>{" "}
+                vào {ticket.damageReported.date}
+              </p>
+            </div>
+          )}
 
           {ticket.rejectedReason && (
             <div className="mt-5 rounded-3xl bg-red-50 p-5">

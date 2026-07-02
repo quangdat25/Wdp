@@ -36,22 +36,6 @@ function CleanerDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filterStatus, setFilterStatus] = useState("ALL");
-  const [reportedDamages, setReportedDamages] = useState(() => {
-    try {
-      const saved = localStorage.getItem("cleaner_reported_damages");
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem(
-      "cleaner_reported_damages",
-      JSON.stringify(reportedDamages),
-    );
-  }, [reportedDamages]);
-
   // Defect reporting modal overlay states
   const [reportingTask, setReportingTask] = useState(null);
   const [damageForm, setDamageForm] = useState({
@@ -151,16 +135,6 @@ function CleanerDashboard() {
       });
 
       if (res.data?.success) {
-        setReportedDamages((prev) => ({
-          ...prev,
-          [reportingTask._id]: {
-            description: damageForm.description.trim(),
-            severity: damageForm.severity,
-            date: new Date().toISOString().replace("T", " ").substring(0, 16),
-            ticketId: null,
-          },
-        }));
-
         showToast(
           "Báo cáo hỏng hóc thành công! Đã ghi nhận sự cố của phòng.",
           "success",
@@ -222,20 +196,10 @@ function CleanerDashboard() {
 
         {/* Dashboard index content */}
         {activeTab === "Trang chủ" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div className="cleaner-tab-content-wrapper">
             {/* Quick alert bar */}
-            <div
-              style={{
-                background: "#D1E9FA",
-                borderRadius: 12,
-                padding: "20px 24px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                border: "1px solid #99D1F9",
-              }}
-            >
-              <span style={{ fontSize: 16, color: "#1D4180", fontWeight: 700 }}>
+            <div className="cleaner-quick-alert-bar">
+              <span className="cleaner-alert-text">
                 Kế hoạch hôm nay: Bạn có{" "}
                 {cleanTasks.filter((t) => t.status !== "completed").length}{" "}
                 phòng đang ở diện vệ sinh dọn dẹp bàn giao.
@@ -244,125 +208,54 @@ function CleanerDashboard() {
                 onClick={() => {
                   navigate("/staff/dashboard/cleaner/tasks");
                 }}
-                style={{
-                  background: "#0D47A1",
-                  color: "#FFFFFF",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "10px 20px",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
+                className="cleaner-alert-btn"
               >
                 Nhận lịch
               </button>
             </div>
 
             {/* Operational grid */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: 16,
-              }}
-            >
-              <div
-                style={{
-                  background: "#FFFFFF",
-                  padding: "20px",
-                  borderRadius: 12,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
-                  border: "1px solid #E2E8F0",
-                }}
-              >
-                <span
-                  style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}
-                >
+            <div className="cleaner-operational-grid">
+              <div className="cleaner-stat-card">
+                <span className="cleaner-stat-card-title">
                   CÔNG VIỆC ĐƯỢC GIAO
                 </span>
                 <h3
-                  style={{
-                    fontSize: 28,
-                    margin: "8px 0 0",
-                    color: "#FF9100",
-                    fontWeight: 800,
-                  }}
+                  className="cleaner-stat-card-value"
+                  style={{ color: "#FF9100" }}
                 >
                   {assignedTasksCount}
                 </h3>
               </div>
-              <div
-                style={{
-                  background: "#FFFFFF",
-                  padding: "20px",
-                  borderRadius: 12,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
-                  border: "1px solid #E2E8F0",
-                }}
-              >
-                <span
-                  style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}
-                >
+              <div className="cleaner-stat-card">
+                <span className="cleaner-stat-card-title">
                   ĐANG THỰC HIỆN
                 </span>
                 <h3
-                  style={{
-                    fontSize: 28,
-                    margin: "8px 0 0",
-                    color: "#0A4E9B",
-                    fontWeight: 800,
-                  }}
+                  className="cleaner-stat-card-value"
+                  style={{ color: "#0A4E9B" }}
                 >
                   {inProgressTasksCount}
                 </h3>
               </div>
-              <div
-                style={{
-                  background: "#FFFFFF",
-                  padding: "20px",
-                  borderRadius: 12,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
-                  border: "1px solid #E2E8F0",
-                }}
-              >
-                <span
-                  style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}
-                >
+              <div className="cleaner-stat-card">
+                <span className="cleaner-stat-card-title">
                   HOÀN THÀNH HÔM NAY
                 </span>
                 <h3
-                  style={{
-                    fontSize: 28,
-                    margin: "8px 0 0",
-                    color: "#10B981",
-                    fontWeight: 800,
-                  }}
+                  className="cleaner-stat-card-value"
+                  style={{ color: "#10B981" }}
                 >
                   {completedTodayCount}
                 </h3>
               </div>
-              <div
-                style={{
-                  background: "#FFFFFF",
-                  padding: "20px",
-                  borderRadius: 12,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
-                  border: "1px solid #E2E8F0",
-                }}
-              >
-                <span
-                  style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}
-                >
+              <div className="cleaner-stat-card">
+                <span className="cleaner-stat-card-title">
                   HOÀN THÀNH THÁNG NÀY
                 </span>
                 <h3
-                  style={{
-                    fontSize: 28,
-                    margin: "8px 0 0",
-                    color: "#6366F1",
-                    fontWeight: 800,
-                  }}
+                  className="cleaner-stat-card-value"
+                  style={{ color: "#6366F1" }}
                 >
                   {completedThisMonthCount}
                 </h3>
@@ -370,26 +263,8 @@ function CleanerDashboard() {
             </div>
 
             {/* List of critical cleaning issues */}
-            <div
-              style={{
-                background: "#FFFFFF",
-                borderRadius: 12,
-                boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  background: "#0D47A1",
-                  padding: "14px 20px",
-                  color: "#FFFFFF",
-                  fontSize: 18,
-                  fontWeight: 700,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
+            <div className="cleaner-high-priority-card">
+              <div className="cleaner-high-priority-header">
                 <span>Tiến độ phân bổ dọn dẹp các tòa nhà</span>
                 <span style={{ fontSize: 12, opacity: 0.9 }}>
                   Cập nhật tự động
@@ -516,18 +391,12 @@ function CleanerDashboard() {
 
             {/* List grid */}
             {!loading && filteredTasks.length > 0 && (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 16,
-                }}
-              >
+              <div className="cleaner-tasks-grid">
                 {filteredTasks.map((task) => {
-                  const damageData =
-                    task.damageReported || reportedDamages[task._id];
                   const dbDamage =
-                    damageData && damageData.description ? damageData : null;
+                    task.damageReported && task.damageReported.description
+                      ? task.damageReported
+                      : null;
                   return (
                     <div
                       key={task._id}
@@ -760,20 +629,14 @@ function CleanerDashboard() {
                 <tbody>
                   {cleanTasks
                     .filter(
-                      (t) =>
-                        (t.damageReported && t.damageReported.description) ||
-                        (reportedDamages[t._id] &&
-                          reportedDamages[t._id].description),
+                      (t) => t.damageReported && t.damageReported.description
                     )
                     .map((t) => {
-                      const damage =
-                        t.damageReported && t.damageReported.description
-                          ? t.damageReported
-                          : reportedDamages[t._id];
+                      const damage = t.damageReported;
                       return (
                         <tr
-                          key={t._id}
-                          style={{ borderBottom: "1px solid #E2E8F0" }}
+                           key={t._id}
+                           style={{ borderBottom: "1px solid #E2E8F0" }}
                         >
                           <td
                             style={{
@@ -788,6 +651,9 @@ function CleanerDashboard() {
                             Phòng {t.roomNumber} - Tòa KTX {t.buildingName}
                           </td>
                           <td style={{ padding: 12 }}>{damage.description}</td>
+                          <td style={{ padding: 12 }}>
+                            {damage.reportedBy?.fullName || damage.reportedBy?.username || "Không rõ"}
+                          </td>
                           <td style={{ padding: 12, fontSize: 13 }}>
                             {damage.date}
                           </td>

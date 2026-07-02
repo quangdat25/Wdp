@@ -84,6 +84,7 @@ exports.getStaffTickets = async (req, res) => {
     })
       .populate("studentId", "fullName studentCode phone email")
       .populate("assignedBy", "fullName username role")
+      .populate("damageReported.reportedBy", "fullName username role")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -173,14 +174,19 @@ exports.createStaffTicket = async (req, res) => {
         $set: {
           damageReported: {
             ticketId: null,
+            reportedBy: req.user._id,
             description: description.trim(),
             date: new Date().toLocaleString("vi-VN"),
             severity: severity || "MEDIUM",
           },
         },
       },
-      { new: new Date() }
+      { new: true }
     );
+
+    if (ticket) {
+      await ticket.populate("damageReported.reportedBy", "fullName username role");
+    }
 
     if (!ticket) {
       return res.status(404).json({

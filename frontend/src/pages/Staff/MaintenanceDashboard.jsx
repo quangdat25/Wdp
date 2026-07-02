@@ -118,18 +118,7 @@ function MaintenanceDashboard() {
     >
       <Sidebar />
 
-      <main
-        style={{
-          marginLeft: 270,
-          flex: 1,
-          padding: "24px 32px",
-          display: "flex",
-          flexDirection: "column",
-          boxSizing: "border-box",
-          overflowY: "auto",
-          height: "100vh",
-        }}
-      >
+      <main className="maintenance-main">
         <Header avatarText="MT" />
 
         {/* Dynamic header title */}
@@ -147,20 +136,10 @@ function MaintenanceDashboard() {
 
         {/* Overview Tab Content */}
         {activeTab === "Trang chủ" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div className="maintenance-tab-content-wrapper">
             {/* Quick alert bar */}
-            <div
-              style={{
-                background: "#E2F0D9",
-                borderRadius: 12,
-                padding: "20px 24px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                border: "1px solid #A9D18E",
-              }}
-            >
-              <span style={{ fontSize: 16, color: "#385723", fontWeight: 700 }}>
+            <div className="maintenance-quick-alert-bar">
+              <span className="maintenance-alert-text">
                 Bạn có {tasks.filter(t => t.status?.toLowerCase() === "pending").length} sự cố sửa chữa CHƯA TIẾP NHẬN được phân công hôm nay.
               </span>
               <button
@@ -168,16 +147,7 @@ function MaintenanceDashboard() {
                   setFilterStatus("PENDING");
                   navigate("/staff/dashboard/maintenance/tasks");
                 }}
-                style={{
-                  background: "#385723",
-                  color: "#FFFFFF",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "10px 20px",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
+                className="maintenance-alert-btn"
               >
                 Nhận việc
               </button>
@@ -350,68 +320,34 @@ function MaintenanceDashboard() {
                     TIẾN TRÌNH THỰC HIỆN
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button
-                      onClick={() =>
-                        handleUpdateStatus(activeTask._id || activeTask.id, "PENDING")
-                      }
-                      disabled={
-                        activeTask.status?.toUpperCase() === "PENDING" ||
-                        activeTask.status?.toUpperCase() === "ASSIGNED"
-                      }
-                      style={{
-                        flex: 1,
-                        padding: "6px",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        borderRadius: 6,
-                        border: "none",
-                        cursor:
-                          activeTask.status?.toUpperCase() === "PENDING" ||
-                          activeTask.status?.toUpperCase() === "ASSIGNED"
-                            ? "not-allowed"
-                            : "pointer",
-                        background:
-                          activeTask.status?.toUpperCase() === "PENDING" ||
-                          activeTask.status?.toUpperCase() === "ASSIGNED"
-                            ? "#F59E0B"
-                            : "#E2E8F0",
-                        color:
-                          activeTask.status?.toUpperCase() === "PENDING" ||
-                          activeTask.status?.toUpperCase() === "ASSIGNED"
-                            ? "white"
-                            : "#475569",
-                      }}
-                    >
-                      Bàn Giao
-                    </button>
-                    <button
-                      onClick={() =>
-                        handleUpdateStatus(activeTask._id || activeTask.id, "IN_PROGRESS")
-                      }
-                      disabled={activeTask.status?.toUpperCase() === "IN_PROGRESS"}
-                      style={{
-                        flex: 1,
-                        padding: "6px",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        borderRadius: 6,
-                        border: "none",
-                        cursor:
-                          activeTask.status?.toUpperCase() === "IN_PROGRESS"
-                            ? "not-allowed"
-                            : "pointer",
-                        background:
-                          activeTask.status?.toUpperCase() === "IN_PROGRESS"
-                            ? "#2563EB"
-                            : "#E2E8F0",
-                        color:
-                          activeTask.status?.toUpperCase() === "IN_PROGRESS"
-                            ? "white"
-                            : "#475569",
-                      }}
-                    >
-                      Tiến Hành
-                    </button>
+                    {(activeTask.status?.toUpperCase() === "PENDING" || activeTask.status?.toUpperCase() === "ASSIGNED") ? (
+                      <button
+                        onClick={() =>
+                          handleUpdateStatus(activeTask._id || activeTask.id, "IN_PROGRESS")
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "10px",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          borderRadius: 8,
+                          border: "none",
+                          cursor: "pointer",
+                          background: "#2563EB",
+                          color: "white",
+                        }}
+                      >
+                        Tiếp Nhận Sửa Chữa (Tiến Hành)
+                      </button>
+                    ) : activeTask.status?.toUpperCase() === "IN_PROGRESS" ? (
+                      <span style={{ fontSize: 13, color: "#2563EB", fontWeight: 700 }}>
+                        ⚙ Đang tiến hành sửa chữa
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 13, color: "#10B981", fontWeight: 700 }}>
+                        ✓ Đã hoàn thành sửa chữa
+                      </span>
+                    )}
                   </div>
                 </div>
 

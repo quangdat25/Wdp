@@ -114,6 +114,31 @@ const ticketSchema = new mongoose.Schema(
       default: null,
       trim: true,
     },
+
+    damageReported: {
+      ticketId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Ticket",
+        default: null,
+      },
+      reportedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+      description: {
+        type: String,
+        trim: true,
+      },
+      date: {
+        type: String,
+      },
+      severity: {
+        type: String,
+        enum: ["LOW", "MEDIUM", "HIGH"],
+        default: "MEDIUM",
+      },
+    },
   },
   {
     timestamps: true,
