@@ -21,6 +21,8 @@ import AdminDashboard from "./pages/Admin/AdminDashboard";
 import ManagerDashboard from "./pages/Manager/ManagerDashboard";
 import StudentDashboard from "./pages/Student/StudentDashboard";
 import BookingRoom from "./pages/Student/BookingRoom";
+import BookingResult from "./pages/Student/BookingResult";
+import CreateTicket from "./pages/Student/CreateTicket";
 import ParentDashboard from "./pages/Parent/ParentDashboard";
 import ParentStudentInfo from "./pages/Parent/ParentStudentInfo";
 
@@ -30,7 +32,6 @@ import SecurityDashboard from "./pages/Staff/SecurityDashboard";
 import MyTickets from "./pages/Student/MyTickets";
 import TicketManagement from "./pages/Manager/TicketManagement";
 import ViolationManagement from "./pages/Manager/ViolationManagement";
-import CreateTicket from "./pages/Student/CreateTicket";
 
 function App() {
   const location = useLocation();
@@ -70,8 +71,10 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
               <Route path="/student/dashboard" element={<StudentDashboard />} />
               <Route path="/student/booking" element={<BookingRoom />} />
-              <Route path="/student/my/tickets" element={<MyTickets />} />
+              <Route path="/student/booking-result" element={<BookingResult />} />
               <Route path="/student/support/request" element={<CreateTicket />} />
+              <Route path="/student/tickets" element={<MyTickets />} />
+              <Route path="/student/my/tickets" element={<MyTickets />} />
             </Route>
 
             {/* Parent Routes */}
