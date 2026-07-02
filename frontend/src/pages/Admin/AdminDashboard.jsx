@@ -1,29 +1,29 @@
 /* eslint-disable react/prop-types */
 
 import {
-  FaArrowDown,
-  FaArrowUp,
   FaBed,
-  FaBell,
-  FaChartLine,
   FaClipboardList,
+  FaChartLine,
   FaExclamationTriangle,
-  FaMapMarkerAlt,
   FaMoneyBillWave,
-  FaUserCheck,
   FaUsers,
+  FaUserCheck,
+  FaBell,
+  FaArrowUp,
+  FaArrowDown,
+  FaClock,
+  FaMapMarkerAlt,
 } from "react-icons/fa";
-import Header from "../../components/Headers";
+import { useEffect } from "react";
+import { showSuccess } from "../../components/Alert";
 import Sidebar from "../../components/Sidebar";
-import "./AdminDashboard.css";
-
 const overviewCards = [
   {
     title: "Tổng sinh viên",
     value: "1,248",
     change: "+8.2%",
     direction: "up",
-    tone: "blue",
+    accent: "#2563eb",
     icon: FaUsers,
   },
   {
@@ -31,7 +31,7 @@ const overviewCards = [
     value: "92%",
     change: "+4.1%",
     direction: "up",
-    tone: "green",
+    accent: "#16a34a",
     icon: FaBed,
   },
   {
@@ -39,7 +39,7 @@ const overviewCards = [
     value: "18",
     change: "-6.5%",
     direction: "down",
-    tone: "amber",
+    accent: "#f59e0b",
     icon: FaClipboardList,
   },
   {
@@ -47,7 +47,7 @@ const overviewCards = [
     value: "248.6M",
     change: "+11.3%",
     direction: "up",
-    tone: "teal",
+    accent: "#0f766e",
     icon: FaMoneyBillWave,
   },
 ];
@@ -68,10 +68,10 @@ const occupancySeries = [
 ];
 
 const blocks = [
-  { name: "Khu A", occupied: 96, total: 120, tone: "green" },
-  { name: "Khu B", occupied: 88, total: 100, tone: "blue" },
-  { name: "Khu C", occupied: 74, total: 90, tone: "amber" },
-  { name: "Khu D", occupied: 65, total: 80, tone: "teal" },
+  { name: "Khu A", occupied: 96, total: 120, tone: "#2563eb" },
+  { name: "Khu B", occupied: 88, total: 100, tone: "#16a34a" },
+  { name: "Khu C", occupied: 74, total: 90, tone: "#f59e0b" },
+  { name: "Khu D", occupied: 65, total: 80, tone: "#0f766e" },
 ];
 
 const alerts = [
@@ -79,19 +79,19 @@ const alerts = [
     title: "Phòng chờ xác nhận",
     detail: "12 đơn đăng ký mới đang chờ phân phòng.",
     icon: FaBell,
-    tone: "blue",
+    tone: "#2563eb",
   },
   {
     title: "Phòng bảo trì",
     detail: "7 phòng cần xử lý trong 24 giờ tới.",
     icon: FaExclamationTriangle,
-    tone: "amber",
+    tone: "#f59e0b",
   },
   {
     title: "Nhân sự trực ca",
     detail: "Đủ 18/18 người đang làm việc theo lịch hôm nay.",
     icon: FaUserCheck,
-    tone: "green",
+    tone: "#16a34a",
   },
 ];
 
@@ -125,266 +125,141 @@ const maintenanceQueue = [
   { room: "D-506", issue: "Nước nóng", status: "Đã lên lịch" },
 ];
 
-const recentBookings = [
-  {
-    room: "A-101",
-    student: "Nguyễn Văn An",
-    date: "24/05/2024",
-    type: "Phòng đơn",
-    status: "Đã duyệt",
-    statusTone: "approved",
-  },
-  {
-    room: "C-405",
-    student: "Trần Thị Bình",
-    date: "26/05/2024",
-    type: "Phòng đôi",
-    status: "Chờ xử lý",
-    statusTone: "pending",
-  },
-  {
-    room: "B-202",
-    student: "Lê Hoàng Nam",
-    date: "25/05/2024",
-    type: "Phòng 4 người",
-    status: "Đã duyệt",
-    statusTone: "approved",
-  },
-];
-
-function AdminDashboard() {
+function AdminDashboard() { 
   return (
-    <div className="admin-dashboard">
+    <div style={styles.pageShell}>
       <Sidebar />
 
-      <main className="admin-main">
-        <Header
-          avatarText="A"
-          bgGradient="#ffffff"
-          borderColor="#bccac0"
-          shadowColor="rgba(0, 105, 72, 0.06)"
-        />
-
-        <section className="admin-hero">
-          <div className="admin-hero-copy">
-            <p className="admin-eyebrow">Admin dashboard</p>
-            <h1>Bảng điều khiển quản trị</h1>
-            <p>
-              Hệ thống quản lý ký túc xá tập trung. Theo dõi tỷ lệ lấp đầy,
-              quản lý yêu cầu của sinh viên và phân tích dữ liệu vận hành theo
-              thời gian thực.
+      <main style={styles.main}>
+        <section style={styles.heroCard}>
+          <div style={styles.heroCopy}>
+            <p style={styles.eyebrow}>Admin dashboard</p>
+            <h1 style={styles.heroTitle}>Bảng điều khiển quản trị</h1>
+            <p style={styles.heroText}>
+              Tổng quan tức thì về sinh viên, phòng ở, doanh thu và các công
+              việc đang chờ xử lý trong hệ thống ký túc xá.
             </p>
 
-            <div className="admin-meta-row">
+            <div style={styles.heroMetaRow}>
               <MetaPill icon={FaChartLine} label="Tổng quan realtime" />
+              <MetaPill icon={FaClock} label="Cập nhật theo dữ liệu mẫu" />
               <MetaPill icon={FaMapMarkerAlt} label="FPT Dormitory" />
             </div>
           </div>
 
-          <div className="admin-occupancy-panel">
-            <div className="admin-panel-header">
-              <span>Tỷ lệ lấp đầy</span>
-              <strong>92%</strong>
+          <div style={styles.heroStatsPanel}>
+            <div style={styles.heroStatsHeader}>
+              <span style={styles.heroStatsLabel}>Tình trạng hôm nay</span>
+              <span style={styles.heroStatsDate}>09/06/2026</span>
             </div>
-            <div className="admin-progress-track">
-              <span className="admin-progress-fill tone-green w-92" />
+
+            <div style={styles.heroStatsValue}>92%</div>
+            <div style={styles.heroStatsNote}>
+              Tỷ lệ lấp đầy ổn định, còn 102 phòng trống trên toàn hệ thống.
             </div>
-            <div className="admin-mini-stats">
-              <div>
-                <span>Phòng trống</span>
-                <strong>114</strong>
-              </div>
-              <div>
-                <span>Đang sửa chữa</span>
-                <strong>12</strong>
-              </div>
+
+            <div style={styles.heroStatsBars}>
+              <div
+                style={{
+                  ...styles.heroStatsBar,
+                  width: "92%",
+                  background: "linear-gradient(90deg, #16a34a, #22c55e)",
+                }}
+              />
+              <div
+                style={{
+                  ...styles.heroStatsBar,
+                  width: "78%",
+                  background: "linear-gradient(90deg, #2563eb, #60a5fa)",
+                }}
+              />
+              <div
+                style={{
+                  ...styles.heroStatsBar,
+                  width: "64%",
+                  background: "linear-gradient(90deg, #f59e0b, #fb923c)",
+                }}
+              />
             </div>
           </div>
         </section>
 
-        <section className="admin-card-grid">
+        <section style={styles.cardGrid}>
           {overviewCards.map((card) => (
             <OverviewCard key={card.title} card={card} />
           ))}
         </section>
 
-        <section className="admin-content-grid">
-          <div className="admin-main-column">
-            <div className="admin-surface admin-chart-card">
-              <div className="admin-section-header">
-                <div>
-                  <p className="admin-eyebrow">Xu hướng vận hành</p>
-                  <h2>Xu hướng lấp đầy phòng</h2>
-                </div>
-                <div className="admin-legend">
-                  <span className="admin-legend-item">
-                    <i className="tone-green" /> Thực tế
-                  </span>
-                  <span className="admin-legend-item">
-                    <i className="tone-muted" /> Mục tiêu
-                  </span>
-                </div>
+        <section style={styles.contentGrid}>
+          <div style={styles.chartCard}>
+            <div style={styles.sectionHeader}>
+              <div>
+                <p style={styles.sectionEyebrow}>Xu hướng vận hành</p>
+                <h2 style={styles.sectionTitle}>Tỷ lệ lấp đầy 12 tháng</h2>
               </div>
 
-              <div className="admin-chart">
+              <div style={styles.legendPill}>
+                <span aria-hidden="true" style={styles.legendDot} /> Dữ liệu mô
+                phỏng
+              </div>
+            </div>
+
+            <div style={styles.chartWrap}>
+              <div style={styles.chartAxis}>
+                <span>100%</span>
+                <span>75%</span>
+                <span>50%</span>
+                <span>25%</span>
+                <span>0%</span>
+              </div>
+
+              <div style={styles.barArea}>
                 {occupancySeries.map((item) => (
-                  <div className="admin-bar-group" key={item.label}>
-                    <div className="admin-bar-track">
-                      <span
-                        className="admin-bar-fill"
-                        style={{ height: `${item.value}%` }}
+                  <div key={item.label} style={styles.barGroup}>
+                    <div style={styles.barTrack}>
+                      <div
+                        style={{
+                          ...styles.barFill,
+                          height: `${item.value}%`,
+                        }}
                       />
                     </div>
-                    <span>{item.label}</span>
+                    <span style={styles.barLabel}>{item.label}</span>
                   </div>
                 ))}
               </div>
             </div>
-
-            <section className="admin-surface admin-table-card admin-booking-card">
-              <div className="admin-table-heading">
-                <h2>Danh sách phòng mới đặt</h2>
-                <button type="button">Xem tất cả</button>
-              </div>
-
-              <div className="admin-table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Mã phòng</th>
-                      <th>Sinh viên</th>
-                      <th>Ngày nhận</th>
-                      <th>Loại phòng</th>
-                      <th>Trạng thái</th>
-                      <th className="align-right">Thao tác</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {recentBookings.map((booking) => (
-                      <tr key={`${booking.room}-${booking.student}`}>
-                        <td className="strong-cell">{booking.room}</td>
-                        <td>{booking.student}</td>
-                        <td>{booking.date}</td>
-                        <td>{booking.type}</td>
-                        <td>
-                          <span className={`admin-status ${booking.statusTone}`}>
-                            {booking.status}
-                          </span>
-                        </td>
-                        <td className="align-right">
-                          <button className="admin-more-button" type="button">
-                            ...
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
           </div>
 
-          <div className="admin-side-column">
-            <div className="admin-surface">
-              <div className="admin-section-header compact">
+          <div style={styles.sidebarColumn}>
+            <div style={styles.panelCard}>
+              <div style={styles.sectionHeader}>
                 <div>
-                  <p className="admin-eyebrow">Cảnh báo nhanh</p>
-                  <h2>Việc cần chú ý</h2>
+                  <p style={styles.sectionEyebrow}>Cảnh báo nhanh</p>
+                  <h2 style={styles.sectionTitle}>Việc cần chú ý</h2>
                 </div>
               </div>
 
-              <div className="admin-list">
+              <div style={styles.alertList}>
                 {alerts.map((alert) => (
-                  <AlertRow alert={alert} key={alert.title} />
+                  <AlertRow key={alert.title} alert={alert} />
                 ))}
               </div>
             </div>
 
-            <div className="admin-surface">
-              <div className="admin-section-header compact">
+            <div style={styles.panelCard}>
+              <div style={styles.sectionHeader}>
                 <div>
-                  <p className="admin-eyebrow">Nhân sự vận hành</p>
-                  <h2>Trạng thái khu vực</h2>
+                  <p style={styles.sectionEyebrow}>Nhân sự vận hành</p>
+                  <h2 style={styles.sectionTitle}>Trạng thái khu vực</h2>
                 </div>
               </div>
 
-              <div className="admin-list">
+              <div style={styles.blockList}>
                 {blocks.map((block) => (
-                  <BlockRow block={block} key={block.name} />
+                  <BlockRow key={block.name} block={block} />
                 ))}
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* <section className="admin-surface admin-table-card">
-          <div className="admin-table-heading">
-            <h2>Danh sách phòng mới đặt</h2>
-            <button type="button">Xem tất cả</button>
-          </div>
-          <div className="admin-table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Mã phòng</th>
-                  <th>Sinh vien</th>
-                  <th>Ngày nhận</th>
-                  <th>Loại phòng</th>
-                  <th>Trạng thái</th>
-                  <th className="align-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentBookings.map((booking) => (
-                  <tr key={`${booking.room}-${booking.student}`}>
-                    <td className="strong-cell">{booking.room}</td>
-                    <td>{booking.student}</td>
-                    <td>{booking.date}</td>
-                    <td>{booking.type}</td>
-                    <td>
-                      <span className={`admin-status ${booking.statusTone}`}>
-                        {booking.status}
-                      </span>
-                    </td>
-                    <td className="align-right">
-                      <button className="admin-more-button" type="button">
-                        ...
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section> */}
-
-        <section className="admin-bottom-grid">
-          <div className="admin-surface">
-            <div className="admin-section-header compact">
-              <div>
-                <p className="admin-eyebrow">Nhật ký trong ngày</p>
-                <h2>Hoạt động gần đây</h2>
-              </div>
-            </div>
-            <div className="admin-list">
-              {recentActivities.map((activity) => (
-                <ActivityItem activity={activity} key={activity.time} />
-              ))}
-            </div>
-          </div>
-
-          <div className="admin-surface">
-            <div className="admin-section-header compact">
-              <div>
-                <p className="admin-eyebrow">Hàng đợi kỹ thuật</p>
-                <h2>Bảo trì đang xử lý</h2>
-              </div>
-            </div>
-            <div className="admin-list">
-              {maintenanceQueue.map((item) => (
-                <QueueItem item={item} key={item.room} />
-              ))}
             </div>
           </div>
         </section>
@@ -395,18 +270,32 @@ function AdminDashboard() {
 
 function OverviewCard({ card }) {
   const Icon = card.icon;
+  const trendColor = card.direction === "up" ? "#16a34a" : "#dc2626";
   const TrendIcon = card.direction === "up" ? FaArrowUp : FaArrowDown;
 
   return (
-    <article className="admin-overview-card">
-      <div className={`admin-icon-box tone-${card.tone}`}>
+    <article style={styles.overviewCard}>
+      <div
+        style={{
+          ...styles.overviewIcon,
+          background: `${card.accent}16`,
+          color: card.accent,
+        }}
+      >
         <Icon />
       </div>
-      <div>
-        <p>{card.title}</p>
-        <div className="admin-value-row">
-          <strong>{card.value}</strong>
-          <span className={`admin-trend ${card.direction}`}>
+
+      <div style={styles.overviewBody}>
+        <p style={styles.overviewTitle}>{card.title}</p>
+        <div style={styles.overviewValueRow}>
+          <strong style={styles.overviewValue}>{card.value}</strong>
+          <span
+            style={{
+              ...styles.trendPill,
+              color: trendColor,
+              background: `${trendColor}14`,
+            }}
+          >
             <TrendIcon />
             {card.change}
           </span>
@@ -418,7 +307,7 @@ function OverviewCard({ card }) {
 
 function MetaPill({ icon: Icon, label }) {
   return (
-    <span className="admin-meta-pill">
+    <span style={styles.metaPill}>
       <Icon />
       {label}
     </span>
@@ -429,13 +318,20 @@ function AlertRow({ alert }) {
   const Icon = alert.icon;
 
   return (
-    <div className="admin-alert-row">
-      <span className={`admin-icon-box small tone-${alert.tone}`}>
+    <div style={styles.alertRow}>
+      <div
+        style={{
+          ...styles.alertIcon,
+          color: alert.tone,
+          background: `${alert.tone}14`,
+        }}
+      >
         <Icon />
-      </span>
-      <div>
-        <strong>{alert.title}</strong>
-        <p>{alert.detail}</p>
+      </div>
+
+      <div style={{ flex: 1 }}>
+        <div style={styles.alertTitle}>{alert.title}</div>
+        <div style={styles.alertDetail}>{alert.detail}</div>
       </div>
     </div>
   );
@@ -445,22 +341,32 @@ function BlockRow({ block }) {
   const occupancy = Math.round((block.occupied / block.total) * 100);
 
   return (
-    <div className="admin-block-row">
-      <div className="admin-block-top">
+    <div style={styles.blockRow}>
+      <div style={styles.blockTopRow}>
         <div>
-          <strong>{block.name}</strong>
-          <p>
+          <div style={styles.blockName}>{block.name}</div>
+          <div style={styles.blockSubText}>
             {block.occupied}/{block.total} phòng đang sử dụng
-          </p>
+          </div>
         </div>
-        <span className={`admin-block-badge tone-${block.tone}`}>
+        <div
+          style={{
+            ...styles.blockBadge,
+            color: block.tone,
+            background: `${block.tone}14`,
+          }}
+        >
           {occupancy}%
-        </span>
+        </div>
       </div>
-      <div className="admin-progress-track slim">
-        <span
-          className={`admin-progress-fill tone-${block.tone}`}
-          style={{ width: `${occupancy}%` }}
+
+      <div style={styles.progressTrack}>
+        <div
+          style={{
+            ...styles.progressFill,
+            width: `${occupancy}%`,
+            background: block.tone,
+          }}
         />
       </div>
     </div>
@@ -469,11 +375,11 @@ function BlockRow({ block }) {
 
 function ActivityItem({ activity }) {
   return (
-    <div className="admin-activity-row">
-      <time>{activity.time}</time>
+    <div style={styles.activityRow}>
+      <div style={styles.activityTime}>{activity.time}</div>
       <div>
-        <strong>{activity.title}</strong>
-        <p>{activity.note}</p>
+        <div style={styles.activityTitle}>{activity.title}</div>
+        <div style={styles.activityNote}>{activity.note}</div>
       </div>
     </div>
   );
@@ -481,14 +387,502 @@ function ActivityItem({ activity }) {
 
 function QueueItem({ item }) {
   return (
-    <div className="admin-queue-row">
+    <div style={styles.queueRow}>
       <div>
-        <strong>{item.room}</strong>
-        <p>{item.issue}</p>
+        <div style={styles.queueRoom}>{item.room}</div>
+        <div style={styles.queueIssue}>{item.issue}</div>
       </div>
-      <span>{item.status}</span>
+      <span style={styles.queueStatus}>{item.status}</span>
     </div>
   );
 }
+
+const styles = {
+  pageShell: {
+    minHeight: "100vh",
+    background:
+      "radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 36%), radial-gradient(circle at top right, rgba(22, 163, 74, 0.16), transparent 32%), linear-gradient(180deg, #f6fbff 0%, #f4faf6 100%)",
+  },
+  main: {
+    marginLeft: 270,
+    width: "calc(100% - 270px)",
+    padding: "24px 28px 32px",
+    minHeight: "100vh",
+  },
+  heroCard: {
+    display: "grid",
+    gridTemplateColumns: "1.45fr 0.9fr",
+    gap: 20,
+    alignItems: "stretch",
+    marginBottom: 22,
+  },
+  heroCopy: {
+    background:
+      "linear-gradient(135deg, rgba(255,255,255,0.94) 0%, rgba(243, 250, 244, 0.92) 100%)",
+    border: "1px solid rgba(148, 163, 184, 0.16)",
+    borderRadius: 28,
+    padding: 28,
+    boxShadow: "0 18px 52px rgba(15, 23, 42, 0.08)",
+  },
+  eyebrow: {
+    margin: 0,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+    fontWeight: 800,
+    fontSize: 12,
+    color: "#16a34a",
+  },
+  heroTitle: {
+    margin: "10px 0 0",
+    fontSize: 40,
+    lineHeight: 1.05,
+    color: "#0f172a",
+  },
+  heroText: {
+    margin: "14px 0 0",
+    maxWidth: 760,
+    color: "#475569",
+    fontSize: 15,
+  },
+  heroMetaRow: {
+    marginTop: 22,
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  metaPill: {
+    minHeight: 40,
+    padding: "0 14px",
+    borderRadius: 999,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    background: "#fff",
+    border: "1px solid rgba(148, 163, 184, 0.18)",
+    color: "#334155",
+    fontSize: 13,
+    fontWeight: 700,
+  },
+  heroStatsPanel: {
+    background:
+      "linear-gradient(160deg, rgba(15, 118, 110, 0.96) 0%, rgba(37, 99, 235, 0.96) 100%)",
+    borderRadius: 28,
+    padding: 24,
+    color: "#fff",
+    boxShadow: "0 18px 52px rgba(15, 23, 42, 0.16)",
+    position: "relative",
+    overflow: "hidden",
+  },
+  heroStatsHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 12,
+    alignItems: "center",
+  },
+  heroStatsLabel: {
+    fontSize: 13,
+    fontWeight: 700,
+    opacity: 0.9,
+  },
+  heroStatsDate: {
+    fontSize: 13,
+    fontWeight: 700,
+    opacity: 0.8,
+  },
+  heroStatsValue: {
+    marginTop: 18,
+    fontSize: 64,
+    lineHeight: 1,
+    fontWeight: 900,
+    letterSpacing: -2,
+  },
+  heroStatsNote: {
+    marginTop: 12,
+    fontSize: 14,
+    lineHeight: 1.6,
+    maxWidth: 360,
+    opacity: 0.92,
+  },
+  heroStatsBars: {
+    marginTop: 20,
+    display: "grid",
+    gap: 10,
+  },
+  heroStatsBar: {
+    height: 10,
+    borderRadius: 999,
+  },
+  cardGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gap: 16,
+    marginBottom: 22,
+  },
+  overviewCard: {
+    background: "rgba(255,255,255,0.9)",
+    border: "1px solid rgba(148, 163, 184, 0.14)",
+    borderRadius: 24,
+    padding: 20,
+    boxShadow: "0 14px 40px rgba(15, 23, 42, 0.06)",
+    display: "flex",
+    gap: 14,
+    alignItems: "center",
+  },
+  overviewIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    display: "grid",
+    placeItems: "center",
+    fontSize: 20,
+    flexShrink: 0,
+  },
+  overviewBody: {
+    minWidth: 0,
+    flex: 1,
+  },
+  overviewTitle: {
+    margin: 0,
+    color: "#64748b",
+    fontSize: 13,
+    fontWeight: 700,
+  },
+  overviewValueRow: {
+    display: "flex",
+    gap: 10,
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  overviewValue: {
+    color: "#0f172a",
+    fontSize: 28,
+    lineHeight: 1,
+  },
+  trendPill: {
+    minHeight: 30,
+    padding: "0 10px",
+    borderRadius: 999,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 12,
+    fontWeight: 800,
+    whiteSpace: "nowrap",
+  },
+  contentGrid: {
+    display: "grid",
+    gridTemplateColumns: "1.35fr 0.85fr",
+    gap: 16,
+    marginBottom: 16,
+  },
+  chartCard: {
+    background: "rgba(255,255,255,0.9)",
+    border: "1px solid rgba(148, 163, 184, 0.14)",
+    borderRadius: 26,
+    padding: 22,
+    boxShadow: "0 14px 40px rgba(15, 23, 42, 0.06)",
+  },
+  sectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 12,
+    alignItems: "center",
+    marginBottom: 18,
+  },
+  sectionEyebrow: {
+    margin: 0,
+    color: "#16a34a",
+    fontSize: 12,
+    fontWeight: 800,
+    textTransform: "uppercase",
+    letterSpacing: 1.1,
+  },
+  sectionTitle: {
+    margin: "6px 0 0",
+    color: "#0f172a",
+    fontSize: 22,
+  },
+  legendPill: {
+    minHeight: 36,
+    padding: "0 12px",
+    borderRadius: 999,
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    color: "#334155",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    fontSize: 13,
+    fontWeight: 700,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    background: "linear-gradient(135deg, #2563eb, #16a34a)",
+  },
+  chartWrap: {
+    display: "grid",
+    gridTemplateColumns: "48px 1fr",
+    gap: 12,
+    alignItems: "stretch",
+    minHeight: 340,
+  },
+  chartAxis: {
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    color: "#94a3b8",
+    fontSize: 12,
+    fontWeight: 700,
+    paddingBottom: 28,
+  },
+  barArea: {
+    display: "grid",
+    gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
+    gap: 10,
+    alignItems: "end",
+    padding: "10px 2px 0",
+    borderLeft: "1px solid #e2e8f0",
+    borderBottom: "1px solid #e2e8f0",
+    position: "relative",
+  },
+  barGroup: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    minHeight: 300,
+    gap: 10,
+  },
+  barTrack: {
+    width: "100%",
+    maxWidth: 42,
+    height: 260,
+    borderRadius: 16,
+    background: "linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%)",
+    display: "flex",
+    alignItems: "flex-end",
+    overflow: "hidden",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7)",
+  },
+  barFill: {
+    width: "100%",
+    borderRadius: 16,
+    background: "linear-gradient(180deg, #2563eb 0%, #22c55e 100%)",
+    minHeight: 22,
+  },
+  barLabel: {
+    color: "#64748b",
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  sidebarColumn: {
+    display: "grid",
+    gap: 16,
+  },
+  panelCard: {
+    background: "rgba(255,255,255,0.9)",
+    border: "1px solid rgba(148, 163, 184, 0.14)",
+    borderRadius: 26,
+    padding: 22,
+    boxShadow: "0 14px 40px rgba(15, 23, 42, 0.06)",
+  },
+  alertList: {
+    display: "grid",
+    gap: 14,
+  },
+  alertRow: {
+    display: "flex",
+    gap: 12,
+    alignItems: "flex-start",
+    padding: 14,
+    borderRadius: 18,
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+  },
+  alertIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    display: "grid",
+    placeItems: "center",
+    fontSize: 16,
+    flexShrink: 0,
+  },
+  alertTitle: {
+    color: "#0f172a",
+    fontWeight: 800,
+    fontSize: 14,
+  },
+  alertDetail: {
+    marginTop: 4,
+    color: "#64748b",
+    fontSize: 13,
+    lineHeight: 1.6,
+  },
+  blockList: {
+    display: "grid",
+    gap: 14,
+  },
+  blockRow: {
+    padding: 14,
+    borderRadius: 18,
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+  },
+  blockTopRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 10,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  blockName: {
+    color: "#0f172a",
+    fontWeight: 800,
+  },
+  blockSubText: {
+    marginTop: 4,
+    color: "#64748b",
+    fontSize: 13,
+  },
+  blockBadge: {
+    minHeight: 30,
+    padding: "0 10px",
+    borderRadius: 999,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 12,
+    fontWeight: 800,
+  },
+  progressTrack: {
+    width: "100%",
+    height: 10,
+    borderRadius: 999,
+    background: "#e2e8f0",
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 999,
+  },
+  bottomGrid: {
+    display: "grid",
+    gridTemplateColumns: "1.15fr 0.85fr",
+    gap: 16,
+  },
+  activityList: {
+    display: "grid",
+    gap: 12,
+  },
+  activityRow: {
+    display: "grid",
+    gridTemplateColumns: "64px 1fr",
+    gap: 12,
+    alignItems: "start",
+    padding: 14,
+    borderRadius: 18,
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+  },
+  activityTime: {
+    minHeight: 34,
+    borderRadius: 999,
+    background: "#fff",
+    border: "1px solid #dbe4ee",
+    display: "grid",
+    placeItems: "center",
+    color: "#2563eb",
+    fontWeight: 800,
+    fontSize: 13,
+  },
+  activityTitle: {
+    color: "#0f172a",
+    fontWeight: 800,
+    fontSize: 14,
+  },
+  activityNote: {
+    marginTop: 4,
+    color: "#64748b",
+    fontSize: 13,
+    lineHeight: 1.6,
+  },
+  queueList: {
+    display: "grid",
+    gap: 12,
+  },
+  queueRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 12,
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 18,
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+  },
+  queueRoom: {
+    color: "#0f172a",
+    fontWeight: 900,
+    fontSize: 14,
+  },
+  queueIssue: {
+    marginTop: 4,
+    color: "#64748b",
+    fontSize: 13,
+  },
+  queueStatus: {
+    minHeight: 32,
+    padding: "0 10px",
+    borderRadius: 999,
+    background: "#fff",
+    border: "1px solid #dbe4ee",
+    color: "#334155",
+    display: "inline-flex",
+    alignItems: "center",
+    fontWeight: 700,
+    fontSize: 12,
+    whiteSpace: "nowrap",
+  },
+  "@media (max-width: 1280px)": {
+    heroCard: {
+      gridTemplateColumns: "1fr",
+    },
+    cardGrid: {
+      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    },
+    contentGrid: {
+      gridTemplateColumns: "1fr",
+    },
+    bottomGrid: {
+      gridTemplateColumns: "1fr",
+    },
+  },
+  "@media (max-width: 900px)": {
+    main: {
+      marginLeft: 0,
+      width: "100%",
+      padding: "16px",
+    },
+    cardGrid: {
+      gridTemplateColumns: "1fr",
+    },
+    heroTitle: {
+      fontSize: 32,
+    },
+    chartWrap: {
+      gridTemplateColumns: "1fr",
+    },
+    chartAxis: {
+      display: "none",
+    },
+    barArea: {
+      gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
+    },
+  },
+};
 
 export default AdminDashboard;

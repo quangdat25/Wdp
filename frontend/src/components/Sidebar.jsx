@@ -1,7 +1,4 @@
-import { useState } from "react";
 import {
-  FaBars,
-  FaTimes,
   FaChartPie,
   FaUserGraduate,
   FaBed,
@@ -17,17 +14,13 @@ import {
   FaShieldAlt,
   FaPlusCircle,
   FaSearch,
-  FaBuilding,
-  FaDoorOpen
+  FaDoorOpen,
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import authService from "../api/authService";
-import logoImg from "../assets/logo-removebg-preview.png";
-import "./Sidebar.css";
-
+import { showSuccess } from "../components/Alert";
 function Sidebar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -38,6 +31,26 @@ function Sidebar() {
     const currentFull = location.pathname + location.search;
     return currentFull === path || (path === location.pathname && location.search === "");
   };
+
+  const menuStyle = (path) => ({
+    border: "none",
+    height: 54,
+    borderRadius: 14,
+    background: isActive(path)
+      ? "rgba(255,255,255,0.25)"
+      : "rgba(255,255,255,0.08)",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    gap: 14,
+    padding: "0 18px",
+    fontSize: 15,
+    fontWeight: isActive(path) ? 700 : 500,
+    cursor: "pointer",
+    backdropFilter: "blur(10px)",
+    transition: "all 0.3s ease",
+    width: "100%",
+  });
 
   const menusByRole = {
     admin: [
@@ -50,11 +63,6 @@ function Sidebar() {
         path: "/admin/rooms",
         label: "Quản lý phòng ở",
         icon: <FaBed />,
-      },
-      {
-        path: "/admin/buildings",
-        label: "Quản lý tòa nhà",
-        icon: <FaBuilding />,
       },
       {
         path: "/admin/students",
@@ -100,11 +108,6 @@ function Sidebar() {
         icon: <FaUserGraduate />,
       },
       {
-        path: "/manager/rooms",
-        label: "Quản lý phòng",
-        icon: <FaBed />,
-      },
-      {
         path: "/manager/tickets",
         label: "Quản lý yêu cầu",
         icon: <FaClipboardList />,
@@ -139,16 +142,15 @@ function Sidebar() {
       },
     ],
 
-    cleaning: [
-      { path: "/staff/dashboard/cleaning", label: "Trang chủ", icon: <FaChartPie /> },
-      { path: "/staff/dashboard/cleaning?tab=Dọn dẹp phòng", label: "Dọn dẹp phòng", icon: <FaClipboardList /> },
-      { path: "/staff/dashboard/cleaning?tab=Sự cố kỹ thuật", label: "Sự cố kỹ thuật", icon: <FaTools /> },
+    cleaner: [
+      { path: "/staff/dashboard/cleaner", label: "Trang chủ", icon: <FaChartPie /> },
+      { path: "/staff/dashboard/cleaner/tasks", label: "Dọn dẹp phòng", icon: <FaClipboardList /> },
+      { path: "/staff/dashboard/cleaner/issues", label: "Sự cố kỹ thuật", icon: <FaTools /> },
     ],
 
     maintenance: [
       { path: "/staff/dashboard/maintenance", label: "Trang chủ", icon: <FaChartPie /> },
-      { path: "/staff/dashboard/maintenance?tab=Danh sách sự cố", label: "Danh sách sự cố", icon: <FaWrench /> },
-      { path: "/staff/dashboard/maintenance?tab=Lập phiếu sự cố", label: "Lập phiếu sự cố", icon: <FaPlusCircle /> },
+      { path: "/staff/dashboard/maintenance/tasks", label: "Danh sách sự cố", icon: <FaWrench /> },
     ],
 
     security: [
@@ -180,17 +182,7 @@ function Sidebar() {
         icon: <FaMoneyBillWave />,
       },
       {
-        path: "/student/requests",
-        label: "Yêu cầu",
-        icon: <FaTools />,
-      },
-      {
-        path: "/student/support/request",
-        label: "Gửi yêu cầu hỗ trợ",
-        icon: <FaLifeRing />,
-      },
-      {
-        path: "/student/my/tickets",
+        path: "/student/tickets",
         label: "Yêu cầu hỗ trợ",
         icon: <FaClipboardList />,
       },
@@ -242,58 +234,84 @@ function Sidebar() {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       navigate("/");
+      showSuccess("Đăng xuất thành công");
     }
   };
 
   return (
-    <>
-      <button
-        className="mobile-menu-btn"
-        onClick={() => setMobileOpen(!mobileOpen)}
-      >
-        {mobileOpen ? <FaTimes /> : <FaBars />}
-      </button>
+    <aside
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: 270,
+        height: "100vh",
+        background:
+          "linear-gradient(180deg, #34d399 0%, #22c55e 50%, #16a34a 100%)",
+        padding: "24px 16px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        boxSizing: "border-box",
+      }}
+    >
+      <div>
+        <div
+          style={{
+            background: "rgba(255,255,255,0.15)",
+            borderRadius: 20,
+            padding: 18,
+            marginBottom: 28,
+          }}
+        >
+          <h2 style={{ margin: 0, color: "#fff" }}>FPT Dormitory</h2>
 
-      <div
-        className={`mobile-overlay ${mobileOpen ? "mobile-open" : ""}`}
-        onClick={() => setMobileOpen(false)}
-      ></div>
-
-      <aside className={`sidebar-aside ${mobileOpen ? "mobile-open" : ""}`}>
-        {/* Brand */}
-        <div>
-          <div className="sidebar-brand">
-            <img
-              src={logoImg}
-              alt="FPT Dormitory"
-              className="sidebar-logo"
-            />
-            <div>
-              <h2 className="sidebar-brand-name">FPT Dormitory</h2>
-              <p className="sidebar-brand-sub">Dormitory Management System</p>
-            </div>
-          </div>
-
-          {/* Menu items */}
-          {menus.map((item) => (
-            <button
-              key={item.path}
-              className={`sidebar-menu-item ${isActive(item.path) ? "active" : ""}`}
-              onClick={() => navigate(item.path)}
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
+          <p
+            style={{
+              marginTop: 8,
+              color: "#fff",
+              fontSize: 13,
+            }}
+          >
+            Dormitory Management System
+          </p>
         </div>
 
-        {/* Logout */}
-        <button className="sidebar-logout-btn" onClick={handleLogout}>
-          <FaSignOutAlt />
-          Đăng xuất
-        </button>
-      </aside>
-    </>
+        {menus.map((item, index) => (
+          <button
+            key={item.path}
+            style={{
+              ...menuStyle(item.path),
+              marginTop: index === 0 ? 0 : 10,
+            }}
+            onClick={() => navigate(item.path)}
+          >
+            {item.icon}
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <button
+        onClick={handleLogout}
+        style={{
+          border: "none",
+          height: 54,
+          borderRadius: 14,
+          background: "#fff",
+          color: "#16a34a",
+          fontWeight: 700,
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 10,
+        }}
+      >
+        <FaSignOutAlt />
+        Đăng xuất
+      </button>
+    </aside>
   );
 }
 

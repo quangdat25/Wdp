@@ -10,7 +10,7 @@ const HERO_SLIDES = [
     subtitle: 'Không gian sống xanh',
   },
   {
-    img: '/img/anh3.jpg',
+   img: '/img/anh3.jpg',
     title: 'KTX ĐẠI HỌC FPT',
     subtitle: 'Tiện nghi – Hiện đại',
   },
@@ -31,11 +31,6 @@ function HomePage() {
   const prevSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
   }, []);
-
-  const scrollToSection = (id) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
   /* Auto-play slider */
   useEffect(() => {
@@ -99,18 +94,13 @@ function HomePage() {
       <section className="quick-links" id="quick-links-section">
         <div className="container">
           <div className="quick-links__grid">
-            <button
-              type="button"
-              className="quick-link-card"
-              id="quick-link-info"
-              onClick={() => scrollToSection('dorm-info-section')}
-            >
+            <Link to="/info" className="quick-link-card" id="quick-link-info">
               <div className="quick-link-card__border"></div>
               <h3 className="quick-link-card__title">Thông tin KTX Đại học FPT</h3>
               <span className="quick-link-card__action">
                 Thông tin <span className="quick-link-card__arrow">→</span>
               </span>
-            </button>
+            </Link>
 
             <Link to="/register" className="quick-link-card" id="quick-link-register">
               <div className="quick-link-card__border"></div>
@@ -120,18 +110,13 @@ function HomePage() {
               </span>
             </Link>
 
-            <button
-              type="button"
-              className="quick-link-card"
-              id="quick-link-faq"
-              onClick={() => scrollToSection('faq-section')}
-            >
+            <Link to="/faq" className="quick-link-card" id="quick-link-faq">
               <div className="quick-link-card__border"></div>
               <h3 className="quick-link-card__title">Các câu hỏi thường gặp</h3>
               <span className="quick-link-card__action">
                 FAQ <span className="quick-link-card__arrow">→</span>
               </span>
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -141,7 +126,7 @@ function HomePage() {
         <div className="container">
           <div className="info-channel__banner">
             <img
-              src="/img/background.jpg"
+               src="/img/background.jpg"
               alt="Kênh thông tin KTX"
               className="info-channel__img"
             />
@@ -166,14 +151,14 @@ function HomePage() {
           <div className="dorm-info__block">
             <div className="dorm-info__text">
               <p>
-                Trường Đại học FPT là một trong những ngôi trường nổi tiếng đào tạo đa ngành,
-                với chất lượng đào tạo đạt chuẩn quốc tế. Trường không chỉ quan tâm đến chất lượng
+                Trường Đại học FPT là một trong những ngôi trường nổi tiếng đào tạo đa ngành, 
+                với chất lượng đào tạo đạt chuẩn quốc tế. Trường không chỉ quan tâm đến chất lượng 
                 đào tạo, công tác tuyển sinh mà còn chăm lo cho đời sống sinh viên.
               </p>
               <p>
-                Bằng việc đầu tư, xây dựng khu <strong>Ký túc xá</strong> đầy đủ trang thiết bị cần thiết,
-                không gian thoáng mát, sạch sẽ. Để đáp ứng nhu cầu và tạo không gian học tập,
-                sinh hoạt thoải mái nhất cho sinh viên. <strong>KTX</strong> cũng được xem như ngôi nhà
+                Bằng việc đầu tư, xây dựng khu <strong>Ký túc xá</strong> đầy đủ trang thiết bị cần thiết, 
+                không gian thoáng mát, sạch sẽ. Để đáp ứng nhu cầu và tạo không gian học tập, 
+                sinh hoạt thoải mái nhất cho sinh viên. <strong>KTX</strong> cũng được xem như ngôi nhà 
                 thứ 2 của nhiều <strong>sinh viên</strong>.
               </p>
             </div>
@@ -195,13 +180,13 @@ function HomePage() {
             </div>
             <div className="dorm-info__text">
               <p>
-                <strong>Ký túc xá</strong> của trường Đại học FPT là chỗ ở lý tưởng dành cho sinh viên
-                với đầy đủ tiện nghi như điều hòa, nóng lạnh, WiFi tốc độ cao, khu tự học,
+                <strong>Ký túc xá</strong> của trường Đại học FPT là chỗ ở lý tưởng dành cho sinh viên 
+                với đầy đủ tiện nghi như điều hòa, nóng lạnh, WiFi tốc độ cao, khu tự học, 
                 phòng gym, sân thể thao và nhiều tiện ích khác.
               </p>
               <p>
-                Mỗi phòng ở được thiết kế khoa học, thoáng mát, đảm bảo không gian riêng tư
-                cho mỗi sinh viên. Đội ngũ quản lý KTX luôn sẵn sàng hỗ trợ 24/7,
+                Mỗi phòng ở được thiết kế khoa học, thoáng mát, đảm bảo không gian riêng tư 
+                cho mỗi sinh viên. Đội ngũ quản lý KTX luôn sẵn sàng hỗ trợ 24/7, 
                 tạo môi trường an toàn và thân thiện cho tất cả các bạn sinh viên.
               </p>
             </div>
@@ -209,7 +194,7 @@ function HomePage() {
         </div>
       </section>
 
-
+    
       {/* ======== DORM DETAIL DESCRIPTION ======== */}
       <section className="dorm-detail" id="dorm-detail-section">
         <div className="container">
@@ -230,7 +215,7 @@ function HomePage() {
           </div>
         </div>
       </section>
-      {/* ======== FEATURES ======== */}
+        {/* ======== FEATURES ======== */}
       <section className="features" id="features-section">
         <div className="container">
           <h2 className="section-title" id="features-title">Tiện ích nổi bật</h2>

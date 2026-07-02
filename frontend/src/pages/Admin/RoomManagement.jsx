@@ -1,56 +1,57 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Modal } from "antd";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import AdminSidebar from "./AdminSidebar";
 import {
-  FaBell,
-  FaBuilding,
-  FaChevronRight,
-  FaDoorOpen,
-  FaLayerGroup,
-  FaPlus,
-  FaSearch,
-  FaSeedling,
-  FaTimes,
-  FaTrashAlt,
-  FaUserGraduate,
-  FaUserMinus,
-  FaUserPlus,
-  FaUsers,
-  FaWrench,
-} from "react-icons/fa";
-import Sidebar from "../../components/Sidebar";
-import {
-  assignStudentToRoom,
+  getAllBuildings,
   createBuilding,
   deleteBuilding,
-  getAllBuildings,
-  getAvailableStudents,
-  getRoomDetail,
-  getRoomsByBuilding,
-  removeStudentFromRoom,
   seedBuildings,
+  getRoomsByBuilding,
   updateRoom,
+  getRoomDetail,
+  assignStudentToRoom,
+  removeStudentFromRoom,
+  getAvailableStudents,
 } from "../../api/roomService";
-import "./RoomManagement.css";
-
+import {
+  FaBuilding,
+  FaPlus,
+  FaDoorOpen,
+  FaTrashAlt,
+  FaSeedling,
+  FaTimes,
+  FaLayerGroup,
+  FaUserGraduate,
+  FaSearch,
+  FaUserPlus,
+  FaUserMinus,
+} from "react-icons/fa";
+import { Modal } from "antd";
 const statusConfig = {
   available: {
     label: "Trống",
-    icon: "○",
-    tone: "empty",
+    bg: "linear-gradient(135deg, #34d399 0%, #10b981 100%)",
+    color: "#fff",
+    dot: "#34d399",
+    cardBg: "rgba(52, 211, 153, 0.10)",
+    cardBorder: "rgba(52, 211, 153, 0.25)",
   },
   occupied: {
     label: "Đang ở",
-    icon: "●",
-    tone: "occupied",
+    bg: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+    color: "#fff",
+    dot: "#3b82f6",
+    cardBg: "rgba(59, 130, 246, 0.10)",
+    cardBorder: "rgba(59, 130, 246, 0.25)",
   },
   maintenance: {
     label: "Bảo trì",
-    icon: "⚙",
-    tone: "maintenance",
+    bg: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+    color: "#fff",
+    dot: "#f59e0b",
+    cardBg: "rgba(245, 158, 11, 0.10)",
+    cardBorder: "rgba(245, 158, 11, 0.25)",
   },
 };
-
-const floors = [1, 2, 3, 4, 5];
 
 function RoomManagement() {
   const [buildings, setBuildings] = useState([]);
@@ -70,15 +71,16 @@ function RoomManagement() {
   const [updatingRoom, setUpdatingRoom] = useState(false);
   const [editStatus, setEditStatus] = useState("");
   const [editCapacity, setEditCapacity] = useState(4);
+
+  // Student assignment states
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [availableStudents, setAvailableStudents] = useState([]);
   const [studentSearch, setStudentSearch] = useState("");
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [removing, setRemoving] = useState(false);
-
-  const { confirm } = Modal;
-
+const { confirm } = Modal;
+  // Fetch buildings
   const fetchBuildings = useCallback(async () => {
     try {
       setLoading(true);
@@ -95,6 +97,7 @@ function RoomManagement() {
     }
   }, []);
 
+  // Fetch rooms by building + floor
   const fetchRooms = useCallback(async () => {
     if (!selectedBuilding) return;
     try {
@@ -116,6 +119,7 @@ function RoomManagement() {
     fetchRooms();
   }, [fetchRooms]);
 
+  // Summary stats
   const totalStats = useMemo(() => {
     const total = buildings.reduce((sum, b) => sum + (b.totalRooms || 0), 0);
     const available = buildings.reduce(
@@ -133,6 +137,7 @@ function RoomManagement() {
     return { total, available, occupied, maintenance };
   }, [buildings]);
 
+  // Seed buildings
   const handleSeed = async () => {
     try {
       setSeeding(true);
@@ -146,6 +151,7 @@ function RoomManagement() {
     }
   };
 
+  // Create building
   const handleCreate = async () => {
     if (!newBuildingName.trim()) return;
     try {
@@ -165,6 +171,7 @@ function RoomManagement() {
     }
   };
 
+  // Delete building
   const handleDelete = async (id) => {
     try {
       setDeleting(true);
@@ -182,6 +189,7 @@ function RoomManagement() {
     }
   };
 
+  // Update room
   const handleUpdateRoom = async () => {
     if (!selectedRoom) return;
     try {
@@ -200,6 +208,7 @@ function RoomManagement() {
     }
   };
 
+  // Open room detail — fetch full detail with students
   const openRoomDetail = async (room) => {
     try {
       const res = await getRoomDetail(room._id);
@@ -212,12 +221,14 @@ function RoomManagement() {
       setAvailableStudents([]);
     } catch (error) {
       console.error("Error fetching room detail:", error);
+      // Fallback to basic room data
       setSelectedRoom(room);
       setEditStatus(room.status);
       setEditCapacity(room.capacity);
     }
   };
 
+  // Search available students
   const searchAvailableStudents = async (keyword) => {
     try {
       setLoadingStudents(true);
@@ -230,6 +241,7 @@ function RoomManagement() {
     }
   };
 
+  // Toggle add student panel
   const toggleAddStudent = () => {
     if (!showAddStudent) {
       searchAvailableStudents("");
@@ -238,12 +250,14 @@ function RoomManagement() {
     setStudentSearch("");
   };
 
+  // Assign student to room
   const handleAssignStudent = async (studentId) => {
     if (!selectedRoom) return;
     try {
       setAssigning(true);
       const res = await assignStudentToRoom(selectedRoom._id, studentId);
       setSelectedRoom(res.data);
+      // Refresh available students list
       searchAvailableStudents(studentSearch);
       await fetchRooms();
       await fetchBuildings();
@@ -254,595 +268,1396 @@ function RoomManagement() {
     }
   };
 
-  const handleRemoveStudent = (studentId) => {
-    if (!selectedRoom) return;
+  // Remove student from room
+const handleRemoveStudent = (studentId) => {
+  if (!selectedRoom) return;
 
-    confirm({
-      title: "Xác nhận",
-      content: "Bạn có chắc chắn muốn xóa sinh viên khỏi phòng này không?",
-      okText: "Xóa",
-      cancelText: "Hủy",
-      okType: "danger",
-      async onOk() {
-        try {
-          setRemoving(true);
-          const res = await removeStudentFromRoom(selectedRoom._id, studentId);
-          setSelectedRoom(res.data);
-          await fetchRooms();
-          await fetchBuildings();
-        } catch (error) {
-          alert(error.response?.data?.message || "Lỗi xóa sinh viên");
-        } finally {
-          setRemoving(false);
-        }
-      },
-    });
-  };
+  confirm({
+    title: "Xác nhận",
+    content: "Bạn có chắc chắn muốn xóa sinh viên khỏi phòng này không?",
+    okText: "Xóa",
+    cancelText: "Hủy",
+    okType: "danger",
+    async onOk() {
+      try {
+        setRemoving(true);
+        const res = await removeStudentFromRoom(selectedRoom._id, studentId);
+        setSelectedRoom(res.data);
+        await fetchRooms();
+        await fetchBuildings();
+      } catch (error) {
+        alert(error.response?.data?.message || "Lỗi xóa sinh viên");
+      } finally {
+        setRemoving(false);
+      }
+    },
+  });
+};
 
+  // Select building
   const selectBuilding = (building) => {
     setSelectedBuilding(building);
     setSelectedFloor(1);
   };
 
   return (
-    <div className="room-admin-page">
-      <Sidebar />
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(180deg, #f8fbff 0%, #f3f8f6 100%)",
+      }}
+    >
+      <AdminSidebar />
 
-      <main className="room-admin-main">
-        <TopBar />
-
-        <div className="room-admin-scroll">
-          <section className="room-page-head">
-            <div>
-              <nav className="room-breadcrumb">
-                <span>Trang chủ</span>
-                <FaChevronRight />
-                <span>Quản lý cơ sở vật chất</span>
-                <FaChevronRight />
-                <strong>Quản lý phòng ở</strong>
-              </nav>
-              <div className="room-title-row">
-                <span className="room-title-icon">
-                  <FaBuilding />
-                </span>
-                <h1>Quản lý phòng ở</h1>
-              </div>
-            </div>
-
-            <div className="room-head-actions">
-              {buildings.length === 0 && (
-                <button
-                  className="room-btn room-btn-muted"
-                  onClick={handleSeed}
-                  disabled={seeding}
-                  type="button"
-                >
-                  <FaSeedling />
-                  {seeding ? "Đang khởi tạo..." : "Khởi tạo A, B, C, D"}
-                </button>
-              )}
+      <main
+        style={{
+          marginLeft: 270,
+          width: "calc(100% - 270px)",
+          padding: "24px 28px 32px",
+          minHeight: "100vh",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            marginBottom: 24,
+            background: "rgba(255,255,255,0.72)",
+            border: "1px solid rgba(148, 163, 184, 0.16)",
+            borderRadius: 24,
+            padding: "22px 24px",
+            boxShadow: "0 10px 28px rgba(15, 23, 42, 0.05)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 16,
+          }}
+        >
+          <div>
+            <h1 style={{ fontSize: 34, color: "#1e4f8f", margin: 0 }}>
+              <FaBuilding
+                style={{ marginRight: 12, verticalAlign: "middle" }}
+              />
+              Quản lý phòng ở
+            </h1>
+            <p style={{ color: "#64748b", marginBottom: 0, marginTop: 6 }}>
+              Quản lý tòa nhà, tầng và phòng trong ký túc xá.
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            {buildings.length === 0 && (
               <button
-                className="room-btn room-btn-primary"
-                onClick={() => setShowCreateModal(true)}
-                type="button"
+                onClick={handleSeed}
+                disabled={seeding}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  background: seeding
+                    ? "#94a3b8"
+                    : "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 14,
+                  padding: "12px 20px",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: seeding ? "not-allowed" : "pointer",
+                  boxShadow: "0 8px 20px rgba(124, 58, 237, 0.22)",
+                  transition: "all 0.3s ease",
+                }}
               >
-                <FaPlus />
-                Tạo tòa mới
+                <FaSeedling />
+                {seeding ? "Đang khởi tạo..." : "Khởi tạo A, B, C, D"}
               </button>
+            )}
+            <button
+              onClick={() => setShowCreateModal(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                background:
+                  "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 14,
+                padding: "12px 20px",
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: "pointer",
+                boxShadow: "0 8px 20px rgba(22, 163, 74, 0.22)",
+                transition: "all 0.3s ease",
+              }}
+            >
+              <FaPlus />
+              Tạo tòa mới
+            </button>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: 16,
+            marginBottom: 24,
+          }}
+        >
+          <SummaryCard
+            title="Tổng tòa nhà"
+            value={buildings.length}
+            icon={<FaBuilding />}
+            gradient="linear-gradient(135deg, #6366f1 0%, #818cf8 100%)"
+          />
+          <SummaryCard
+            title="Tổng phòng"
+            value={totalStats.total}
+            icon={<FaDoorOpen />}
+            gradient="linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)"
+          />
+          <SummaryCard
+            title="Phòng trống"
+            value={totalStats.available}
+            icon={<FaDoorOpen />}
+            gradient="linear-gradient(135deg, #22c55e 0%, #4ade80 100%)"
+          />
+          <SummaryCard
+            title="Đang ở"
+            value={totalStats.occupied}
+            icon={<FaDoorOpen />}
+            gradient="linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)"
+          />
+        </section>
+
+        {/* Main Content */}
+        <section
+          style={{
+            background: "rgba(255,255,255,0.82)",
+            borderRadius: 24,
+            padding: 24,
+            boxShadow: "0 16px 42px rgba(15, 23, 42, 0.07)",
+            border: "1px solid rgba(148, 163, 184, 0.15)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          {loading ? (
+            <div
+              style={{ padding: 40, textAlign: "center", color: "#64748b" }}
+            >
+              Đang tải dữ liệu...
             </div>
-          </section>
-
-          <section className="room-stat-grid">
-            <SummaryCard title="Tổng tòa nhà" value={buildings.length} icon={<FaBuilding />} />
-            <SummaryCard title="Tổng phòng" value={totalStats.total} icon={<FaDoorOpen />} />
-            <SummaryCard title="Phòng trống" value={totalStats.available} icon={<FaDoorOpen />} active />
-            <SummaryCard title="Đang ở" value={totalStats.occupied} icon={<FaUsers />} />
-          </section>
-
-          <section className="room-filter-card">
-            <div className="room-filter-head">
-              <h2>Bộ lọc &amp; Phân loại</h2>
-              <div className="room-legend">
-                <LegendDot tone="occupied" label="Đang ở" />
-                <LegendDot tone="maintenance" label="Bảo trì" />
-                <LegendDot tone="empty" label="Còn trống" />
+          ) : buildings.length === 0 ? (
+            <div
+              style={{
+                padding: 60,
+                textAlign: "center",
+                color: "#94a3b8",
+              }}
+            >
+              <FaBuilding
+                style={{ fontSize: 48, marginBottom: 16, opacity: 0.4 }}
+              />
+              <div style={{ fontSize: 18, fontWeight: 600 }}>
+                Chưa có tòa nhà nào
+              </div>
+              <div style={{ marginTop: 8, fontSize: 14 }}>
+                Bấm &quot;Khởi tạo A, B, C, D&quot; hoặc &quot;Tạo tòa
+                mới&quot; để bắt đầu.
               </div>
             </div>
-
-            <div className="room-filter-body">
-              {loading ? (
-                <EmptyState icon={<FaBuilding />} title="Đang tải dữ liệu..." />
-              ) : buildings.length === 0 ? (
-                <EmptyState
-                  icon={<FaBuilding />}
-                  title="Chưa có tòa nhà nào"
-                  note='Bấm "Khởi tạo A, B, C, D" hoặc "Tạo tòa mới" để bắt đầu.'
-                />
-              ) : (
-                <>
-                  <div className="room-building-tabs">
-                    {buildings.map((building) => {
-                      const active = selectedBuilding?._id === building._id;
-                      return (
-                        <div className="room-building-tab-wrap" key={building._id}>
-                          <button
-                            className={`room-building-tab ${active ? "active" : ""}`}
-                            onClick={() => selectBuilding(building)}
-                            type="button"
-                          >
-                            Tòa {building.name}
-                          </button>
-                          <button
-                            className="room-delete-building"
-                            onClick={() => setShowDeleteConfirm(building)}
-                            title={`Xóa tòa ${building.name}`}
-                            type="button"
-                          >
-                            <FaTimes />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {selectedBuilding && (
-                    <div className="room-floor-row">
-                      <span>
-                        <FaLayerGroup />
-                        Tầng:
-                      </span>
-                      {floors.map((floor) => (
+          ) : (
+            <>
+              {/* Building Tabs */}
+              <div style={{ marginBottom: 20 }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "#94a3b8",
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                    marginBottom: 10,
+                  }}
+                >
+                  Chọn tòa nhà
+                </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {buildings.map((b) => {
+                    const isActive = selectedBuilding?._id === b._id;
+                    return (
+                      <div
+                        key={b._id}
+                        style={{
+                          position: "relative",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
                         <button
-                          className={`room-floor-chip ${
-                            selectedFloor === floor ? "active" : ""
-                          }`}
-                          onClick={() => setSelectedFloor(floor)}
-                          type="button"
+                          onClick={() => selectBuilding(b)}
+                          style={{
+                            padding: "12px 28px",
+                            borderRadius: 16,
+                            border: isActive
+                              ? "2px solid #22c55e"
+                              : "2px solid rgba(148, 163, 184, 0.2)",
+                            background: isActive
+                              ? "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
+                              : "rgba(255,255,255,0.8)",
+                            color: isActive ? "#fff" : "#334155",
+                            fontWeight: 800,
+                            fontSize: 16,
+                            cursor: "pointer",
+                            transition: "all 0.3s ease",
+                            boxShadow: isActive
+                              ? "0 8px 24px rgba(34, 197, 94, 0.3)"
+                              : "0 2px 8px rgba(15, 23, 42, 0.06)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <FaBuilding style={{ fontSize: 14 }} />
+                          Tòa {b.name}
+                          <span
+                            style={{
+                              fontSize: 11,
+                              padding: "2px 8px",
+                              borderRadius: 20,
+                              background: isActive
+                                ? "rgba(255,255,255,0.25)"
+                                : "rgba(34, 197, 94, 0.1)",
+                              color: isActive ? "#fff" : "#16a34a",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {b.totalRooms || 0}
+                          </span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDeleteConfirm(b);
+                          }}
+                          title={`Xóa tòa ${b.name}`}
+                          style={{
+                            position: "absolute",
+                            top: -6,
+                            right: -6,
+                            width: 22,
+                            height: 22,
+                            borderRadius: 999,
+                            border: "none",
+                            background: "#ef4444",
+                            color: "#fff",
+                            fontSize: 10,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            boxShadow: "0 2px 6px rgba(239, 68, 68, 0.4)",
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          <FaTimes />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Floor Tabs */}
+              {selectedBuilding && (
+                <div style={{ marginBottom: 24 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#94a3b8",
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <FaLayerGroup
+                      style={{ marginRight: 6, verticalAlign: "middle" }}
+                    />
+                    Chọn tầng — Tòa {selectedBuilding.name}
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[1, 2, 3, 4, 5].map((floor) => {
+                      const isActive = selectedFloor === floor;
+                      return (
+                        <button
                           key={floor}
+                          onClick={() => setSelectedFloor(floor)}
+                          style={{
+                            padding: "10px 24px",
+                            borderRadius: 12,
+                            border: isActive
+                              ? "2px solid #3b82f6"
+                              : "2px solid rgba(148, 163, 184, 0.18)",
+                            background: isActive
+                              ? "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"
+                              : "#fff",
+                            color: isActive ? "#fff" : "#475569",
+                            fontWeight: 700,
+                            fontSize: 14,
+                            cursor: "pointer",
+                            transition: "all 0.25s ease",
+                            boxShadow: isActive
+                              ? "0 6px 18px rgba(59, 130, 246, 0.28)"
+                              : "0 1px 4px rgba(15, 23, 42, 0.04)",
+                          }}
                         >
                           Tầng {floor}
                         </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Room Grid */}
+              {selectedBuilding && (
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <h3
+                      style={{
+                        margin: 0,
+                        fontSize: 18,
+                        color: "#1e293b",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Phòng — Tòa {selectedBuilding.name} — Tầng{" "}
+                      {selectedFloor}
+                    </h3>
+                    <div style={{ display: "flex", gap: 16 }}>
+                      {Object.entries(statusConfig).map(([key, cfg]) => (
+                        <div
+                          key={key}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            fontSize: 13,
+                            color: "#64748b",
+                            fontWeight: 600,
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: 999,
+                              background: cfg.dot,
+                              display: "inline-block",
+                            }}
+                          />
+                          {cfg.label}
+                        </div>
                       ))}
                     </div>
-                  )}
+                  </div>
 
                   {loadingRooms ? (
-                    <EmptyState icon={<FaDoorOpen />} title="Đang tải phòng..." />
-                  ) : rooms.length === 0 ? (
-                    <EmptyState
-                      icon={<FaDoorOpen />}
-                      title="Không có phòng ở tầng này"
-                    />
+                    <div
+                      style={{
+                        padding: 40,
+                        textAlign: "center",
+                        color: "#94a3b8",
+                      }}
+                    >
+                      Đang tải danh sách phòng...
+                    </div>
                   ) : (
-                    <div className="room-grid">
-                      {rooms.map((room) => (
-                        <RoomCard
-                          key={room._id}
-                          room={room}
-                          onClick={() => openRoomDetail(room)}
-                        />
-                      ))}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(7, 1fr)",
+                        gap: 14,
+                      }}
+                    >
+                      {rooms.map((room) => {
+                        const cfg =
+                          statusConfig[room.status] || statusConfig.available;
+                        const studentNames = (room.students || [])
+                          .map((s) => s.fullName || s.studentCode || "?")
+                          .slice(0, 2);
+                        return (
+                          <button
+                            key={room._id}
+                            onClick={() => openRoomDetail(room)}
+                            style={{
+                              position: "relative",
+                              border: `2px solid ${cfg.cardBorder}`,
+                              borderRadius: 18,
+                              padding: "16px 10px 14px",
+                              background: cfg.cardBg,
+                              cursor: "pointer",
+                              transition:
+                                "all 0.3s cubic-bezier(.4,0,.2,1)",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: 6,
+                              backdropFilter: "blur(6px)",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform =
+                                "translateY(-4px) scale(1.03)";
+                              e.currentTarget.style.boxShadow = `0 12px 28px ${cfg.cardBorder}`;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform =
+                                "translateY(0) scale(1)";
+                              e.currentTarget.style.boxShadow = "none";
+                            }}
+                          >
+                            {/* Status dot */}
+                            <span
+                              style={{
+                                position: "absolute",
+                                top: 10,
+                                right: 10,
+                                width: 10,
+                                height: 10,
+                                borderRadius: 999,
+                                background: cfg.dot,
+                                boxShadow: `0 0 8px ${cfg.dot}`,
+                              }}
+                            />
+                            {/* Room icon */}
+                            <div
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 12,
+                                background: cfg.bg,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: cfg.color,
+                                fontSize: 18,
+                                boxShadow: `0 4px 12px ${cfg.cardBorder}`,
+                              }}
+                            >
+                              <FaDoorOpen />
+                            </div>
+                            {/* Room number */}
+                            <div
+                              style={{
+                                fontSize: 15,
+                                fontWeight: 800,
+                                color: "#1e293b",
+                              }}
+                            >
+                              {room.roomNumber}
+                            </div>
+                            {/* Occupancy */}
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: "#64748b",
+                                fontWeight: 600,
+                              }}
+                            >
+                              <FaUserGraduate
+                                style={{
+                                  fontSize: 10,
+                                  marginRight: 3,
+                                  verticalAlign: "middle",
+                                }}
+                              />
+                              {room.currentOccupants || (room.students || []).length}/{room.capacity}
+                            </div>
+                            {/* Student names preview */}
+                            {studentNames.length > 0 && (
+                              <div
+                                style={{
+                                  fontSize: 10,
+                                  color: "#94a3b8",
+                                  textAlign: "center",
+                                  lineHeight: 1.4,
+                                  maxWidth: "100%",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {studentNames.join(", ")}
+                                {(room.students || []).length > 2 && "..."}
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
-                </>
+                </div>
               )}
-            </div>
-          </section>
-        </div>
+            </>
+          )}
+        </section>
       </main>
 
+      {/* ===== MODALS ===== */}
+
+      {/* Create Building Modal */}
       {showCreateModal && (
-        <Dialog onClose={() => setShowCreateModal(false)} title="Tạo tòa nhà mới">
-          <label className="room-field">
-            <span>Tên tòa nhà</span>
-            <input
-              value={newBuildingName}
-              onChange={(e) => setNewBuildingName(e.target.value)}
-              placeholder="Ví dụ: A, B, C..."
-              autoFocus
-            />
-          </label>
-          <label className="room-field">
-            <span>Mô tả</span>
-            <textarea
-              value={newBuildingDesc}
-              onChange={(e) => setNewBuildingDesc(e.target.value)}
-              placeholder="Mô tả ngắn về tòa nhà"
-              rows={4}
-            />
-          </label>
-          <div className="room-dialog-actions">
-            <button className="room-btn room-btn-ghost" onClick={() => setShowCreateModal(false)} type="button">
-              Hủy
-            </button>
-            <button className="room-btn room-btn-primary" onClick={handleCreate} disabled={creating} type="button">
-              {creating ? "Đang tạo..." : "Tạo tòa"}
-            </button>
+        <ModalOverlay onClose={() => !creating && setShowCreateModal(false)}>
+          <div style={{ maxWidth: 480, width: "100%" }}>
+            <ModalCard>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "start",
+                }}
+              >
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 22, color: "#0f172a" }}>
+                    <FaPlus
+                      style={{
+                        marginRight: 10,
+                        color: "#22c55e",
+                        fontSize: 18,
+                      }}
+                    />
+                    Tạo tòa nhà mới
+                  </h2>
+                  <p
+                    style={{
+                      margin: "6px 0 0",
+                      color: "#64748b",
+                      fontSize: 14,
+                    }}
+                  >
+                    Hệ thống sẽ tự động tạo 5 tầng × 14 phòng (70 phòng).
+                  </p>
+                </div>
+                <CloseButton
+                  onClick={() => !creating && setShowCreateModal(false)}
+                />
+              </div>
+
+              <div style={{ marginTop: 20 }}>
+                <label style={labelStyle}>Tên tòa nhà *</label>
+                <input
+                  value={newBuildingName}
+                  onChange={(e) => setNewBuildingName(e.target.value)}
+                  placeholder="VD: E, F, G..."
+                  maxLength={5}
+                  style={inputStyle}
+                  autoFocus
+                />
+
+                <label style={{ ...labelStyle, marginTop: 14 }}>
+                  Mô tả (tùy chọn)
+                </label>
+                <input
+                  value={newBuildingDesc}
+                  onChange={(e) => setNewBuildingDesc(e.target.value)}
+                  placeholder="Mô tả ngắn..."
+                  style={inputStyle}
+                />
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 12,
+                  marginTop: 24,
+                }}
+              >
+                <ActionButton
+                  onClick={() => setShowCreateModal(false)}
+                  disabled={creating}
+                  variant="secondary"
+                >
+                  Hủy
+                </ActionButton>
+                <ActionButton
+                  onClick={handleCreate}
+                  disabled={creating || !newBuildingName.trim()}
+                  variant="primary"
+                >
+                  {creating ? "Đang tạo..." : "Tạo tòa nhà"}
+                </ActionButton>
+              </div>
+            </ModalCard>
           </div>
-        </Dialog>
+        </ModalOverlay>
       )}
 
+      {/* Delete Confirm Modal */}
       {showDeleteConfirm && (
-        <Dialog
-          onClose={() => setShowDeleteConfirm(null)}
-          title={`Xóa tòa ${showDeleteConfirm.name}`}
-          danger
+        <ModalOverlay
+          onClose={() => !deleting && setShowDeleteConfirm(null)}
         >
-          <p className="room-dialog-text">
-            Hành động này sẽ xóa <strong>Tòa {showDeleteConfirm.name}</strong> cùng
-            tất cả <strong>{showDeleteConfirm.totalRooms || 70} phòng</strong> liên
-            quan. Bạn có chắc chắn muốn tiếp tục?
-          </p>
-          <div className="room-dialog-actions">
-            <button className="room-btn room-btn-ghost" onClick={() => setShowDeleteConfirm(null)} type="button">
-              Hủy
-            </button>
-            <button
-              className="room-btn room-btn-danger"
-              onClick={() => handleDelete(showDeleteConfirm._id)}
-              disabled={deleting}
-              type="button"
+          <ModalCard style={{ maxWidth: 440 }}>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: 22,
+                color: "#dc2626",
+              }}
             >
-              <FaTrashAlt />
-              {deleting ? "Đang xóa..." : "Xóa tòa"}
-            </button>
-          </div>
-        </Dialog>
+              <FaTrashAlt style={{ marginRight: 10, fontSize: 18 }} />
+              Xác nhận xóa
+            </h2>
+            <p style={{ color: "#475569", marginTop: 12, lineHeight: 1.7 }}>
+              Bạn có chắc chắn muốn xóa{" "}
+              <strong>Tòa {showDeleteConfirm.name}</strong> cùng tất cả{" "}
+              <strong>{showDeleteConfirm.totalRooms || 70} phòng</strong> liên
+              quan?
+            </p>
+            <p
+              style={{
+                color: "#ef4444",
+                fontSize: 13,
+                fontWeight: 600,
+                background: "#fef2f2",
+                padding: "10px 14px",
+                borderRadius: 12,
+                border: "1px solid #fecaca",
+              }}
+            >
+              ⚠️ Hành động này không thể hoàn tác!
+            </p>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 12,
+                marginTop: 20,
+              }}
+            >
+              <ActionButton
+                onClick={() => setShowDeleteConfirm(null)}
+                disabled={deleting}
+                variant="secondary"
+              >
+                Hủy
+              </ActionButton>
+              <ActionButton
+                onClick={() => handleDelete(showDeleteConfirm._id)}
+                disabled={deleting}
+                variant="danger"
+              >
+                {deleting ? "Đang xóa..." : "Xóa tòa nhà"}
+              </ActionButton>
+            </div>
+          </ModalCard>
+        </ModalOverlay>
       )}
 
+      {/* Room Detail Modal with Students */}
       {selectedRoom && (
-        <RoomDrawer
-          assigning={assigning}
-          availableStudents={availableStudents}
-          editCapacity={editCapacity}
-          editStatus={editStatus}
-          loadingStudents={loadingStudents}
-          onAssignStudent={handleAssignStudent}
-          onClose={() => setSelectedRoom(null)}
-          onRemoveStudent={handleRemoveStudent}
-          onSearchStudents={searchAvailableStudents}
-          onToggleAddStudent={toggleAddStudent}
-          onUpdate={handleUpdateRoom}
-          removing={removing}
-          selectedBuilding={selectedBuilding}
-          selectedRoom={selectedRoom}
-          setEditCapacity={setEditCapacity}
-          setEditStatus={setEditStatus}
-          setStudentSearch={setStudentSearch}
-          showAddStudent={showAddStudent}
-          studentSearch={studentSearch}
-          updatingRoom={updatingRoom}
-        />
-      )}
-    </div>
-  );
-}
-
-function TopBar() {
-  return (
-    <header className="room-topbar">
-      <div className="room-top-search">
-        <FaSearch />
-        <input placeholder="Tìm kiếm phòng, sinh viên..." type="text" />
-      </div>
-      <div className="room-top-actions">
-        <button type="button" aria-label="Thông báo">
-          <FaBell />
-        </button>
-        <div className="room-admin-user">
-          <div>
-            <strong>Admin User</strong>
-            <span>Quản trị hệ thống</span>
-          </div>
-          <div className="room-avatar">A</div>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function SummaryCard({ title, value, icon, active = false }) {
-  return (
-    <article className="room-stat-card">
-      <div>
-        <p>{title}</p>
-        <strong className={active ? "accent" : ""}>
-          {String(value).padStart(2, "0")}
-        </strong>
-      </div>
-      <span className={`room-stat-icon ${active ? "active" : ""}`}>{icon}</span>
-    </article>
-  );
-}
-
-function LegendDot({ tone, label }) {
-  return (
-    <span>
-      <i className={`room-dot ${tone}`} />
-      {label}
-    </span>
-  );
-}
-
-function RoomCard({ room, onClick }) {
-  const students = room.students || [];
-  const occupants = room.currentOccupants ?? students.length ?? 0;
-  const capacity = room.capacity || 4;
-  const percent = Math.min(100, Math.round((occupants / capacity) * 100));
-  const cfg = statusConfig[room.status] || statusConfig.available;
-  const gender = room.gender || room.genderType || room.typeGender;
-
-  return (
-    <button className="room-card" onClick={onClick} type="button">
-      <div className="room-card-top">
-        <strong>P.{room.roomNumber}</strong>
-        <span className={`room-status-symbol ${cfg.tone}`}>{cfg.icon}</span>
-      </div>
-      <div className="room-capacity">
-        <div>
-          <span>Sức chứa</span>
-          <strong>
-            {occupants}/{capacity}
-          </strong>
-        </div>
-        <div className="room-capacity-track">
-          <i className={cfg.tone} style={{ width: `${percent}%` }} />
-        </div>
-      </div>
-      <div className="room-card-tags">
-        {gender && <span>{String(gender).toUpperCase()}</span>}
-        <span>{cfg.label.toUpperCase()}</span>
-      </div>
-    </button>
-  );
-}
-
-function RoomDrawer({
-  assigning,
-  availableStudents,
-  editCapacity,
-  editStatus,
-  loadingStudents,
-  onAssignStudent,
-  onClose,
-  onRemoveStudent,
-  onSearchStudents,
-  onToggleAddStudent,
-  onUpdate,
-  removing,
-  selectedBuilding,
-  selectedRoom,
-  setEditCapacity,
-  setEditStatus,
-  setStudentSearch,
-  showAddStudent,
-  studentSearch,
-  updatingRoom,
-}) {
-  const students = selectedRoom.students || [];
-  const hasStudents = students.length > 0;
-
-  return (
-    <div className="room-drawer-layer">
-      <button className="room-drawer-backdrop" onClick={onClose} type="button" />
-      <aside className="room-drawer">
-        <header className="room-drawer-head">
-          <div className="room-drawer-title">
-            <FaDoorOpen />
-            <div>
-              <h2>Chi tiết phòng {selectedRoom.roomNumber}</h2>
-              <p>
-                Tòa {selectedBuilding?.name || selectedRoom.buildingName || "-"} •
-                Tầng {selectedRoom.floor} • Loại phòng: {selectedRoom.capacity} người
-              </p>
-            </div>
-          </div>
-          <button className="room-icon-btn" onClick={onClose} type="button">
-            <FaTimes />
-          </button>
-        </header>
-
-        <div className="room-drawer-body">
-          <section className="room-drawer-section">
-            <h3>Cấu hình phòng</h3>
-            <div className="room-config-grid">
-              <InfoBox label="Tình trạng" value={statusConfig[editStatus]?.label || editStatus} />
-              <InfoBox label="Số sinh viên" value={`${students.length}/${selectedRoom.capacity}`} />
-              <InfoBox label="Tầng" value={`Tầng ${selectedRoom.floor}`} />
-              <InfoBox label="Số phòng" value={selectedRoom.roomNumber} />
-            </div>
-
-            <label className="room-field compact">
-              <span>Sức chứa</span>
-              <input
-                min={1}
-                max={12}
-                type="number"
-                value={editCapacity}
-                onChange={(e) => setEditCapacity(Number(e.target.value))}
-              />
-            </label>
-
-            <div className="room-status-editor">
-              <span>Trạng thái</span>
+        <ModalOverlay
+          onClose={() => !updatingRoom && setSelectedRoom(null)}
+        >
+          <ModalCard style={{ maxWidth: 600 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "start",
+              }}
+            >
               <div>
+                <h2 style={{ margin: 0, fontSize: 22, color: "#0f172a" }}>
+                  <FaDoorOpen
+                    style={{
+                      marginRight: 10,
+                      color: "#3b82f6",
+                      fontSize: 18,
+                    }}
+                  />
+                  Chi tiết phòng {selectedRoom.roomNumber}
+                </h2>
+                <p
+                  style={{
+                    margin: "6px 0 0",
+                    color: "#64748b",
+                    fontSize: 14,
+                  }}
+                >
+                  {selectedRoom.displayName}
+                </p>
+              </div>
+              <CloseButton
+                onClick={() => !updatingRoom && setSelectedRoom(null)}
+              />
+            </div>
+
+            {/* Room Info */}
+            <div
+              style={{
+                marginTop: 20,
+                background: "#f8fafc",
+                borderRadius: 16,
+                padding: 18,
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <InfoRow
+                label="Tòa nhà"
+                value={`Tòa ${selectedBuilding?.name || ""}`}
+              />
+              <InfoRow label="Tầng" value={`Tầng ${selectedRoom.floor}`} />
+              <InfoRow label="Số phòng" value={selectedRoom.roomNumber} />
+              <InfoRow
+                label="Số người hiện tại"
+                value={`${(selectedRoom.students || []).length}/${selectedRoom.capacity}`}
+              />
+            </div>
+
+            {/* ===== STUDENTS IN ROOM ===== */}
+            <div style={{ marginTop: 20 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 16,
+                    color: "#1e293b",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <FaUserGraduate style={{ color: "#3b82f6" }} />
+                  Sinh viên trong phòng ({(selectedRoom.students || []).length}/
+                  {selectedRoom.capacity})
+                </h3>
+                {(selectedRoom.students || []).length <
+                  selectedRoom.capacity && (
+                  <button
+                    onClick={toggleAddStudent}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "8px 14px",
+                      borderRadius: 10,
+                      border: "none",
+                      background: showAddStudent
+                        ? "#f1f5f9"
+                        : "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                      color: showAddStudent ? "#475569" : "#fff",
+                      fontWeight: 700,
+                      fontSize: 12,
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    {showAddStudent ? (
+                      <>
+                        <FaTimes /> Đóng
+                      </>
+                    ) : (
+                      <>
+                        <FaUserPlus /> Thêm SV
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* Current Students List */}
+              {(selectedRoom.students || []).length > 0 ? (
+                <div
+                  style={{
+                    borderRadius: 14,
+                    border: "1px solid #e2e8f0",
+                    overflow: "hidden",
+                  }}
+                >
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      background: "#fff",
+                    }}
+                  >
+                    <thead>
+                      <tr style={{ background: "#f8fafc" }}>
+                        <th style={thStyle}>Mã SV</th>
+                        <th style={thStyle}>Họ tên</th>
+                        <th style={thStyle}>SĐT</th>
+                        <th style={{ ...thStyle, textAlign: "center" }}>
+                          Thao tác
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(selectedRoom.students || []).map((student, idx) => (
+                        <tr
+                          key={student._id || idx}
+                          style={{
+                            borderBottom:
+                              idx < (selectedRoom.students || []).length - 1
+                                ? "1px solid #f1f5f9"
+                                : "none",
+                          }}
+                        >
+                          <td style={tdStyle}>
+                            <span
+                              style={{
+                                background: "rgba(16, 185, 129, 0.1)",
+                                color: "#059669",
+                                padding: "3px 8px",
+                                borderRadius: 6,
+                                fontWeight: 700,
+                                fontSize: 12,
+                                marginRight: 8,
+                              }}
+                            >
+                              Giường {student.bedNumber}
+                            </span>
+                            <span
+                              style={{
+                                background: "rgba(59, 130, 246, 0.1)",
+                                color: "#2563eb",
+                                padding: "3px 8px",
+                                borderRadius: 6,
+                                fontWeight: 700,
+                                fontSize: 12,
+                              }}
+                            >
+                              {student.studentCode || "N/A"}
+                            </span>
+                          </td>
+                          <td style={tdStyle}>
+                            <div style={{ fontWeight: 600, color: "#1e293b" }}>
+                              {student.fullName || "N/A"}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: "#94a3b8",
+                                marginTop: 2,
+                              }}
+                            >
+                              {student.email || ""}
+                            </div>
+                          </td>
+                          <td style={tdStyle}>
+                            {student.phone || "Chưa có"}
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: "center" }}>
+                            <button
+                              onClick={() =>
+                                handleRemoveStudent(student._id)
+                              }
+                              disabled={removing}
+                              title="Xóa khỏi phòng"
+                              style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: 8,
+                                border: "none",
+                                background: "rgba(239, 68, 68, 0.1)",
+                                color: "#ef4444",
+                                cursor: removing
+                                  ? "not-allowed"
+                                  : "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "all 0.2s ease",
+                              }}
+                            >
+                              <FaUserMinus style={{ fontSize: 13 }} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    padding: "24px 16px",
+                    textAlign: "center",
+                    color: "#94a3b8",
+                    background: "#f8fafc",
+                    borderRadius: 14,
+                    border: "1px dashed #e2e8f0",
+                  }}
+                >
+                  <FaUserGraduate
+                    style={{
+                      fontSize: 24,
+                      marginBottom: 8,
+                      opacity: 0.4,
+                    }}
+                  />
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>
+                    Chưa có sinh viên nào trong phòng
+                  </div>
+                </div>
+              )}
+
+              {/* Add Student Panel */}
+              {showAddStudent && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    background: "#f0fdf4",
+                    borderRadius: 14,
+                    padding: 16,
+                    border: "1px solid rgba(34, 197, 94, 0.2)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#16a34a",
+                      marginBottom: 10,
+                    }}
+                  >
+                    <FaSearch
+                      style={{ marginRight: 6, verticalAlign: "middle" }}
+                    />
+                    Tìm sinh viên chưa có phòng
+                  </div>
+                  <input
+                    value={studentSearch}
+                    onChange={(e) => {
+                      setStudentSearch(e.target.value);
+                      searchAvailableStudents(e.target.value);
+                    }}
+                    placeholder="Tìm theo tên, mã SV, email..."
+                    style={{
+                      ...inputStyle,
+                      background: "#fff",
+                      border: "1px solid rgba(34, 197, 94, 0.3)",
+                    }}
+                    autoFocus
+                  />
+
+                  <div
+                    style={{
+                      marginTop: 10,
+                      maxHeight: 200,
+                      overflowY: "auto",
+                      borderRadius: 10,
+                    }}
+                  >
+                    {loadingStudents ? (
+                      <div
+                        style={{
+                          padding: 16,
+                          textAlign: "center",
+                          color: "#94a3b8",
+                          fontSize: 13,
+                        }}
+                      >
+                        Đang tìm kiếm...
+                      </div>
+                    ) : availableStudents.length === 0 ? (
+                      <div
+                        style={{
+                          padding: 16,
+                          textAlign: "center",
+                          color: "#94a3b8",
+                          fontSize: 13,
+                        }}
+                      >
+                        Không tìm thấy sinh viên phù hợp
+                      </div>
+                    ) : (
+                      availableStudents.map((student) => (
+                        <div
+                          key={student._id}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            padding: "10px 12px",
+                            background: "#fff",
+                            borderRadius: 10,
+                            marginBottom: 6,
+                            border: "1px solid #e2e8f0",
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          <div>
+                            <div
+                              style={{
+                                fontWeight: 700,
+                                fontSize: 13,
+                                color: "#1e293b",
+                              }}
+                            >
+                              {student.fullName}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: "#94a3b8",
+                                marginTop: 2,
+                              }}
+                            >
+                              {student.studentCode} •{" "}
+                              {student.email}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() =>
+                              handleAssignStudent(student._id)
+                            }
+                            disabled={assigning}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: 8,
+                              border: "none",
+                              background:
+                                "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                              color: "#fff",
+                              fontWeight: 700,
+                              fontSize: 11,
+                              cursor: assigning
+                                ? "not-allowed"
+                                : "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                              transition: "all 0.2s ease",
+                            }}
+                          >
+                            <FaPlus style={{ fontSize: 10 }} />
+                            Thêm
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Edit Fields */}
+            <div style={{ marginTop: 20 }}>
+              <label style={labelStyle}>Trạng thái (Hệ thống tự nhận diện Trống/Đang ở)</label>
+              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
                 {Object.entries(statusConfig).map(([key, cfg]) => {
-                  const isDisabled =
-                    key === "maintenance" && hasStudents
-                      ? true
-                      : editStatus === "maintenance"
-                        ? false
-                        : key !== editStatus;
+                  const hasStudents = (selectedRoom.students || []).length > 0;
+                  const isDisabled = key === "maintenance" ? hasStudents : (editStatus === "maintenance" ? false : key !== editStatus);
+                  const isSelected = editStatus === key;
+
                   return (
                     <button
-                      className={`${cfg.tone} ${editStatus === key ? "active" : ""}`}
-                      disabled={isDisabled}
                       key={key}
                       onClick={() => setEditStatus(key)}
-                      title={
-                        key === "maintenance" && hasStudents
-                          ? "Phòng đang có người, không thể bảo trì"
-                          : ""
-                      }
-                      type="button"
+                      disabled={isDisabled}
+                      title={key === "maintenance" && hasStudents ? "Phòng đang có người, không thể bảo trì" : ""}
+                      style={{
+                        flex: 1,
+                        padding: "10px 12px",
+                        borderRadius: 12,
+                        border: isSelected ? `2px solid ${cfg.dot}` : "2px solid #e2e8f0",
+                        background: isSelected ? cfg.cardBg : isDisabled ? "#f1f5f9" : "#fff",
+                        color: isSelected ? cfg.dot : isDisabled ? "#cbd5e1" : "#64748b",
+                        fontWeight: 700,
+                        fontSize: 13,
+                        cursor: isDisabled ? "not-allowed" : "pointer",
+                        transition: "all 0.2s ease",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                      }}
                     >
+                      <span
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 999,
+                          background: isDisabled && !isSelected ? "#cbd5e1" : cfg.dot,
+                        }}
+                      />
                       {cfg.label}
                     </button>
                   );
                 })}
               </div>
             </div>
-          </section>
 
-          <section className="room-drawer-section">
-            <div className="room-student-head">
-              <h3>
-                Danh sách sinh viên ({students.length}/{selectedRoom.capacity})
-              </h3>
-              {students.length < selectedRoom.capacity && (
-                <button className="room-link-btn" onClick={onToggleAddStudent} type="button">
-                  {showAddStudent ? (
-                    <>
-                      <FaTimes /> Đóng
-                    </>
-                  ) : (
-                    <>
-                      <FaUserPlus /> Thêm mới
-                    </>
-                  )}
-                </button>
-              )}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 12,
+                marginTop: 24,
+              }}
+            >
+              <ActionButton
+                onClick={() => setSelectedRoom(null)}
+                disabled={updatingRoom}
+                variant="secondary"
+              >
+                Đóng
+              </ActionButton>
+              <ActionButton
+                onClick={handleUpdateRoom}
+                disabled={updatingRoom}
+                variant="primary"
+              >
+                {updatingRoom ? "Đang lưu..." : "Lưu thay đổi"}
+              </ActionButton>
             </div>
+          </ModalCard>
+        </ModalOverlay>
+      )}
+    </div>
+  );
+}
 
-            {students.length > 0 ? (
-              <div className="room-student-list">
-                {students.map((student, index) => (
-                  <div className="room-student-item" key={student._id || index}>
-                    <div className="room-student-avatar">
-                      {(student.fullName || "S").charAt(0)}
-                    </div>
-                    <div>
-                      <strong>{student.fullName || "N/A"}</strong>
-                      <p>
-                        Giường {student.bedNumber || "-"} • MSV:{" "}
-                        {student.studentCode || "N/A"}
-                      </p>
-                      {student.email && <small>{student.email}</small>}
-                    </div>
-                    <button
-                      className="room-icon-btn danger"
-                      disabled={removing}
-                      onClick={() => onRemoveStudent(student._id)}
-                      title="Xóa khỏi phòng"
-                      type="button"
-                    >
-                      <FaUserMinus />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                icon={<FaUserGraduate />}
-                title="Chưa có sinh viên nào trong phòng"
-              />
-            )}
+/* ===== SHARED COMPONENTS ===== */
 
-            {showAddStudent && (
-              <div className="room-add-student">
-                <label className="room-top-search full">
-                  <FaSearch />
-                  <input
-                    autoFocus
-                    value={studentSearch}
-                    onChange={(e) => {
-                      setStudentSearch(e.target.value);
-                      onSearchStudents(e.target.value);
-                    }}
-                    placeholder="Tìm theo tên, mã SV, email..."
-                    type="text"
-                  />
-                </label>
-
-                <div className="room-available-list">
-                  {loadingStudents ? (
-                    <p>Đang tìm kiếm...</p>
-                  ) : availableStudents.length === 0 ? (
-                    <p>Không tìm thấy sinh viên phù hợp</p>
-                  ) : (
-                    availableStudents.map((student) => (
-                      <div className="room-available-item" key={student._id}>
-                        <div>
-                          <strong>{student.fullName}</strong>
-                          <span>
-                            {student.studentCode} • {student.email}
-                          </span>
-                        </div>
-                        <button
-                          className="room-btn room-btn-primary small"
-                          disabled={assigning}
-                          onClick={() => onAssignStudent(student._id)}
-                          type="button"
-                        >
-                          <FaPlus />
-                          Thêm
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </section>
+function SummaryCard({ title, value, icon, gradient }) {
+  return (
+    <div
+      style={{
+        background:
+          "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.96) 100%)",
+        borderRadius: 20,
+        padding: "20px 22px",
+        boxShadow: "0 10px 30px rgba(15, 23, 42, 0.06)",
+        border: "1px solid rgba(148, 163, 184, 0.15)",
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+      }}
+    >
+      <div
+        style={{
+          width: 50,
+          height: 50,
+          borderRadius: 16,
+          background: gradient,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#fff",
+          fontSize: 20,
+          flexShrink: 0,
+          boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
+        }}
+      >
+        {icon}
+      </div>
+      <div>
+        <div style={{ color: "#64748b", fontWeight: 700, fontSize: 13 }}>
+          {title}
         </div>
-
-        <footer className="room-drawer-foot">
-          <button className="room-btn room-btn-ghost" onClick={onClose} disabled={updatingRoom} type="button">
-            Hủy bỏ
-          </button>
-          <button className="room-btn room-btn-primary" onClick={onUpdate} disabled={updatingRoom} type="button">
-            {updatingRoom ? "Đang lưu..." : "Lưu thay đổi"}
-          </button>
-        </footer>
-      </aside>
-    </div>
-  );
-}
-
-function InfoBox({ label, value }) {
-  return (
-    <div className="room-info-box">
-      <span>{label}</span>
-      <strong>{value || "Chưa có"}</strong>
-    </div>
-  );
-}
-
-function EmptyState({ icon, title, note }) {
-  return (
-    <div className="room-empty">
-      <span>{icon}</span>
-      <strong>{title}</strong>
-      {note && <p>{note}</p>}
-    </div>
-  );
-}
-
-function Dialog({ children, danger = false, onClose, title }) {
-  return (
-    <div className="room-dialog-layer">
-      <button className="room-dialog-backdrop" onClick={onClose} type="button" />
-      <div className={`room-dialog ${danger ? "danger" : ""}`}>
-        <div className="room-dialog-head">
-          <h2>{title}</h2>
-          <button className="room-icon-btn" onClick={onClose} type="button">
-            <FaTimes />
-          </button>
+        <div
+          style={{
+            marginTop: 4,
+            fontSize: 28,
+            fontWeight: 800,
+            color: "#0f172a",
+          }}
+        >
+          {value}
         </div>
-        {children}
       </div>
     </div>
   );
 }
+
+function ModalOverlay({ children, onClose }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15, 23, 42, 0.55)",
+        backdropFilter: "blur(4px)",
+        display: "grid",
+        placeItems: "center",
+        zIndex: 1000,
+        padding: 20,
+        overflowY: "auto",
+      }}
+    >
+      <div onClick={(e) => e.stopPropagation()}>{children}</div>
+    </div>
+  );
+}
+
+function ModalCard({ children, style }) {
+  return (
+    <div
+      style={{
+        width: "100%",
+        maxWidth: 500,
+        background: "#fff",
+        borderRadius: 24,
+        padding: 28,
+        boxShadow: "0 24px 80px rgba(15, 23, 42, 0.28)",
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function CloseButton({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 999,
+        border: "none",
+        background: "#f1f5f9",
+        color: "#475569",
+        fontSize: 18,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transition: "all 0.2s ease",
+        flexShrink: 0,
+      }}
+    >
+      ×
+    </button>
+  );
+}
+
+function ActionButton({ children, onClick, disabled, variant = "primary" }) {
+  const styles = {
+    primary: {
+      background: disabled
+        ? "#93c5fd"
+        : "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+      color: "#fff",
+      border: "none",
+      boxShadow: disabled ? "none" : "0 8px 20px rgba(37, 99, 235, 0.2)",
+    },
+    secondary: {
+      background: "#fff",
+      color: "#475569",
+      border: "1px solid #e2e8f0",
+      boxShadow: "none",
+    },
+    danger: {
+      background: disabled
+        ? "#fca5a5"
+        : "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+      color: "#fff",
+      border: "none",
+      boxShadow: disabled ? "none" : "0 8px 20px rgba(239, 68, 68, 0.2)",
+    },
+  };
+
+  const s = styles[variant];
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        minWidth: 110,
+        height: 46,
+        borderRadius: 14,
+        fontWeight: 800,
+        fontSize: 14,
+        cursor: disabled ? "not-allowed" : "pointer",
+        transition: "all 0.25s ease",
+        ...s,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        padding: "10px 0",
+        borderBottom: "1px solid #e2e8f0",
+        gap: 12,
+        alignItems: "center",
+      }}
+    >
+      <span style={{ color: "#64748b", fontWeight: 600, fontSize: 14 }}>
+        {label}
+      </span>
+      <span style={{ color: "#0f172a", fontWeight: 700, fontSize: 14 }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+const labelStyle = {
+  display: "block",
+  fontSize: 13,
+  fontWeight: 700,
+  color: "#475569",
+  marginBottom: 6,
+};
+
+const inputStyle = {
+  width: "100%",
+  height: 46,
+  borderRadius: 14,
+  border: "1px solid #d7e0ea",
+  padding: "0 16px",
+  fontSize: 14,
+  background: "#fdfefe",
+  outline: "none",
+  boxSizing: "border-box",
+  boxShadow: "inset 0 1px 2px rgba(15, 23, 42, 0.02)",
+};
+
+const thStyle = {
+  padding: "10px 12px",
+  fontSize: 12,
+  fontWeight: 700,
+  color: "#64748b",
+  textAlign: "left",
+  borderBottom: "1px solid #e2e8f0",
+};
+
+const tdStyle = {
+  padding: "10px 12px",
+  fontSize: 13,
+  color: "#475569",
+  verticalAlign: "middle",
+};
 
 export default RoomManagement;

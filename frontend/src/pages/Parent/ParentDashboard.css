@@ -579,5 +579,3 @@
     grid-template-columns: 1fr;
   }
 }
-.pd-sharp-border { border: 1px solid #e2e8f0; border-radius: 4px; }
-.pd-hero-pattern { background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0); background-size: 24px 24px; }
