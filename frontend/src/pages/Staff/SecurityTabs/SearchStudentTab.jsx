@@ -2,17 +2,17 @@ import React from "react";
 
 function SearchStudentTab({ students, selectedStudent, setSelectedStudent }) {
   return (
-    <div className="flex flex-col gap-5">
-      <div className="bg-[#F6FAF5] p-6 rounded-2xl shadow-sm border border-gray-200">
-        <h4 className="m-0 mb-3 text-gray-500 font-bold">Tra cứu học vụ & chỉ số uy tín (CFD Profile)</h4>
-        <div className="flex gap-3">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ background: "#FFFFFF", padding: 24, borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+        <h4 style={{ margin: "0 0 12px 0", color: "#64748B" }}>Tra cứu học vụ & chỉ số uy tín (CFD Profile)</h4>
+        <div style={{ display: "flex", gap: 12 }}>
           <select
             value={selectedStudent ? selectedStudent.id : ""}
             onChange={(e) => {
               const studentObj = students.find(s => s.id === e.target.value);
               setSelectedStudent(studentObj);
             }}
-            className="flex-1 p-3 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#006948]"
+            style={{ flex: 1, padding: 12, borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 14, background: "white" }}
           >
             <option value="">-- Chọn sinh viên để xem lý lịch chi tiết --</option>
             {students.map(s => (
@@ -23,54 +23,54 @@ function SearchStudentTab({ students, selectedStudent, setSelectedStudent }) {
       </div>
 
       {selectedStudent ? (
-        <div className="bg-[#F6FAF5] p-7 rounded-2xl shadow-sm border border-gray-200 flex flex-col gap-6">
-          <div className="flex justify-between items-start border-b border-gray-200 pb-4">
+        <div style={{ background: "#FFFFFF", padding: 28, borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", gap: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid #F1F5F9", paddingBottom: 16 }}>
             <div>
-              <h2 className="m-0 text-gray-900 font-bold text-2xl">{selectedStudent.name}</h2>
-              <span className="text-sm text-gray-500">Mã sinh viên: <strong className="text-gray-700">{selectedStudent.id}</strong> | Phòng: {selectedStudent.room} - Tòa {selectedStudent.dom}</span>
+              <h2 style={{ margin: 0, color: "#0F172A" }}>{selectedStudent.name}</h2>
+              <span style={{ fontSize: 14, color: "#64748B" }}>Mã sinh viên: <strong>{selectedStudent.id}</strong> | Phòng: {selectedStudent.room} - Tòa {selectedStudent.dom}</span>
             </div>
-            <div className="text-right">
-              <div className="text-xs font-bold text-gray-500 tracking-wider">ĐIỂM CFD UY TÍN</div>
-              <div className={`text-4xl font-black ${selectedStudent.cfdScore >= 80 ? "text-emerald-500" : selectedStudent.cfdScore >= 50 ? "text-amber-500" : "text-red-500"}`}>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}>ĐIỂM CFD UY TÍN</div>
+              <div style={{ fontSize: 32, fontWeight: 900, color: selectedStudent.cfdScore >= 80 ? "#10B981" : selectedStudent.cfdScore >= 50 ? "#F59E0B" : "#EF4444" }}>
                 {selectedStudent.cfdScore} / 100
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             <div>
-              <h4 className="m-0 mb-3 text-[#0A4E9B] font-bold">Thông tin liên hệ</h4>
-              <p className="m-0 my-1.5 text-sm text-gray-700">Số điện thoại: <strong>{selectedStudent.phone}</strong></p>
-              <p className="m-0 my-1.5 text-sm text-gray-700">Email: <strong>{selectedStudent.email}</strong></p>
+              <h4 style={{ margin: "0 0 12px 0", color: "#0A4E9B" }}>Thông tin liên hệ</h4>
+              <p style={{ margin: "6px 0", fontSize: 14 }}>Số điện thoại: <strong>{selectedStudent.phone}</strong></p>
+              <p style={{ margin: "6px 0", fontSize: 14 }}>Email: <strong>{selectedStudent.email}</strong></p>
             </div>
             <div>
-              <h4 className="m-0 mb-3 text-[#0A4E9B] font-bold">Người bảo hộ / Phụ huynh</h4>
-              <p className="m-0 my-1.5 text-sm text-gray-700">Họ tên: <strong>{selectedStudent.parentName}</strong></p>
-              <p className="m-0 my-1.5 text-sm text-gray-700">SĐT liên hệ: <strong>{selectedStudent.parentPhone}</strong></p>
+              <h4 style={{ margin: "0 0 12px 0", color: "#0A4E9B" }}>Người bảo hộ / Phụ huynh</h4>
+              <p style={{ margin: "6px 0", fontSize: 14 }}>Họ tên: <strong>{selectedStudent.parentName}</strong></p>
+              <p style={{ margin: "6px 0", fontSize: 14 }}>SĐT liên hệ: <strong>{selectedStudent.parentPhone}</strong></p>
             </div>
           </div>
 
           <div>
-            <h4 className="m-0 mb-3 text-[#0A4E9B] font-bold">Tiền án vi phạm nội quy ({selectedStudent.violations.length})</h4>
+            <h4 style={{ margin: "0 0 12px 0", color: "#0A4E9B" }}>Tiền án vi phạm nội quy ({selectedStudent.violations.length})</h4>
             {selectedStudent.violations.length > 0 ? (
-              <div className="flex flex-col gap-2">
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {selectedStudent.violations.map((violation) => (
-                  <div key={violation.id} className="border border-gray-200 p-3 rounded-lg bg-white flex justify-between items-center">
+                  <div key={violation.id} style={{ border: "1px solid #F1F5F9", padding: 12, borderRadius: 8, background: "#F8FAFC", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
-                      <strong className="text-sm text-red-500">[{violation.type}]</strong> - Ngày: {violation.date}
-                      <p className="m-0 mt-1 text-xs text-gray-500">{violation.description}</p>
+                      <strong style={{ fontSize: 13, color: "#EF4444" }}>[{violation.type}]</strong> - Ngày: {violation.date}
+                      <p style={{ margin: "4px 0 0", fontSize: 12, color: "#64748B" }}>{violation.description}</p>
                     </div>
-                    <span className="text-xs font-bold text-red-600">-{violation.pointsDeducted} CFD</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#DC2626" }}>-{violation.pointsDeducted} CFD</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-emerald-500 font-bold italic text-sm">Không có tiền lệ vi phạm. Sinh viên gương mẫu!</div>
+              <div style={{ color: "#10B981", fontWeight: 600, fontStyle: "italic", fontSize: 13 }}>Không có tiền lệ vi phạm. Sinh viên gương mẫu!</div>
             )}
           </div>
         </div>
       ) : (
-        <div className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center text-gray-500">
+        <div style={{ border: "2px dashed #CBD5E1", borderRadius: 16, padding: 48, textAlign: "center", color: "#64748B" }}>
           Vui lòng chọn thông tin sinh viên từ danh mục thả bên trên để hiển thị lịch sử nghiệp vụ.
         </div>
       )}

@@ -88,24 +88,42 @@ function SecurityDashboard() {
   };
 
   return (
-    <div className="flex bg-white min-h-screen font-sans text-[#0b1c30]">
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        background: "#F5F6F8",
+        fontFamily: "'Inter', sans-serif",
+      }}
+      id="security-dashboard-container"
+    >
       {/* Sidebar navigation */}
       <Sidebar />
 
       {/* Main dashboard contents */}
-      <main className="ml-[270px] flex-1">
+      <main
+        style={{
+          marginLeft: 270,
+          flex: 1,
+          padding: "24px 32px",
+          display: "flex",
+          flexDirection: "column",
+          boxSizing: "border-box",
+          overflowY: "auto",
+          height: "100vh",
+        }}
+      >
         {/* Top bar header */}
         <Header/>
 
-        <div className="p-8 max-w-[1400px] mx-auto">
-          {/* Tab content rendering via Routes */}
-          <Routes>
-            <Route path="/" element={<OverviewTab gateLogs={gateLogs} students={students} navigate={navigate} />} />
-            <Route path="history" element={<GateHistoryTab gateLogs={gateLogs} setGateLogs={setGateLogs} students={students} setSelectedStudent={setSelectedStudent} navigate={navigate} />} />
-            <Route path="create-report" element={<CreateReportTab students={students} setStudents={setStudents} />} />
-            <Route path="search" element={<SearchStudentTab students={students} selectedStudent={selectedStudent} setSelectedStudent={setSelectedStudent} />} />
-          </Routes>
-        </div>
+        {/* Tab content rendering via Routes */}
+        <Routes>
+          <Route path="/" element={<OverviewTab gateLogs={gateLogs} students={students} navigate={navigate} />} />
+          <Route path="history" element={<GateHistoryTab gateLogs={gateLogs} setGateLogs={setGateLogs} students={students} setSelectedStudent={setSelectedStudent} navigate={navigate} />} />
+          <Route path="create-report" element={<CreateReportTab students={students} setStudents={setStudents} />} />
+          <Route path="search" element={<SearchStudentTab students={students} selectedStudent={selectedStudent} setSelectedStudent={setSelectedStudent} />} />
+        </Routes>
+
       </main>
     </div>
   );
