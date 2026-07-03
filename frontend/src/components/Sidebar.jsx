@@ -17,6 +17,7 @@ import {
   FaSearch,
   FaDoorOpen,
   FaTimes,
+  FaBook,
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -28,6 +29,7 @@ function Sidebar() {
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isOpen, setIsOpen] = useState(false);
+  const [hasBuilding, setHasBuilding] = useState(true);
 
   useEffect(() => {
     const handleResize = () => {
@@ -48,6 +50,20 @@ function Sidebar() {
 
   const user = JSON.parse(localStorage.getItem("user"));
   const role = user?.role;
+
+  useEffect(() => {
+    if (role === "staff" && user?.staffType === "security") {
+      authService.getMe()
+        .then((res) => {
+          if (res.success && res.data && !res.data.buildingId) {
+            setHasBuilding(false);
+          }
+        })
+        .catch((err) => {
+          console.error("Error checking building assignment:", err);
+        });
+    }
+  }, [role, user?.staffType]);
 
   const isActive = (path) => {
     const currentFull = location.pathname + location.search;
@@ -212,6 +228,12 @@ function Sidebar() {
         label: "Thông báo",
         icon: <FaBell />,
       },
+      {
+        path: "/img/KTX.pdf",
+        label: "Nội quy ký túc xá",
+        icon: <FaBook />,
+        isExternal: true,
+      },
     ],
 
     parent: [
@@ -243,7 +265,7 @@ function Sidebar() {
     ],
   };
 
-  const menus = menusByRole[role === "staff" && user?.staffType ? user.staffType : role] || menusByRole[role] || [];
+  let menus = menusByRole[role === "staff" && user?.staffType ? user.staffType : role] || menusByRole[role] || [];
 
   const handleLogout = async () => {
     try {
@@ -340,19 +362,34 @@ function Sidebar() {
             </p>
           </div>
 
-          {menus.map((item, index) => (
-            <button
-              key={item.path}
-              style={{
-                ...menuStyle(item.path),
-                marginTop: index === 0 ? 0 : 10,
-              }}
-              onClick={() => navigate(item.path)}
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
+          {menus.map((item, index) => {
+            const isDisabled = role === "staff" && user?.staffType === "security" && !hasBuilding && item.path !== "/staff/dashboard/security";
+            return (
+              <button
+                key={item.path}
+                disabled={isDisabled}
+                style={{
+                  ...menuStyle(item.path),
+                  marginTop: index === 0 ? 0 : 10,
+                  ...(isDisabled && {
+                    opacity: 0.5,
+                    cursor: "not-allowed",
+                  }),
+                }}
+                onClick={() => {
+                  if (isDisabled) return;
+                  if (item.isExternal) {
+                    window.open(item.path, "_blank");
+                  } else {
+                    navigate(item.path);
+                  }
+                }}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            );
+          })}
         </div>
 
         <button

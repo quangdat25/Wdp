@@ -275,57 +275,7 @@ function OverviewTab() {
         </div>
       </div>
 
-      {/* Nút hành động nhanh */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 16,
-        }}
-      >
-        <button
-          onClick={() => navigate("/staff/dashboard/security/create-report")}
-          disabled={stats?.hasBuilding === false}
-          style={{
-            background: stats?.hasBuilding === false ? "#CBD5E1" : "#DC2626",
-            color: "#FFFFFF",
-            border: "none",
-            borderRadius: 12,
-            padding: "18px 24px",
-            fontSize: 15,
-            fontWeight: 700,
-            cursor: stats?.hasBuilding === false ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 10,
-            transition: "background 0.2s",
-          }}
-        >
-          <FaPlusCircle /> Lập biên bản vi phạm
-        </button>
-        <button
-          onClick={() => navigate("/staff/dashboard/security/search")}
-          disabled={stats?.hasBuilding === false}
-          style={{
-            background: stats?.hasBuilding === false ? "#CBD5E1" : "#0A4E9B",
-            color: "#FFFFFF",
-            border: "none",
-            borderRadius: 12,
-            padding: "18px 24px",
-            fontSize: 15,
-            fontWeight: 700,
-            cursor: stats?.hasBuilding === false ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 10,
-            transition: "background 0.2s",
-          }}
-        >
-          <FaSearch /> Tra cứu sinh viên
-        </button>
-      </div>
+
 
       {/* Nhật ký vi phạm gần nhất (data thật) */}
       <div
