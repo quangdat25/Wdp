@@ -45,4 +45,12 @@ router.put(
   asyncHandler(violationController.revokeViolation)
 );
 
+// 6. Thống kê trang chủ Security
+router.get(
+  "/security-stats",
+  authenticate,
+  authorize("security"),
+  asyncHandler(violationController.securityDashboardStats)
+);
+
 module.exports = router;

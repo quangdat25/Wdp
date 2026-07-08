@@ -13,6 +13,8 @@ const paymentRoutes = require("./payment.routes");
 const utilityUsageRoutes = require("./utilityUsage.routes");
 const invoiceRoutes = require("./invoice.routes");
 const semesterRoutes = require("./semester.routes");
+const newsRoutes = require("./news.routes");
+
 function routes(app) {
   app.use("/api/students", studentRoutes);
   app.use("/api/personnel", personnelRoutes);
@@ -29,6 +31,7 @@ function routes(app) {
   app.use("/api/utility-usages", utilityUsageRoutes);
   app.use("/api/invoices", invoiceRoutes);
   app.use("/api/semesters", semesterRoutes );
+  app.use("/api/news", newsRoutes);
 }
 
 module.exports = routes;

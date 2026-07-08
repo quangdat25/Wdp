@@ -94,6 +94,7 @@ function App() {
             {/* Manager Routes */}
             <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
               <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+              <Route path="/manager/notifications" element={<ManagerDashboard />} />
               <Route path="/manager/tickets" element={<TicketManagement />} />
               <Route
                 path="/manager/violations"
