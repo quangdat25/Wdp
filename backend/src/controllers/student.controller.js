@@ -270,7 +270,8 @@ exports.getAllStudents = async (req, res) => {
     const students = await Student.find({
       role: "student",
     }).sort({ createdAt: -1 });
-
+    console.log(students);
+    
     return res.status(200).json({
       success: true,
       count: students.length,

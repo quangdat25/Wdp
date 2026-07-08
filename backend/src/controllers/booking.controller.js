@@ -3,26 +3,80 @@ const Room = require("../models/room.models");
 const Building = require("../models/building.model");
 const Booking = require("../models/booking.model");
 const User = require("../models/user.model");
+const Student = require("../models/student.model");
 const Invoice = require("../models/invoice.model");
+const semesterService = require("../services/semester.service");
 
-// Kiểm tra điều kiện booking (CFD Score >= 80 và Invoice = 0)
+const getUTCDateString = (date) => {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(date));
+};
+
+const formatDateUTC = (date) => {
+  return new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "UTC",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(date));
+};
+// Kiểm tra điều kiện booking
 const checkBookingEligibility = async (req, res) => {
   try {
     const studentId = req.user._id;
-    const student = await User.findById(studentId);
+
+    const student = await User.findById(studentId).lean();
 
     if (!student || student.role !== "student") {
       return res.status(404).json({
         success: false,
+        eligible: false,
         message: "Không tìm thấy thông tin sinh viên",
       });
     }
 
+    // Check thời gian được phép booking theo kỳ hiện tại
+    const currentSemester = await semesterService.getCurrentSemester();
+
+    const today = getUTCDateString(new Date());
+    const bookingStart = getUTCDateString(currentSemester.bookingStartDate);
+    const bookingEnd = getUTCDateString(currentSemester.bookingEndDate);
+
+    if (today < bookingStart || today > bookingEnd) {
+      return res.status(400).json({
+        success: false,
+        eligible: false,
+        reason: "booking_closed",
+        message: `Hiện không nằm trong thời gian đăng ký phòng. Thời gian đăng ký kỳ ${
+          currentSemester.name
+        } là từ ${formatDateUTC(
+          currentSemester.bookingStartDate,
+        )} đến ${formatDateUTC(currentSemester.bookingEndDate)}.`,
+        data: {
+          currentSemester: currentSemester.name,
+          semesterCode: currentSemester.code,
+          bookingStartDate: currentSemester.bookingStartDate,
+          bookingEndDate: currentSemester.bookingEndDate,
+        },
+      });
+    }
+
     // Kiểm tra sinh viên đã có phòng chưa
-    const existingRoom = await Room.findOne({ "students.student": studentId });
+    const existingRoom = await Room.findOne({
+      "students.student": studentId,
+    });
+
     if (existingRoom) {
-      const studentEntry = existingRoom.students.find(s => s.student.toString() === studentId.toString());
+      const studentEntry = existingRoom.students.find(
+        (s) => s.student.toString() === studentId.toString(),
+      );
+
       const bedInfo = studentEntry ? ` - Giường ${studentEntry.bedNumber}` : "";
+
       return res.status(400).json({
         success: false,
         eligible: false,
@@ -38,9 +92,10 @@ const checkBookingEligibility = async (req, res) => {
 
     // Kiểm tra có booking đang confirmed/checked_in không
     const existingBooking = await Booking.findOne({
-      studentId: studentId,
+      studentId,
       status: { $in: ["confirmed", "checked_in"] },
     });
+
     if (existingBooking) {
       return res.status(400).json({
         success: false,
@@ -54,8 +109,9 @@ const checkBookingEligibility = async (req, res) => {
       });
     }
 
-    // Check 1: CFD Score >= 80
+    // Check CFD Score >= 80
     const cfdScore = student.CFDScore || 0;
+
     if (cfdScore < 80) {
       return res.status(400).json({
         success: false,
@@ -69,15 +125,15 @@ const checkBookingEligibility = async (req, res) => {
       });
     }
 
-    // Check 2: Invoice = 0 (không có hóa đơn chưa thanh toán)
+    // Check không có hóa đơn chưa thanh toán
     const unpaidInvoices = await Invoice.find({
-      studentId: studentId,
+      studentId,
       status: { $in: ["unpaid", "overdue"] },
     });
 
     const totalUnpaid = unpaidInvoices.reduce(
-      (sum, inv) => sum + inv.amount,
-      0
+      (sum, invoice) => sum + invoice.amount,
+      0,
     );
 
     if (totalUnpaid > 0) {
@@ -85,16 +141,17 @@ const checkBookingEligibility = async (req, res) => {
         success: false,
         eligible: false,
         reason: "unpaid_invoice",
-        message: `Bạn còn nợ ${totalUnpaid.toLocaleString("vi-VN")}đ hóa đơn chưa thanh toán. Vui lòng thanh toán trước khi đặt phòng.`,
+        message: `Bạn còn nợ ${totalUnpaid.toLocaleString(
+          "vi-VN",
+        )}đ hóa đơn chưa thanh toán. Vui lòng thanh toán trước khi đặt phòng.`,
         data: {
           CFDScore: cfdScore,
-          totalUnpaid: totalUnpaid,
+          totalUnpaid,
           unpaidCount: unpaidInvoices.length,
         },
       });
     }
 
-    // Tất cả điều kiện đạt
     return res.status(200).json({
       success: true,
       eligible: true,
@@ -102,11 +159,16 @@ const checkBookingEligibility = async (req, res) => {
       data: {
         CFDScore: cfdScore,
         totalUnpaid: 0,
+        currentSemester: currentSemester.name,
+        semesterCode: currentSemester.code,
       },
     });
   } catch (error) {
+    console.error("CHECK BOOKING ELIGIBILITY ERROR:", error);
+
     return res.status(500).json({
       success: false,
+      eligible: false,
       message: "Lỗi khi kiểm tra điều kiện đặt phòng",
       error: error.message,
     });
@@ -139,10 +201,7 @@ const getAvailableRooms = async (req, res) => {
     const rooms = await Room.find(query)
       .sort({ floor: 1, roomNumber: 1 })
       .populate("building", "name")
-      .populate(
-        "students.student",
-        "fullName studentCode gender"
-      );
+      .populate("students.student", "fullName studentCode gender");
 
     // Format rooms với thông tin giường trống
     const formattedRooms = rooms.map((room) => {
@@ -192,8 +251,9 @@ const getAvailableRooms = async (req, res) => {
 const createBooking = async (req, res) => {
   try {
     const studentId = req.user._id;
-    const { roomId, bedNumber, semester } = req.body;
-
+    const { roomId, bedNumber } = req.body;
+    const nextSemester = await semesterService.getNextSemester();
+    const semester = `${nextSemester.name} ${nextSemester.year}`;
     if (!roomId || !bedNumber) {
       return res.status(400).json({
         success: false,
@@ -201,7 +261,7 @@ const createBooking = async (req, res) => {
       });
     }
 
-    const student = await User.findById(studentId);
+    const student = await User.findById(studentId).lean();
     if (!student || student.role !== "student") {
       return res.status(404).json({
         success: false,
@@ -223,7 +283,7 @@ const createBooking = async (req, res) => {
     // Xóa các booking pending (nếu có) do user thoát giữa chừng trước đó
     await Booking.deleteMany({
       studentId: studentId,
-      status: "pending"
+      status: "pending",
     });
 
     // Check booking đang active
@@ -253,7 +313,7 @@ const createBooking = async (req, res) => {
     });
     const totalUnpaid = unpaidInvoices.reduce(
       (sum, inv) => sum + inv.amount,
-      0
+      0,
     );
     if (totalUnpaid > 0) {
       return res.status(400).json({
@@ -301,19 +361,16 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // === Tạo Booking ===
-    const bookingSemester = semester || "Summer 2026";
     const now = new Date();
 
     const booking = await Booking.create({
       studentId: studentId,
       roomId: roomId,
       bedNumber: bedNumber,
-      semester: bookingSemester,
-      startDate: now,
-      endDate: new Date(now.getFullYear(), now.getMonth() + 4, now.getDate()),
+      semester: semester,
+      startDate: nextSemester.startDate,
+      endDate: nextSemester.endDate,
       status: "pending",
-      checkInDate: now,
     });
 
     // Không gán sinh viên vào phòng ở bước này nữa, sẽ gán sau khi thanh toán thành công
@@ -321,10 +378,7 @@ const createBooking = async (req, res) => {
     // Populate room info để trả về
     const populatedRoom = await Room.findById(roomId)
       .populate("building", "name")
-      .populate(
-        "students.student",
-        "fullName studentCode gender"
-      );
+      .populate("students.student", "fullName studentCode gender");
 
     res.status(201).json({
       success: true,
@@ -378,7 +432,7 @@ const getMyBooking = async (req, res) => {
     let myBedNumber = null;
     if (booking.roomId && booking.roomId.students) {
       const myEntry = booking.roomId.students.find(
-        (s) => s.student._id.toString() === studentId.toString()
+        (s) => s.student._id.toString() === studentId.toString(),
       );
       if (myEntry) {
         myBedNumber = myEntry.bedNumber;
