@@ -16,6 +16,7 @@ import {
   FaSearch,
   FaBuilding,
   FaDoorOpen,
+  FaCalendarAlt,
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -59,6 +60,11 @@ function Sidebar() {
         path: "/admin/dashboard",
         label: "Bảng điều khiển",
         icon: <FaChartPie />,
+      },
+      {
+        path: "/admin/semesters",
+        label: "Quản lý kỳ học",
+        icon: <FaCalendarAlt />,
       },
       {
         path: "/admin/rooms",

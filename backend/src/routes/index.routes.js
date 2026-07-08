@@ -10,8 +10,10 @@ const ticketManagementRoutes = require("./ticketManagement.routes");
 const parentRoutes = require("./parent.routes");
 const bookingRoutes = require("./booking.routes");
 const paymentRoutes = require("./payment.routes");
+const semesterRoutes = require("./semester.routes");
 
 function routes(app) {
+  app.use("/api/semesters", semesterRoutes);
   app.use("/api/students", studentRoutes);
   app.use("/api/personnel", personnelRoutes);
   app.use("/api/users", userRoutes);

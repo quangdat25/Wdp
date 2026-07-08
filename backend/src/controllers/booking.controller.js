@@ -4,6 +4,7 @@ const Building = require("../models/building.model");
 const Booking = require("../models/booking.model");
 const User = require("../models/user.model");
 const Invoice = require("../models/invoice.model");
+const semesterService = require("../services/semester.service");
 
 // Kiểm tra điều kiện booking (CFD Score >= 80 và Invoice = 0)
 const checkBookingEligibility = async (req, res) => {
@@ -301,17 +302,39 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // === Tạo Booking ===
-    const bookingSemester = semester || "Summer 2026";
+    // === Kiểm tra kỳ học hiện tại và validation ===
     const now = new Date();
+    let currentSemester;
+    
+    try {
+      currentSemester = await semesterService.getCurrentSemester();
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Không có kỳ học nào đang diễn ra",
+      });
+    }
+
+    const bookingStartDate = new Date(currentSemester.bookingStartDate);
+    const bookingEndDate = new Date(currentSemester.bookingEndDate);
+
+    if (now < bookingStartDate || now > bookingEndDate) {
+      return res.status(400).json({
+        success: false,
+        message: `Thời gian đặt phòng cho kỳ ${currentSemester.name} là từ ${bookingStartDate.toLocaleDateString("vi-VN")} đến ${bookingEndDate.toLocaleDateString("vi-VN")}. Bạn không thể đặt phòng lúc này.`,
+      });
+    }
+
+    // === Tạo Booking ===
+    const bookingSemester = currentSemester.code || semester || "Summer 2026";
 
     const booking = await Booking.create({
       studentId: studentId,
       roomId: roomId,
       bedNumber: bedNumber,
       semester: bookingSemester,
-      startDate: now,
-      endDate: new Date(now.getFullYear(), now.getMonth() + 4, now.getDate()),
+      startDate: currentSemester.startDate,
+      endDate: currentSemester.endDate,
       status: "pending",
       checkInDate: now,
     });
