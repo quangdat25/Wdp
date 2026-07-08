@@ -15,6 +15,8 @@ import {
   FaPlusCircle,
   FaSearch,
   FaDoorOpen,
+  FaFileInvoiceDollar,
+  FaCalendarAlt,
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -29,7 +31,10 @@ function Sidebar() {
 
   const isActive = (path) => {
     const currentFull = location.pathname + location.search;
-    return currentFull === path || (path === location.pathname && location.search === "");
+    return (
+      currentFull === path ||
+      (path === location.pathname && location.search === "")
+    );
   };
 
   const menuStyle = (path) => ({
@@ -94,6 +99,11 @@ function Sidebar() {
         label: "Tài khoản",
         icon: <FaUsersCog />,
       },
+      {
+        path: "/admin/semesters",
+        label: "Quản lý kỳ học",
+        icon: <FaCalendarAlt />,
+      },
     ],
 
     manager: [
@@ -118,9 +128,9 @@ function Sidebar() {
         icon: <FaShieldAlt />,
       },
       {
-        path: "/manager/notifications",
-        label: "Thông báo",
-        icon: <FaBell />,
+        path: "/manager/utility-invoices",
+        label: "Hóa đơn điện nước",
+        icon: <FaFileInvoiceDollar />,
       },
     ],
 
@@ -143,21 +153,62 @@ function Sidebar() {
     ],
 
     cleaner: [
-      { path: "/staff/dashboard/cleaner", label: "Trang chủ", icon: <FaChartPie /> },
-      { path: "/staff/dashboard/cleaner/tasks", label: "Dọn dẹp phòng", icon: <FaClipboardList /> },
-      { path: "/staff/dashboard/cleaner/issues", label: "Sự cố kỹ thuật", icon: <FaTools /> },
+      {
+        path: "/staff/dashboard/cleaner",
+        label: "Trang chủ",
+        icon: <FaChartPie />,
+      },
+      {
+        path: "/staff/dashboard/cleaner/tasks",
+        label: "Dọn dẹp phòng",
+        icon: <FaClipboardList />,
+      },
+      {
+        path: "/staff/dashboard/cleaner/issues",
+        label: "Sự cố kỹ thuật",
+        icon: <FaTools />,
+      },
     ],
 
     maintenance: [
-      { path: "/staff/dashboard/maintenance", label: "Trang chủ", icon: <FaChartPie /> },
-      { path: "/staff/dashboard/maintenance/tasks", label: "Danh sách sự cố", icon: <FaWrench /> },
+      {
+        path: "/staff/dashboard/maintenance",
+        label: "Trang chủ",
+        icon: <FaChartPie />,
+      },
+      {
+        path: "/staff/dashboard/maintenance/tasks",
+        label: "Danh sách sự cố",
+        icon: <FaWrench />,
+      },
+      {
+        path: "/staff/utility-usages",
+        label: "Import điện nước",
+        icon: <FaFileInvoiceDollar />,
+      },
     ],
 
     security: [
-      { path: "/staff/dashboard/security", label: "Trang chủ", icon: <FaChartPie /> },
-      { path: "/staff/dashboard/security/history", label: "Lịch sử ra vào", icon: <FaShieldAlt /> },
-      { path: "/staff/dashboard/security/create-report", label: "Lập biên bản", icon: <FaPlusCircle /> },
-      { path: "/staff/dashboard/security/search", label: "Tìm kiếm sinh viên", icon: <FaSearch /> },
+      {
+        path: "/staff/dashboard/security",
+        label: "Trang chủ",
+        icon: <FaChartPie />,
+      },
+      {
+        path: "/staff/dashboard/security/history",
+        label: "Lịch sử ra vào",
+        icon: <FaShieldAlt />,
+      },
+      {
+        path: "/staff/dashboard/security/create-report",
+        label: "Lập biên bản",
+        icon: <FaPlusCircle />,
+      },
+      {
+        path: "/staff/dashboard/security/search",
+        label: "Tìm kiếm sinh viên",
+        icon: <FaSearch />,
+      },
     ],
 
     student: [
@@ -177,8 +228,8 @@ function Sidebar() {
         icon: <FaBed />,
       },
       {
-        path: "/student/payments",
-        label: "Thanh toán",
+        path: "/student/invoices",
+        label: "Hóa đơn",
         icon: <FaMoneyBillWave />,
       },
       {
@@ -222,7 +273,10 @@ function Sidebar() {
     ],
   };
 
-  const menus = menusByRole[role === "staff" && user?.staffType ? user.staffType : role] || menusByRole[role] || [];
+  const menus =
+    menusByRole[role === "staff" && user?.staffType ? user.staffType : role] ||
+    menusByRole[role] ||
+    [];
 
   const handleLogout = async () => {
     try {

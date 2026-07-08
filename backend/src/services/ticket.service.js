@@ -148,7 +148,6 @@ class TicketService {
   }
   async getMyTickets(userId) {
     const student = await ticketRepository.findStudentById(userId);
-
     if (!student) {
       throw createError(404, "Không tìm thấy thông tin sinh viên");
     }
