@@ -154,6 +154,21 @@ class UserController {
         });
       }
 
+      if (req.auth?.role === "parent") {
+        return res.status(200).json({
+          success: true,
+          data: {
+            _id: findUser._id,
+            id: findUser._id,
+            fullName: findUser.parent?.fullName || "",
+            email: findUser.email,
+            username: req.auth.username,
+            phone: findUser.parent?.phone || "",
+            role: "parent",
+          },
+        });
+      }
+
       return res.status(200).json({
         success: true,
         data: findUser,

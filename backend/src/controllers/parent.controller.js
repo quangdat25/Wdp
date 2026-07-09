@@ -27,6 +27,31 @@ const getMyChildRoom = async (req, res) => {
             (s) => s.student.toString() === student._id.toString()
         );
 
+        const Invoice = require("../models/invoice.model");
+        const today = new Date();
+        let previousMonth = today.getMonth();
+        let previousMonthYear = today.getFullYear();
+        if (previousMonth === 0) {
+            previousMonth = 12;
+            previousMonthYear -= 1;
+        }
+
+        const utilityInvoice = await Invoice.findOne({
+            studentId: student._id,
+            type: "utility",
+            billingMonth: previousMonth
+        }).sort({ createdAt: -1 });
+
+        let electricityAmount = 0;
+        let waterAmount = 0;
+
+        if (utilityInvoice && utilityInvoice.items) {
+            const electricityItem = utilityInvoice.items.find(item => item.name === "electricity");
+            const waterItem = utilityInvoice.items.find(item => item.name === "water");
+            if (electricityItem) electricityAmount = electricityItem.amount;
+            if (waterItem) waterAmount = waterItem.amount;
+        }
+
         return res.json({
             success: true,
             data: {
@@ -47,6 +72,12 @@ const getMyChildRoom = async (req, res) => {
                     floor: room.floor,
                 },
                 bedNumber: studentInRoom.bedNumber,
+                previousUtility: {
+                    month: previousMonth,
+                    year: previousMonthYear,
+                    electricityAmount: electricityAmount,
+                    waterAmount: waterAmount,
+                }
             },
         });
     } catch (error) {
@@ -63,7 +94,7 @@ const getStudentInfo = async (req, res) => {
             .select("-password -parent.password")
             .populate("buildingId", "name")
             .populate("roomId", "roomNumber");
-        
+
         if (!student || student.role !== "student") {
             return res.status(404).json({
                 success: false,
@@ -83,7 +114,27 @@ const getStudentInfo = async (req, res) => {
     }
 };
 
+const getStudentInvoices = async (req, res) => {
+    try {
+        const Invoice = require("../models/invoice.model");
+        
+        const invoices = await Invoice.find({ studentId: req.user._id }).sort({ createdAt: -1 });
+
+        return res.json({
+            success: true,
+            data: invoices,
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy hóa đơn:", error);
+        res.status(500).json({
+            success: false,
+            message: "Lỗi máy chủ khi lấy dữ liệu hóa đơn",
+        });
+    }
+};
+
 module.exports = {
     getMyChildRoom,
-    getStudentInfo
+    getStudentInfo,
+    getStudentInvoices
 };

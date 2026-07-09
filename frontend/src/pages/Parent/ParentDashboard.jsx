@@ -9,6 +9,7 @@ import {
   FaStar,
   FaTachometerAlt,
   FaTint,
+  FaFileInvoiceDollar,
 } from "react-icons/fa";
 
 import "./ParentDashboard.css";
@@ -39,6 +40,11 @@ const parentModules = [
     id: "room",
     label: "Thông tin phòng",
     icon: <FaBed />,
+  },
+  {
+    id: "payment",
+    label: "Thanh toán",
+    icon: <FaFileInvoiceDollar />,
   },
   {
     id: "news",
@@ -148,17 +154,17 @@ function HomeScreen({ setActiveModule, childData, loading }) {
 
         <MetricCard
           icon={<FaTachometerAlt />}
-          label="Điện tháng 06"
-          value="4.210 kWh"
-          note="Cập nhật 08/06/2026"
+          label={`Điện tháng ${childData?.previousUtility?.month < 10 ? '0' : ''}${childData?.previousUtility?.month || 'trước'}`}
+          value={childData ? `${childData.previousUtility.electricityAmount.toLocaleString()} VNĐ` : "N/A"}
+          note={`Năm ${childData?.previousUtility?.year || ''}`}
           tone="amber"
         />
 
         <MetricCard
           icon={<FaTint />}
-          label="Nước tháng 06"
-          value="782 m³"
-          note="Cập nhật 08/06/2026"
+          label={`Nước tháng ${childData?.previousUtility?.month < 10 ? '0' : ''}${childData?.previousUtility?.month || 'trước'}`}
+          value={childData ? `${childData.previousUtility.waterAmount.toLocaleString()} VNĐ` : "N/A"}
+          note={`Năm ${childData?.previousUtility?.year || ''}`}
           tone="rose"
         />
 
