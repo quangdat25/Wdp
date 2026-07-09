@@ -6,7 +6,11 @@ const Booking = require("../models/booking.model");
 // Lấy tất cả tòa nhà
 const getAllBuildings = async (req, res) => {
   try {
-    const buildings = await Building.find().sort({ name: 1 });
+    let query = {};
+    if (req.user && req.user.role === "manager" && req.user.buildingId) {
+      query._id = req.user.buildingId;
+    }
+    const buildings = await Building.find(query).sort({ name: 1 });
 
     // Đếm số phòng theo trạng thái cho mỗi tòa
     const buildingsWithStats = await Promise.all(
@@ -165,6 +169,15 @@ const getRoomsByBuilding = async (req, res) => {
     const { buildingId } = req.params;
     const { floor } = req.query;
 
+    if (req.user && req.user.role === "manager" && req.user.buildingId) {
+      if (req.user.buildingId.toString() !== buildingId) {
+        return res.status(403).json({
+          success: false,
+          message: "Bạn không có quyền xem phòng của tòa nhà này",
+        });
+      }
+    }
+
     const building = await Building.findById(buildingId);
     if (!building) {
       return res.status(404).json({
@@ -219,6 +232,15 @@ const getRoomDetail = async (req, res) => {
         success: false,
         message: "Không tìm thấy phòng",
       });
+    }
+
+    if (req.user && req.user.role === "manager" && req.user.buildingId) {
+      if (room.building._id.toString() !== req.user.buildingId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "Bạn không có quyền xem phòng này",
+        });
+      }
     }
 
     const roomObj = room.toObject();

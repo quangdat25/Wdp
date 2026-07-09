@@ -52,8 +52,14 @@ function verifyVNPayReturn(query) {
   return vnpay.verifyReturnUrl(query);
 }
 
+function verifyVNPayIpn(query) {
+  const vnpay = getVNPayInstance();
+  return vnpay.verifyIpnCall(query);
+}
+
 module.exports = {
   createVNPayUrl,
   verifyVNPayReturn,
+  verifyVNPayIpn,
   generatePayID,
 };

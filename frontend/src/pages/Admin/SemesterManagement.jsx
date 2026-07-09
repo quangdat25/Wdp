@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import semesterService from "../../api/semesterService";
-import { showError, showSuccess,showConfirm } from "../../components/alert";
+import { showError, showSuccess,showConfirm } from "../../components/Alert";
 
 const statusColors = {
   Ongoing: { background: "#dcfce7", color: "#166534", label: "Đang diễn ra" },

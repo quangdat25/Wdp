@@ -16,6 +16,7 @@ const semesterRoutes = require("./semester.routes");
 const newsRoutes = require("./news.routes");
 
 function routes(app) {
+  app.use("/api/semesters", semesterRoutes);
   app.use("/api/students", studentRoutes);
   app.use("/api/personnel", personnelRoutes);
   app.use("/api/users", userRoutes);
