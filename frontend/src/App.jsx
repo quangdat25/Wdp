@@ -36,6 +36,7 @@ import UtilityUsageManagement from "./pages/Staff/UtilityUsageManagement";
 import UtilityInvoiceManagement from "./pages/Manager/UtilityInvoiceManagement";
 import MyInvoices from "./pages/Student/MyInvoices";
 import PaymentResult from "./pages/Student/PaymentResult";
+import MyRoom from "./pages/Student/MyRoom";
 
 function App() {
   const location = useLocation();
@@ -82,6 +83,7 @@ function App() {
               />
               <Route path="/student/tickets" element={<MyTickets />} />
               <Route path="/student/invoices" element={<MyInvoices />} />
+              <Route path="/student/room" element={<MyRoom />} />
               <Route path="/student/payment-result" element={<PaymentResult />} />
             </Route>
 
