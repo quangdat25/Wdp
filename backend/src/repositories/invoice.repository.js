@@ -1,0 +1,32 @@
+const Invoice = require("../models/invoice.model");
+
+class InvoiceRepository {
+  async findInvoicesByStudentId(studentId) {
+    return Invoice.find({ studentId })
+      .populate("bookingId")
+      .sort({ createdAt: -1 });
+  }
+
+  async findUnpaidInvoicesByStudentId(studentId) {
+    return Invoice.find({
+      studentId,
+      status: { $in: ["unpaid", "overdue"] },
+    });
+  }
+  async findAllInvoices(filter = {}) {
+    return Invoice.find(filter)
+      .populate("studentId", "fullName username studentCode email phone")
+      .populate({
+        path: "bookingId",
+        populate: {
+          path: "roomId",
+          populate: {
+            path: "building",
+          },
+        },
+      })
+      .sort({ createdAt: -1 });
+  }
+}
+
+module.exports = new InvoiceRepository();

@@ -138,7 +138,6 @@ function BookingRoom() {
       const res = await createBooking({
         roomId: selectedRoom._id,
         bedNumber: selectedBed,
-        semester: "Summer 2026",
       });
       setBookingResult(res);
       setShowConfirmModal(false);

@@ -84,6 +84,7 @@ exports.getStaffTickets = async (req, res) => {
     })
       .populate("studentId", "fullName studentCode phone email")
       .populate("assignedBy", "fullName username role")
+      .populate("damageReported.reportedBy", "fullName username role")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -167,27 +168,40 @@ exports.createStaffTicket = async (req, res) => {
       });
     }
 
-    const ticket = await Ticket.findByIdAndUpdate(
-      taskId,
+    // Chỉ cleaner mới được tạo báo cáo hỏng hóc
+    if (req.user.staffType !== "cleaner") {
+      return res.status(403).json({
+        success: false,
+        message: "Chỉ nhân viên vệ sinh mới được báo cáo hỏng hóc",
+      });
+    }
+
+    // Chỉ được báo cáo cho task được giao cho chính cleaner này
+    const ticket = await Ticket.findOneAndUpdate(
+      { _id: taskId, assignedTo: req.user._id },
       {
         $set: {
           damageReported: {
             ticketId: null,
+            reportedBy: req.user._id,
             description: description.trim(),
             date: new Date().toLocaleString("vi-VN"),
             severity: severity || "MEDIUM",
           },
         },
       },
-      { new: new Date() }
+      { new: true }
     );
 
     if (!ticket) {
-      return res.status(404).json({
+      return res.status(403).json({
         success: false,
-        message: "Không tìm thấy công việc dọn dẹp tương ứng",
+        message:
+          "Không tìm thấy công việc dọn dẹp được giao cho bạn hoặc bạn không có quyền báo cáo",
       });
     }
+
+    await ticket.populate("damageReported.reportedBy", "fullName username role");
 
     return res.status(200).json({
       success: true,

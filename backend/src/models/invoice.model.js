@@ -45,6 +45,7 @@ const invoiceSchema = new mongoose.Schema(
       {
         name: {
           type: String,
+          enum: ["electricity", "water"],
         },
 
         amount: {

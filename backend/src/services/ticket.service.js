@@ -148,7 +148,6 @@ class TicketService {
   }
   async getMyTickets(userId) {
     const student = await ticketRepository.findStudentById(userId);
-
     if (!student) {
       throw createError(404, "Không tìm thấy thông tin sinh viên");
     }
@@ -267,6 +266,63 @@ class TicketService {
     await ticket.save();
 
     return ticket;
+  }
+
+  async approveStaffDamageReport(cleanTicketId, managerId) {
+    const cleanTicket = await ticketRepository.findTicketById(cleanTicketId);
+
+    if (!cleanTicket) {
+      throw createError(404, "Không tìm thấy yêu cầu dọn dẹp tương ứng");
+    }
+
+    if (!cleanTicket.damageReported || !cleanTicket.damageReported.description) {
+      throw createError(400, "Yêu cầu dọn dẹp này không chứa báo cáo hư hại từ nhân viên");
+    }
+
+    if (cleanTicket.damageReported.ticketId) {
+      throw createError(400, "Báo cáo hư hại này đã được duyệt tạo phiếu sửa chữa");
+    }
+
+    const { description, severity, reportedBy, date } = cleanTicket.damageReported;
+
+    // Create the technical/repair ticket. studentId is omitted so it remains an internal ticket (not visible to students).
+    const ticketData = {
+      buildingName: cleanTicket.buildingName,
+      roomNumber: cleanTicket.roomNumber,
+      title: `Sửa chữa sự cố do nhân viên báo cáo`,
+      type: "Khác",
+      description: `[Cleaner báo hỏng] ${description.trim()}`,
+      status: "approved", // Automatically approved so manager can assign staff immediately
+      approvedBy: managerId,
+      approvedAt: new Date(),
+      damageReported: {
+        reportedBy: reportedBy || null,
+        description: description.trim(),
+        date: date || new Date().toLocaleString("vi-VN"),
+        severity: severity || "MEDIUM",
+      },
+    };
+
+    let repairTicket;
+    try {
+      // 1. Create repair ticket
+      repairTicket = await ticketRepository.createTicket(ticketData);
+
+      // 2. Link back to original clean ticket and save (bypassing full validation on old fields)
+      await cleanTicket.constructor.findByIdAndUpdate(
+        cleanTicketId,
+        { $set: { "damageReported.ticketId": repairTicket._id } },
+        { runValidators: false }
+      );
+    } catch (error) {
+      // Rollback newly created ticket to prevent orphan/duplicate data
+      if (repairTicket) {
+        await ticketRepository.deleteTicketById(repairTicket._id);
+      }
+      throw error;
+    }
+
+    return repairTicket;
   }
 
   async getStaffList() {

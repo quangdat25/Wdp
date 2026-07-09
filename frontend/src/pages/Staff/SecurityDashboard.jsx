@@ -5,7 +5,6 @@ import authService from "../../api/authService";
 import { FaBell } from "react-icons/fa";
 import Header from "../../components/Headers";
 import OverviewTab from "./SecurityTabs/OverviewTab";
-import GateHistoryTab from "./SecurityTabs/GateHistoryTab";
 import CreateReportTab from "./SecurityTabs/CreateReportTab";
 import SearchStudentTab from "./SecurityTabs/SearchStudentTab";
 
@@ -54,24 +53,12 @@ const initialStudents = [
   }
 ];
 
-const initialGateLogs = [
-  { id: "G001", studentId: "SV001", studentName: "Nguyễn Hoàng Nam", room: "302", dom: "A", time: "2026-06-08 23:15:30", direction: "IN", status: "LATE" },
-  { id: "G002", studentId: "SV003", studentName: "Lê Thị Lan Anh", room: "220", dom: "C", time: "2026-06-08 19:30:10", direction: "IN", status: "NORMAL" },
-  { id: "G003", studentId: "SV002", studentName: "Trần Minh Quang", room: "105", dom: "B", time: "2026-06-08 17:15:00", direction: "OUT", status: "NORMAL" }
-];
 
 function SecurityDashboard() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const path = location.pathname;
-  let pageTitle = "Security Board";
-  if (path.includes("history")) pageTitle = "Lịch sử ra vào";
-  else if (path.includes("create-report")) pageTitle = "Lập biên bản";
-  else if (path.includes("search")) pageTitle = "Tìm kiếm sinh viên";
 
-  // Shared State Management
+
   const [students, setStudents] = useState(initialStudents);
-  const [gateLogs, setGateLogs] = useState(initialGateLogs);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
   const handleLogout = async () => {
@@ -116,12 +103,10 @@ function SecurityDashboard() {
         {/* Top bar header */}
         <Header/>
 
-        {/* Tab content rendering via Routes */}
         <Routes>
-          <Route path="/" element={<OverviewTab gateLogs={gateLogs} students={students} navigate={navigate} />} />
-          <Route path="history" element={<GateHistoryTab gateLogs={gateLogs} setGateLogs={setGateLogs} students={students} setSelectedStudent={setSelectedStudent} navigate={navigate} />} />
+          <Route path="/" element={<OverviewTab />} />
           <Route path="create-report" element={<CreateReportTab students={students} setStudents={setStudents} />} />
-          <Route path="search" element={<SearchStudentTab students={students} selectedStudent={selectedStudent} setSelectedStudent={setSelectedStudent} />} />
+          <Route path="search" element={<SearchStudentTab />} />
         </Routes>
 
       </main>

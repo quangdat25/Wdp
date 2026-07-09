@@ -1,158 +1,146 @@
-const Booking = require("../models/booking.model");
-const Room = require("../models/room.models");
-const User = require("../models/user.model");
-const Invoice = require("../models/invoice.model");
-
-const {
-  VNPay,
-  ignoreLogger,
-  ProductCode,
-  VnpLocale,
-  dateFormat,
-} = require("vnpay");
-
-function generatePayID() {
-  const now = new Date();
-  const timestamp = now.getTime();
-  const seconds = now.getSeconds().toString().padStart(2, "0");
-  const milliseconds = now.getMilliseconds().toString().padStart(3, "0");
-  return `PAY${timestamp}${seconds}${milliseconds}`;
-}
+const paymentService = require("../services/payment.service");
+const { verifyVNPayReturn, verifyVNPayIpn } = require("../config/vnpay");
+const Booking = require("../models/booking.model"); // Cần cho việc rollback nếu huỷ ở ReturnUrl
 
 class PaymentController {
-  // Tạo URL thanh toán VNPAY cho booking
- async createBookingPayment(req, res) {
-  try {
-    const { bookingId } = req.body;
-    const studentId = req.user._id;
-
-    const booking = await Booking.findById(bookingId).populate("roomId");
-    if (!booking) return res.status(404).json({ success: false, message: "Không tìm thấy booking" });
-
-    if (booking.studentId.toString() !== studentId.toString()) {
-      return res.status(403).json({ success: false, message: "Không có quyền" });
-    }
-
-    if (booking.status !== "pending") {
-      return res.status(400).json({ success: false, message: "Booking không ở trạng thái pending" });
-    }
-
-    const vnpay = new VNPay({
-      tmnCode: "LD2LB3IS",
-      secureSecret: "G9RG57L2JHWGZQP432WTNZQT5PDUYM91",
-      vnpayHost: "https://sandbox.vnpayment.vn/vnpaygw-sit-testing/vpcpay.html",
-      testMode: true,
-      hashAlgorithm: "SHA512",  
-      loggerFn: ignoreLogger,
-    });
-
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const paymentUrl = vnpay.buildPaymentUrl({
-      vnp_Amount: booking.roomId.price || 2000000,
-      vnp_IpAddr: req.ip || "127.0.0.1",
-      vnp_TxnRef: `${booking._id}-${generatePayID()}`,
-      vnp_OrderInfo: `Thanh toan dat phong ${booking.roomId.displayName || booking.roomId.roomNumber}`,
-      vnp_OrderType: ProductCode.Other,
-      vnp_ReturnUrl: `http://localhost:3000/api/payment/vnpay-callback`, // Phải khớp với route
-      vnp_Locale: VnpLocale.VN,
-      vnp_CreateDate: dateFormat(new Date()),
-      vnp_ExpireDate: dateFormat(tomorrow),
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Tạo URL thanh toán thành công",
-      data: {
-        paymentUrl,
-        bookingId: booking._id,
-      }
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-}
-
-  // VNPAY callback - xử lý kết quả thanh toán
-  async vnpayReturn(req, res) {
+  async createBookingPayment(req, res) {
     try {
-      const vnpay = new VNPay({
-        tmnCode: "LD2LB3IS",
-        secureSecret: "G9RG57L2JHWGZQP432WTNZQT5PDUYM91",
-        vnpayHost: "https://sandbox.vnpayment.vn",
-        testMode: true,
-        hashAlgorithm: "SHA512",
-        loggerFn: ignoreLogger,
-      });
+      const { bookingId } = req.body;
+      const studentId = req.user._id;
 
-      const verifyResult = vnpay.verifyReturnUrl(req.query);
+      const data = await paymentService.getBookingPaymentUrl(bookingId, studentId, req.ip);
+
+      return res.status(200).json({
+        success: true,
+        message: "Tạo URL thanh toán thành công",
+        data,
+      });
+    } catch (error) {
+      console.error("Create Booking Payment Error:", error);
+      return res.status(error.message.includes("Không tìm thấy") ? 404 : 400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  async createInvoicePayment(req, res) {
+    try {
+      const { invoiceId } = req.body;
+      const studentId = req.user._id;
+
+      const data = await paymentService.getInvoicePaymentUrl(invoiceId, studentId, req.ip);
+
+      return res.status(200).json({
+        success: true,
+        message: "Tạo URL thanh toán hóa đơn thành công",
+        data,
+      });
+    } catch (error) {
+      console.error("Create Invoice Payment Error:", error);
+      return res.status(error.message.includes("Không tìm thấy") ? 404 : 400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  // Webhook hứng IPN Server-to-Server từ VNPay
+  async vnpayIpn(req, res) {
+    try {
+      const verifyResult = verifyVNPayIpn(req.query);
+      if (!verifyResult.isVerified) {
+        return res.status(200).json({ RspCode: "97", Message: "Invalid signature" });
+      }
 
       const { vnp_ResponseCode, vnp_TxnRef } = req.query;
-      const bookingId = vnp_TxnRef.split("-")[0];
 
-      const booking = await Booking.findById(bookingId);
-      if (!booking) {
-        return res.redirect(`${process.env.CLIENT_URL}/student/booking-result?status=error`);
+      const parts = vnp_TxnRef.split("_");
+      const paymentType = parts[0];
+      const targetId = parts[1];
+
+      // Nếu VNPay báo thanh toán không thành công
+      if (vnp_ResponseCode !== "00") {
+        if (paymentType === "BOOKING") {
+          // IPN cũng có thể tự dọn dẹp nếu muốn, nhưng return success RspCode để VNPay biết đã nhận
+          await Booking.findByIdAndDelete(targetId);
+        }
+        return res.status(200).json({ RspCode: "00", Message: "Confirm Success" });
       }
 
-      if (vnp_ResponseCode === "00" && verifyResult.isVerified) {
-        // Thanh toán thành công
-        booking.status = "confirmed";
-        await booking.save();
-
-        const room = await Room.findById(booking.roomId);
-        const student = await User.findById(booking.studentId);
-
-        // Cập nhật sinh viên vào phòng (chỉ gán sau khi thanh toán thành công)
-        if (room) {
-          room.students.push({ student: booking.studentId, bedNumber: booking.bedNumber });
-          room.currentOccupants = room.students.length;
-          if (room.status !== "maintenance") {
-            room.status = room.students.length >= room.capacity ? "occupied" : "available";
-          }
-          await room.save();
-        }
-
-        // Cập nhật thông tin phòng của sinh viên
-        if (student && room) {
-          student.roomId = room._id;
-          student.buildingId = room.building;
-          await student.save();
-        }
-
-        // Tạo Invoice đã thanh toán
-        const amount = room ? (room.price || 2000000) : 2000000;
-
-        const newInvoice = await Invoice.create({
-          bookingId: booking._id,
-          studentId: booking.studentId,
-          invoiceCode: `INV-${booking._id.toString().slice(-6).toUpperCase()}-${Date.now().toString().slice(-4)}`,
-          type: "room_fee",
-          semester: booking.semester || "Summer 2026",
-          amount: amount,
-          status: "paid",
-          paidAt: new Date(),
-          dueDate: new Date(),
-        });
-
-        // Gửi email thông báo (chạy ngầm, không await để không block redirect)
-        const { sendInvoiceMail } = require("../services/invoiceEmail.service");
-        sendInvoiceMail({ invoice: newInvoice, user: student, room: room });
-
-        return res.redirect(`${process.env.CLIENT_URL}/student/booking-result?status=success&bookingId=${booking._id}`);
+      // Xử lý thanh toán thành công
+      if (paymentType === "BOOKING") {
+        await paymentService.processBookingSuccess(targetId);
+      } else if (paymentType === "INVOICE") {
+        await paymentService.processInvoiceSuccess(targetId);
       } else {
-        // Thanh toán thất bại → Chỉ xóa booking, không cần nhả giường vì chưa gán
-        await booking.deleteOne();
+        return res.status(200).json({ RspCode: "99", Message: "Unknown payment type" });
+      }
 
+      // Luôn trả về 00 khi xử lý xong để VNPay không gọi lại nữa
+      return res.status(200).json({ RspCode: "00", Message: "Confirm Success" });
+
+    } catch (error) {
+      console.error("VNPAY IPN Error:", error);
+      // RspCode 99 để báo VNPay lỗi không xác định
+      return res.status(200).json({ RspCode: "99", Message: "Unknown error" });
+    }
+  }
+
+  // URL Return dành cho trình duyệt của người dùng sau khi thanh toán xong
+  async vnpayReturn(req, res) {
+    try {
+      const verifyResult = verifyVNPayReturn(req.query);
+      const { vnp_ResponseCode, vnp_TxnRef } = req.query;
+
+      if (!verifyResult.isVerified) {
         return res.redirect(
-          `${process.env.CLIENT_URL}/student/booking-result?status=error&message=PaymentFailed`
+          `${process.env.CLIENT_URL}/student/payment-result?status=error&message=InvalidSignature`,
         );
       }
+
+      const parts = vnp_TxnRef.split("_");
+      const paymentType = parts[0];
+      const targetId = parts[1];
+
+      if (vnp_ResponseCode !== "00") {
+        // Có thể dọn dẹp thêm ở đây để frontend phản hồi nhanh hơn nếu IPN chưa tới kịp
+        if (paymentType === "BOOKING") {
+          await Booking.findByIdAndDelete(targetId);
+        }
+        return res.redirect(
+          `${process.env.CLIENT_URL}/student/payment-result?status=error&message=PaymentFailed`,
+        );
+      }
+
+      // Thanh toán thành công, redirect thẳng về trang kết quả 
+      // (DB đã được cập nhật bởi IPN, hoặc sẽ cập nhật ngay sau đó)
+      if (paymentType === "BOOKING") {
+        // Fallback: Nếu IPN bị chậm, ta vẫn có thể chủ động trigger logic ngay tại đây
+        // để người dùng thấy kết quả ngay lập tức mà không phải chờ.
+        await paymentService.processBookingSuccess(targetId).catch(console.error);
+
+        return res.redirect(
+          `${process.env.CLIENT_URL}/student/booking-result?status=success&bookingId=${targetId}`,
+        );
+      }
+
+      if (paymentType === "INVOICE") {
+        await paymentService.processInvoiceSuccess(targetId).catch(console.error);
+
+        return res.redirect(
+          `${process.env.CLIENT_URL}/student/payment-result?status=success&invoiceId=${targetId}`,
+        );
+      }
+
+      return res.redirect(
+        `${process.env.CLIENT_URL}/student/payment-result?status=error&message=InvalidPaymentType`,
+      );
     } catch (error) {
       console.error("VNPAY Return Error:", error);
-      return res.redirect(`${process.env.CLIENT_URL}/student/booking-result?status=error`);
+      return res.redirect(
+        `${process.env.CLIENT_URL}/student/payment-result?status=error`,
+      );
     }
   }
 }
