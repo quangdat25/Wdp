@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   getViolations,
   approveViolation,
@@ -7,26 +7,34 @@ import {
 } from "../../api/violationService";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Headers";
-import { FaShieldAlt, FaCheck, FaTimes } from "react-icons/fa";
-import { showSuccess, showError,showConfirm } from "../../components/alert";
+import { showSuccess, showError, showConfirm } from "../../components/alert";
 import { socket } from "../../socket";
+
+import ViolationPageHeader from "./components/Violations/ViolationPageHeader";
+import ViolationFilterBar from "./components/Violations/ViolationFilterBar";
+import ViolationTable from "./components/Violations/ViolationTable";
+import ViolationDetailModal from "./components/Violations/ViolationDetailModal";
 
 function ViolationManagement() {
   const [violations, setViolations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("PENDING");
-  const [showModal, setShowModal] = useState(false);
-  const [showRevokeModal, setShowRevokeModal] = useState(false);
+
+  // Filters
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  // Modal State
   const [selectedViolation, setSelectedViolation] = useState(null);
-  const [points, setPoints] = useState(5);
-  const [revokeReason, setRevokeReason] = useState("");
 
   const fetchViolations = async () => {
     try {
       setLoading(true);
       const res = await getViolations();
       if (res.success) {
-        setViolations(res.data);
+        // Soft sort by created descending
+        const data = res.data || [];
+        data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setViolations(data);
       }
     } catch (error) {
       showError("Lỗi tải danh sách vi phạm");
@@ -38,7 +46,6 @@ function ViolationManagement() {
   useEffect(() => {
     fetchViolations();
 
-    // Vẫn lắng nghe để cập nhật bảng, nhưng bỏ cái Toast đi vì Header.jsx đã lo
     const handleNewViolation = () => {
       fetchViolations();
     };
@@ -50,12 +57,50 @@ function ViolationManagement() {
     };
   }, []);
 
-  const handleApprove = async () => {
-    if (!selectedViolation) return;
+  const stats = useMemo(() => {
+    return {
+      pending: violations.filter((v) => v.status === "PENDING").length,
+      approved: violations.filter((v) => v.status === "APPROVED").length,
+      rejected: violations.filter((v) => v.status === "REJECTED").length,
+      revoked: violations.filter((v) => v.status === "REVOKED").length,
+    };
+  }, [violations]);
+
+  const filteredViolations = useMemo(() => {
+    return violations.filter((v) => {
+      // Status Filter
+      if (statusFilter !== "ALL" && v.status !== statusFilter) return false;
+
+      // Search Filter
+      if (searchTerm) {
+        const lowerSearch = searchTerm.toLowerCase();
+        const studentName = (v.studentId?.fullName || "").toLowerCase();
+        const studentId = (v.studentId?.studentCode || "").toLowerCase();
+        const roomName = (v.studentId?.roomId?.roomNumber || "").toLowerCase();
+        
+        if (!studentName.includes(lowerSearch) && !studentId.includes(lowerSearch) && !roomName.includes(lowerSearch)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [violations, statusFilter, searchTerm]);
+
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("ALL");
+  };
+
+  const handleView = (violation) => {
+    setSelectedViolation(violation);
+  };
+
+  const handleApprove = async (violation, points = 5) => {
     try {
-      await approveViolation(selectedViolation._id, Number(points));
+      await approveViolation(violation._id, Number(points));
       showSuccess("Duyệt thành công! Đã trừ điểm sinh viên.");
-      setShowModal(false);
+      setSelectedViolation(null);
       fetchViolations();
     } catch (error) {
       showError(error.response?.data?.message || "Lỗi khi duyệt");
@@ -73,37 +118,36 @@ function ViolationManagement() {
     try {
       await rejectViolation(id);
       showSuccess("Đã từ chối biên bản");
+      if (selectedViolation && selectedViolation._id === id) {
+        setSelectedViolation(null);
+      }
       fetchViolations();
     } catch (error) {
       showError(error.response?.data?.message || "Lỗi khi từ chối");
     }
   };
 
-  const handleRevoke = async () => {
-    if (!selectedViolation) return;
-    if (!revokeReason.trim()) {
+  const handleRevoke = async (violation, reason) => {
+    if (!reason || !reason.trim()) {
       showError("Vui lòng nhập lý do thu hồi");
       return;
     }
     try {
-      await revokeViolation(selectedViolation._id, revokeReason);
+      await revokeViolation(violation._id, reason);
       showSuccess("Đã thu hồi biên bản và hoàn lại điểm cho sinh viên");
-      setShowRevokeModal(false);
-      setRevokeReason("");
+      setSelectedViolation(null);
       fetchViolations();
     } catch (error) {
       showError(error.response?.data?.message || "Lỗi khi thu hồi");
     }
   };
 
-  const filteredViolations = violations.filter((v) => v.status === activeTab);
-
   return (
     <div
       style={{
         display: "flex",
         minHeight: "100vh",
-        background: "#F5F6F8",
+        background: "#F6FAF7",
         fontFamily: "'Inter', sans-serif",
       }}
     >
@@ -120,461 +164,39 @@ function ViolationManagement() {
       >
         <Header />
 
-        <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-          {["PENDING", "APPROVED", "REJECTED", "REVOKED"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{
-                padding: "10px 20px",
-                border: "none",
-                borderRadius: 20,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-                background: activeTab === tab ? "#0A4E9B" : "#E2E8F0",
-                color: activeTab === tab ? "#FFFFFF" : "#64748B",
-                transition: "all 0.2s",
-              }}
-            >
-              {tab === "PENDING"
-                ? "Chờ xử lý"
-                : tab === "APPROVED"
-                  ? "Đã duyệt"
-                  : tab === "REJECTED"
-                    ? "Từ chối"
-                    : "Đã thu hồi"}
-            </button>
-          ))}
-        </div>
+        <ViolationPageHeader stats={stats} />
 
-        <div
-          style={{
-            background: "#FFFFFF",
-            borderRadius: 16,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
-            overflow: "hidden",
-          }}
-        >
-          {loading ? (
-            <div style={{ padding: 40, textAlign: "center", color: "#64748B" }}>
-              Đang tải dữ liệu...
-            </div>
-          ) : filteredViolations.length === 0 ? (
-            <div style={{ padding: 40, textAlign: "center", color: "#64748B" }}>
-              Không có dữ liệu trong mục này
-            </div>
-          ) : (
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                textAlign: "left",
-              }}
-            >
-              <thead>
-                <tr
-                  style={{
-                    background: "#F8FAFC",
-                    borderBottom: "1px solid #E2E8F0",
-                  }}
-                >
-                  <th
-                    style={{
-                      padding: "16px 20px",
-                      fontSize: 13,
-                      color: "#64748B",
-                      fontWeight: 700,
-                    }}
-                  >
-                    SINH VIÊN
-                  </th>
-                  <th
-                    style={{
-                      padding: "16px 20px",
-                      fontSize: 13,
-                      color: "#64748B",
-                      fontWeight: 700,
-                    }}
-                  >
-                    ĐỊA ĐIỂM
-                  </th>
-                  <th
-                    style={{
-                      padding: "16px 20px",
-                      fontSize: 13,
-                      color: "#64748B",
-                      fontWeight: 700,
-                    }}
-                  >
-                    LÝ DO VI PHẠM
-                  </th>
-                  <th
-                    style={{
-                      padding: "16px 20px",
-                      fontSize: 13,
-                      color: "#64748B",
-                      fontWeight: 700,
-                    }}
-                  >
-                    NGƯỜI BÁO CÁO
-                  </th>
-                  {activeTab !== "PENDING" && (
-                    <th
-                      style={{
-                        padding: "16px 20px",
-                        fontSize: 13,
-                        color: "#64748B",
-                        fontWeight: 700,
-                      }}
-                    >
-                      ĐIỂM TRỪ
-                    </th>
-                  )}
-                  {activeTab === "REVOKED" && (
-                    <th
-                      style={{
-                        padding: "16px 20px",
-                        fontSize: 13,
-                        color: "#64748B",
-                        fontWeight: 700,
-                      }}
-                    >
-                      LÝ DO THU HỒI
-                    </th>
-                  )}
-                  {(activeTab === "PENDING" || activeTab === "APPROVED") && (
-                    <th
-                      style={{
-                        padding: "16px 20px",
-                        fontSize: 13,
-                        color: "#64748B",
-                        fontWeight: 700,
-                        textAlign: "center",
-                      }}
-                    >
-                      THAO TÁC
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredViolations.map((v) => (
-                  <tr key={v._id} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                    <td style={{ padding: "16px 20px" }}>
-                      <div style={{ fontWeight: 700, color: "#0F172A" }}>
-                        {v.studentId?.fullName}
-                      </div>
-                      <div style={{ fontSize: 12, color: "#64748B" }}>
-                        {v.studentId?.studentCode} - Phòng{" "}
-                        {v.studentId?.roomId?.roomNumber || "N/A"}
-                      </div>
-                    </td>
-                    <td style={{ padding: "16px 20px", fontSize: 14 }}>
-                      {v.location} (Tòa {v.buildingId?.name || "N/A"})
-                    </td>
-                    <td
-                      style={{
-                        padding: "16px 20px",
-                        fontSize: 14,
-                        maxWidth: 300,
-                      }}
-                    >
-                      {v.reason}
-                    </td>
-                    <td style={{ padding: "16px 20px", fontSize: 14 }}>
-                      {v.securityId?.fullName}
-                    </td>
-                    {activeTab !== "PENDING" && (
-                      <td
-                        style={{
-                          padding: "16px 20px",
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color:
-                            v.status === "APPROVED" || v.status === "REVOKED"
-                              ? "#EF4444"
-                              : "#94A3B8",
-                          textDecoration:
-                            v.status === "REVOKED" ? "line-through" : "none",
-                        }}
-                      >
-                        {v.status === "APPROVED" || v.status === "REVOKED"
-                          ? `-${v.pointsDeducted}`
-                          : "0"}
-                      </td>
-                    )}
-                    {activeTab === "REVOKED" && (
-                      <td
-                        style={{
-                          padding: "16px 20px",
-                          fontSize: 14,
-                          color: "#D97706",
-                          maxWidth: 200,
-                        }}
-                      >
-                        {v.revokeReason}
-                      </td>
-                    )}
-                    {activeTab === "PENDING" && (
-                      <td style={{ padding: "16px 20px", textAlign: "center" }}>
-                        <button
-                          onClick={() => {
-                            setSelectedViolation(v);
-                            setShowModal(true);
-                            setPoints(5);
-                          }}
-                          style={{
-                            background: "#10B981",
-                            color: "white",
-                            border: "none",
-                            padding: "6px 12px",
-                            borderRadius: 6,
-                            cursor: "pointer",
-                            marginRight: 8,
-                            fontWeight: 600,
-                          }}
-                        >
-                          <FaCheck /> Duyệt
-                        </button>
-                        <button
-                          onClick={() => handleReject(v._id)}
-                          style={{
-                            background: "#FEE2E2",
-                            color: "#DC2626",
-                            border: "none",
-                            padding: "6px 12px",
-                            borderRadius: 6,
-                            cursor: "pointer",
-                            fontWeight: 600,
-                          }}
-                        >
-                          <FaTimes />
-                        </button>
-                      </td>
-                    )}
-                    {activeTab === "APPROVED" && (
-                      <td style={{ padding: "16px 20px", textAlign: "center" }}>
-                        <button
-                          onClick={() => {
-                            setSelectedViolation(v);
-                            setShowRevokeModal(true);
-                            setRevokeReason("");
-                          }}
-                          style={{
-                            background: "#F59E0B",
-                            color: "white",
-                            border: "none",
-                            padding: "6px 12px",
-                            borderRadius: 6,
-                            cursor: "pointer",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Thu hồi
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <ViolationFilterBar
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          onReset={handleResetFilters}
+          onRefresh={fetchViolations}
+        />
 
-        {/* Modal Duyệt */}
-        {showModal && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0,0,0,0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1000,
-            }}
-          >
-            <div
-              style={{
-                background: "white",
-                padding: 32,
-                borderRadius: 16,
-                width: 400,
-                boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-              }}
-            >
-              <h3 style={{ margin: "0 0 16px 0", color: "#0F172A" }}>
-                Duyệt Biên Bản Vi Phạm
-              </h3>
-              <p style={{ fontSize: 14, color: "#475569", marginBottom: 20 }}>
-                Sinh viên{" "}
-                <strong>{selectedViolation?.studentId?.fullName}</strong> sẽ bị
-                trừ điểm CFD và nhận được thông báo ngay lập tức.
-              </p>
-              <div style={{ marginBottom: 20 }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: "#64748B",
-                    marginBottom: 8,
-                  }}
-                >
-                  Số điểm CFD sẽ trừ
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={points}
-                  onChange={(e) => setPoints(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: 12,
-                    borderRadius: 8,
-                    border: "1px solid #CBD5E1",
-                    fontSize: 16,
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-              <div
-                style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}
-              >
-                <button
-                  onClick={() => setShowModal(false)}
-                  style={{
-                    padding: "10px 20px",
-                    border: "none",
-                    background: "#E2E8F0",
-                    color: "#475569",
-                    borderRadius: 8,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={handleApprove}
-                  style={{
-                    padding: "10px 20px",
-                    border: "none",
-                    background: "#EF4444",
-                    color: "white",
-                    borderRadius: 8,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  Trừ điểm
-                </button>
-              </div>
-            </div>
+        {loading ? (
+          <div style={{ padding: 60, textAlign: "center", color: "#6B7280" }}>
+            <div style={{ fontSize: 24, marginBottom: 12 }}>⏳</div>
+            Đang tải dữ liệu...
           </div>
+        ) : (
+          <ViolationTable
+            violations={filteredViolations}
+            onView={handleView}
+            onApprove={(v) => handleApprove(v, 5)} // Default from action menu
+            onReject={(vId) => handleReject(vId)}
+            onRevoke={(v) => handleView(v)} // Action menu -> Open modal to input reason
+          />
         )}
 
-        {/* Modal Thu Hồi */}
-        {showRevokeModal && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0,0,0,0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1000,
-            }}
-          >
-            <div
-              style={{
-                background: "white",
-                padding: 32,
-                borderRadius: 16,
-                width: 450,
-                boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-              }}
-            >
-              <h3 style={{ margin: "0 0 16px 0", color: "#0F172A" }}>
-                Thu hồi Biên Bản
-              </h3>
-              <p style={{ fontSize: 14, color: "#475569", marginBottom: 20 }}>
-                Sinh viên{" "}
-                <strong>{selectedViolation?.studentId?.fullName}</strong> sẽ
-                được hoàn lại{" "}
-                <strong>{selectedViolation?.pointsDeducted}</strong> điểm CFD.
-              </p>
-              <div style={{ marginBottom: 20 }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: "#64748B",
-                    marginBottom: 8,
-                  }}
-                >
-                  Lý do thu hồi (Bắt buộc)
-                </label>
-                <textarea
-                  rows="3"
-                  value={revokeReason}
-                  onChange={(e) => setRevokeReason(e.target.value)}
-                  placeholder="Ví dụ: Xác minh qua camera thấy sinh viên bị mạo danh..."
-                  style={{
-                    width: "100%",
-                    padding: 12,
-                    borderRadius: 8,
-                    border: "1px solid #CBD5E1",
-                    fontSize: 14,
-                    boxSizing: "border-box",
-                    fontFamily: "inherit",
-                  }}
-                />
-              </div>
-              <div
-                style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}
-              >
-                <button
-                  onClick={() => setShowRevokeModal(false)}
-                  style={{
-                    padding: "10px 20px",
-                    border: "none",
-                    background: "#E2E8F0",
-                    color: "#475569",
-                    borderRadius: 8,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={handleRevoke}
-                  style={{
-                    padding: "10px 20px",
-                    border: "none",
-                    background: "#F59E0B",
-                    color: "white",
-                    borderRadius: 8,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  Xác nhận Thu hồi
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ViolationDetailModal
+          violation={selectedViolation}
+          onClose={() => setSelectedViolation(null)}
+          onApprove={handleApprove}
+          onReject={(id) => handleReject(id)}
+          onRevoke={handleRevoke}
+        />
       </main>
     </div>
   );

@@ -54,3 +54,9 @@ export const formatDateTime = (date) => {
 
   return `${day}/${month}/${year} ${hour}:${min}`;
 };
+
+// Lấy ngày hiện tại format dạng text (vd: Monday, January 1, 2026)
+export const getCurrentDateFormatted = () => {
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  return new Date().toLocaleDateString('en-US', options);
+};
