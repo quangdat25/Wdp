@@ -24,7 +24,7 @@ class BookingRepository {
           { path: "building", select: "name" },
           {
             path: "students.student",
-            select: "fullName studentCode gender",
+            select: "fullName studentCode gender phone major",
           },
         ],
       })
