@@ -33,7 +33,6 @@ function Sidebar() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isOpen, setIsOpen] = useState(false);
   const [hasBuilding, setHasBuilding] = useState(true);
-  const [hoveredPath, setHoveredPath] = useState(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -78,30 +77,25 @@ function Sidebar() {
     );
   };
 
-  const menuStyle = (path) => {
-    const active = isActive(path);
-    const hovered = hoveredPath === path;
-    return {
-      border: "none",
-      height: 48,
-      borderRadius: 12,
-      background: active
-        ? "#ffffff"
-        : hovered
-          ? "rgba(255,255,255,0.15)"
-          : "transparent",
-      color: active ? "#16A34A" : "rgba(255,255,255,0.9)",
-      display: "flex",
-      alignItems: "center",
-      gap: 14,
-      padding: "0 16px",
-      fontSize: 15,
-      fontWeight: active ? 600 : 500,
-      cursor: "pointer",
-      transition: "all 0.2s ease",
-      width: "100%",
-    };
-  };
+  const menuStyle = (path) => ({
+    border: "none",
+    height: 54,
+    borderRadius: 14,
+    background: isActive(path)
+      ? "rgba(255,255,255,0.25)"
+      : "rgba(255,255,255,0.08)",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    gap: 14,
+    padding: "0 18px",
+    fontSize: 15,
+    fontWeight: isActive(path) ? 700 : 500,
+    cursor: "pointer",
+    backdropFilter: "blur(10px)",
+    transition: "all 0.3s ease",
+    width: "100%",
+  });
 
   const menusByRole = {
     admin: [
@@ -154,6 +148,11 @@ function Sidebar() {
         path: "/admin/accounts",
         label: "Tài khoản",
         icon: <FaUsersCog />,
+      },
+      {
+        path: "/admin/semesters",
+        label: "Quản lý kỳ học",
+        icon: <FaCalendarAlt />,
       },
     ],
 
@@ -285,7 +284,7 @@ function Sidebar() {
     student: [
       {
         path: "/student/dashboard",
-        label: "Trang chủ",
+        label: "Bảng điều khiển",
         icon: <FaChartPie />,
       },
       {
@@ -417,8 +416,8 @@ function Sidebar() {
         style={{
           position: "fixed",
           top: 0,
-          left: isMobile ? (isOpen ? 0 : -240) : 0,
-          width: 240,
+          left: isMobile ? (isOpen ? 0 : -270) : 0,
+          width: 270,
           height: "100vh",
           background:
             "linear-gradient(180deg, #34d399 0%, #22c55e 50%, #16a34a 100%)",
@@ -463,11 +462,9 @@ function Sidebar() {
               <button
                 key={item.path}
                 disabled={isDisabled}
-                onMouseEnter={() => setHoveredPath(item.path)}
-                onMouseLeave={() => setHoveredPath(null)}
                 style={{
                   ...menuStyle(item.path),
-                  marginTop: index === 0 ? 0 : 8,
+                  marginTop: index === 0 ? 0 : 10,
                   ...(isDisabled && {
                     opacity: 0.5,
                     cursor: "not-allowed",

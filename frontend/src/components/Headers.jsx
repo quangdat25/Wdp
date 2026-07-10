@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FaBell, FaTimes, FaUser } from "react-icons/fa";
 
 import authService from "../api/authService";
@@ -49,7 +49,7 @@ function Header({
 
   const showToast = (notification) => {
     setToast({
-      title: notification?.title || "ThÃ´ng bÃ¡o má»›i",
+      title: notification?.title || "Thông báo mới",
       content: notification?.content || "",
     });
 
@@ -159,7 +159,9 @@ function Header({
           padding: "14px 24px",
           marginBottom: 24,
           borderRadius: 20,
-          position: "relative",
+          position: "sticky",
+          top: 0,
+          zIndex: 1000,
           background:
             bgGradient ||
             "linear-gradient(135deg, rgba(52,211,153,0.16), rgba(34,197,94,0.12), rgba(22,163,74,0.10))",
@@ -290,7 +292,7 @@ function Header({
                   }}
                 >
                   <FaUser />
-                  Xem thÃ´ng tin
+                  Xem thông tin
                 </button>
               </div>
             )}
@@ -363,10 +365,10 @@ function UserInfoModal({ user, loading, avatarText, onClose }) {
         >
           <div>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>
-              ThÃ´ng tin tÃ i khoáº£n
+              Thông tin tài khoản
             </h2>
             <p style={{ margin: "6px 0 0", fontSize: 13, opacity: 0.9 }}>
-              Chi tiáº¿t ngÆ°á»i dÃ¹ng Ä‘ang Ä‘Äƒng nháº­p
+              Chi tiết người dùng đang đăng nhập
             </p>
           </div>
 
@@ -413,39 +415,39 @@ function UserInfoModal({ user, loading, avatarText, onClose }) {
 
           {loading ? (
             <div style={{ textAlign: "center", padding: 20, color: "#64748b" }}>
-              Äang táº£i thÃ´ng tin...
+              Đang tải thông tin...
             </div>
           ) : (
             <>
-              <InfoRow label="Há» tÃªn" value={user?.fullName || user?.name} />
+              <InfoRow label="Họ tên" value={user?.fullName || user?.name} />
               <InfoRow label="Email" value={user?.email} />
-              <InfoRow label="Sá»‘ Ä‘iá»‡n thoáº¡i" value={user?.phone} />
-              <InfoRow label="Vai trÃ²" value={formatRole(user?.role)} />
-              <InfoRow label="Tráº¡ng thÃ¡i" value={formatStatus(user?.status)} />
-              <InfoRow label="TÃªn Ä‘Äƒng nháº­p" value={user?.username} />
+              <InfoRow label="Số điện thoại" value={user?.phone} />
+              <InfoRow label="Vai trò" value={formatRole(user?.role)} />
+              <InfoRow label="Trạng thái" value={formatStatus(user?.status)} />
+              <InfoRow label="Tên đăng nhập" value={user?.username} />
 
               {user?.role === "student" && (
                 <>
-                  <InfoRow label="MÃ£ sinh viÃªn" value={user?.studentCode} />
+                  <InfoRow label="Mã sinh viên" value={user?.studentCode} />
                   <InfoRow
-                    label="Giá»›i tÃ­nh"
+                    label="Giới tính"
                     value={formatGender(user?.gender)}
                   />
-                  <InfoRow label="Äiá»ƒm CFD" value={user?.CFDScore} />
+                  <InfoRow label="Điểm CFD" value={user?.CFDScore} />
                   <InfoRow
-                    label="NgÃ y sinh"
+                    label="Ngày sinh"
                     value={formatDate(user?.dateOfBirth)}
                   />
-                  <InfoRow label="NgÃ nh há»c" value={user?.major} />
-                  <InfoRow label="Äá»‹a chá»‰" value={user?.address} />
+                  <InfoRow label="Ngành học" value={user?.major} />
+                  <InfoRow label="Địa chỉ" value={user?.address} />
                   <InfoRow
-                    label="TÃ²a nhÃ "
+                    label="Tòa nhà"
                     value={
                       user?.buildingId?.buildingName || user?.buildingId?.name
                     }
                   />
                   <InfoRow
-                    label="PhÃ²ng"
+                    label="Phòng"
                     value={user?.roomId?.roomNumber || user?.roomId?.roomName}
                   />
                 </>
@@ -453,18 +455,18 @@ function UserInfoModal({ user, loading, avatarText, onClose }) {
 
               {user?.role === "staff" && (
                 <>
-                  <InfoRow label="MÃ£ nhÃ¢n viÃªn" value={user?.staffCode} />
+                  <InfoRow label="Mã nhân viên" value={user?.staffCode} />
                   <InfoRow
-                    label="Loáº¡i nhÃ¢n viÃªn"
+                    label="Loại nhân viên"
                     value={formatStaffType(user?.staffType)}
                   />
-                  <InfoRow label="Ca lÃ m" value={formatShift(user?.shift)} />
+                  <InfoRow label="Ca làm" value={formatShift(user?.shift)} />
                   <InfoRow
-                    label="NgÃ y báº¯t Ä‘áº§u"
+                    label="Ngày bắt đầu"
                     value={formatDate(user?.startDate)}
                   />
                   <InfoRow
-                    label="TÃ²a phá»¥ trÃ¡ch"
+                    label="Tòa phụ trách"
                     value={
                       user?.buildingId?.buildingName || user?.buildingId?.name
                     }
@@ -474,14 +476,14 @@ function UserInfoModal({ user, loading, avatarText, onClose }) {
 
               {user?.role === "manager" && (
                 <>
-                  <InfoRow label="MÃ£ quáº£n lÃ½" value={user?.managerCode} />
-                  <InfoRow label="PhÃ²ng ban" value={user?.department} />
+                  <InfoRow label="Mã quản lý" value={user?.managerCode} />
+                  <InfoRow label="Phòng ban" value={user?.department} />
                   <InfoRow
-                    label="NgÃ y báº¯t Ä‘áº§u"
+                    label="Ngày bắt đầu"
                     value={formatDate(user?.startDate)}
                   />
                   <InfoRow
-                    label="TÃ²a quáº£n lÃ½"
+                    label="Tòa quản lý"
                     value={
                       user?.buildingId?.buildingName || user?.buildingId?.name
                     }
@@ -491,10 +493,10 @@ function UserInfoModal({ user, loading, avatarText, onClose }) {
 
               {user?.role === "admin" && (
                 <>
-                  <InfoRow label="MÃ£ admin" value={user?.adminCode} />
-                  <InfoRow label="PhÃ²ng ban" value={user?.department} />
+                  <InfoRow label="Mã admin" value={user?.adminCode} />
+                  <InfoRow label="Phòng ban" value={user?.department} />
                   <InfoRow
-                    label="Quyá»n háº¡n"
+                    label="Quyền hạn"
                     value={formatPermission(user?.permissionLevel)}
                   />
                 </>
@@ -502,9 +504,9 @@ function UserInfoModal({ user, loading, avatarText, onClose }) {
 
               {user?.role === "parent" && (
                 <>
-                  <InfoRow label="Quan há»‡" value={user?.relationship} />
+                  <InfoRow label="Quan hệ" value={user?.relationship} />
                   <InfoRow
-                    label="TÃªn sinh viÃªn"
+                    label="Tên sinh viên"
                     value={user?.student?.fullName}
                   />
                 </>
@@ -537,7 +539,7 @@ function InfoRow({ label, value }) {
           wordBreak: "break-word",
         }}
       >
-        {value === 0 ? 0 : value || "ChÆ°a cÃ³"}
+        {value === 0 ? 0 : value || "Chưa có"}
       </span>
     </div>
   );
@@ -550,10 +552,10 @@ function formatDate(date) {
 
 function formatRole(role) {
   const map = {
-    student: "Sinh viÃªn",
-    parent: "Phá»¥ huynh",
-    staff: "NhÃ¢n viÃªn",
-    manager: "Quáº£n lÃ½",
+    student: "Sinh viên",
+    parent: "Phụ huynh",
+    staff: "Nhân viên",
+    manager: "Quản lý",
     admin: "Admin",
   };
   return map[role] || role;
@@ -561,10 +563,10 @@ function formatRole(role) {
 
 function formatStatus(status) {
   const map = {
-    active: "Äang hoáº¡t Ä‘á»™ng",
-    inactive: "Ngá»«ng hoáº¡t Ä‘á»™ng",
-    leave: "Nghá»‰ phÃ©p",
-    probation: "Thá»­ viá»‡c",
+    active: "Đang hoạt động",
+    inactive: "Ngừng hoạt động",
+    leave: "Nghỉ phép",
+    probation: "Thử việc",
   };
   return map[status] || status;
 }
@@ -572,35 +574,35 @@ function formatStatus(status) {
 function formatGender(gender) {
   const map = {
     male: "Nam",
-    female: "Ná»¯",
-    other: "KhÃ¡c",
+    female: "Nữ",
+    other: "Khác",
   };
   return map[gender] || gender;
 }
 
 function formatStaffType(type) {
   const map = {
-    security: "Báº£o vá»‡",
-    maintenance: "Báº£o trÃ¬",
-    cleaner: "Vá»‡ sinh",
+    security: "Bảo vệ",
+    maintenance: "Bảo trì",
+    cleaner: "Vệ sinh",
   };
   return map[type] || type;
 }
 
 function formatShift(shift) {
   const map = {
-    morning: "Ca sÃ¡ng",
-    afternoon: "Ca chiá»u",
-    night: "Ca Ä‘Ãªm",
-    office: "Giá» hÃ nh chÃ­nh",
+    morning: "Ca sáng",
+    afternoon: "Ca chiều",
+    night: "Ca đêm",
+    office: "Giờ hành chính",
   };
   return map[shift] || shift;
 }
 
 function formatPermission(permission) {
   const map = {
-    super_admin: "Quáº£n trá»‹ tá»‘i cao",
-    admin: "Quáº£n trá»‹ viÃªn",
+    super_admin: "Quản trị tối cao",
+    admin: "Quản trị viên",
   };
   return map[permission] || permission;
 }
@@ -653,7 +655,7 @@ function NotificationToast({ toast, onClose }) {
           paddingRight: 30,
         }}
       >
-        ðŸ“¢ {toast.title}
+        📢 {toast.title}
       </div>
 
       <div
@@ -717,10 +719,10 @@ function NotificationModal({
         >
           <div>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>
-              ThÃ´ng bÃ¡o
+              Thông báo
             </h2>
             <p style={{ margin: "6px 0 0", fontSize: 13, opacity: 0.9 }}>
-              ThÃ´ng bÃ¡o tá»« Ban quáº£n lÃ½ kÃ½ tÃºc xÃ¡
+              Thông báo từ Ban quản lý ký túc xá
             </p>
           </div>
 
@@ -764,13 +766,13 @@ function NotificationModal({
           >
             {loading ? (
               <div style={{ padding: 20, textAlign: "center" }}>
-                Äang táº£i thÃ´ng bÃ¡o...
+                Đang tải thông báo...
               </div>
             ) : notifications.length === 0 ? (
               <div
                 style={{ padding: 20, textAlign: "center", color: "#64748B" }}
               >
-                ChÆ°a cÃ³ thÃ´ng bÃ¡o nÃ o
+                Chưa có thông báo nào
               </div>
             ) : (
               notifications.map((item) => {
@@ -838,7 +840,7 @@ function NotificationModal({
                   textAlign: "center",
                 }}
               >
-                Chá»n má»™t thÃ´ng bÃ¡o Ä‘á»ƒ xem chi tiáº¿t
+                Chọn một thông báo để xem chi tiết
               </div>
             ) : (
               <div>
@@ -877,5 +879,3 @@ function NotificationModal({
 }
 
 export default Header;
-
-
