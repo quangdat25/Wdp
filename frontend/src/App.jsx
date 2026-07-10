@@ -69,6 +69,7 @@ function App() {
                 path="/admin/notifications"
                 element={<NotificationManagement />}
               />
+              <Route path="/admin/payments" element={<UtilityInvoiceManagement />} />
               <Route path="/admin/buildings" element={<RoomManagement role="admin" />} />
               <Route path="/admin/rooms" element={<RoomManagement role="admin" />} />
             </Route>

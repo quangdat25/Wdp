@@ -13,7 +13,7 @@ router.get("/my", authenticate, authorize("student"), getMyInvoices);
 router.get(
   "/",
   authenticate,
-  authorize("manager"),
+  authorize("manager", "admin"),
   getAllInvoices
 );
 
