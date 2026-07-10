@@ -143,7 +143,7 @@ function ManagerDashboard() {
         <Header />
 
         {activeModule === "overview" && (
-          <OverviewScreen data={dashboardData} loading={loading} setActiveModule={setActiveModule} />
+          <OverviewScreen data={dashboardData} loading={loading} />
         )}
 
         {activeModule === "infrastructure" && (
@@ -162,7 +162,7 @@ function ManagerDashboard() {
   );
 }
 
-function OverviewScreen({ data, loading, setActiveModule }) {
+function OverviewScreen({ data, loading }) {
   if (loading) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "40vh", color: "#66736d", fontSize: 16, fontWeight: 700, gap: 12 }}>
@@ -186,7 +186,7 @@ function OverviewScreen({ data, loading, setActiveModule }) {
   
   const kpiData = {
     totalStudents: students?.total || 0,
-    occupiedBeds: buildings ? buildings.reduce((sum, b) => sum + (b.occupied || 0), 0) : 0,
+    occupiedBeds: occupancy?.occupiedRooms ? occupancy.occupiedRooms * 4 : 0,
     pendingRequests: alerts?.pendingBookings || 0,
     maintenanceRooms: occupancy?.maintenanceRooms || alerts?.maintenanceRooms || 0
   };

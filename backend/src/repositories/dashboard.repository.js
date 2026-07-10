@@ -5,7 +5,6 @@ const Ticket = require("../models/ticket.model");
 const Booking = require("../models/booking.model");
 const Invoice = require("../models/invoice.model");
 const Notification = require("../models/notification.model");
-const Student = require("../models/student.model");
 
 class DashboardRepository {
   countStudents() {
@@ -58,21 +57,6 @@ class DashboardRepository {
     return Room.countDocuments({ building: buildingId, status: "occupied" });
   }
 
-  async getBuildingBedStats(buildingId) {
-    const result = await Room.aggregate([
-      { $match: { building: buildingId } },
-      { 
-        $group: { 
-          _id: null, 
-          totalBeds: { $sum: "$capacity" }, 
-          occupiedBeds: { $sum: "$currentOccupants" } 
-        } 
-      }
-    ]);
-    if (result.length > 0) return result[0];
-    return { totalBeds: 0, occupiedBeds: 0 };
-  }
-
   countPendingBookings() {
     return Booking.countDocuments({ status: "pending" });
   }
@@ -105,7 +89,7 @@ class DashboardRepository {
   }
 
   getBookingRequests() {
-    return Booking.find({ status: { $in: ["pending", "confirmed", "checked_in"] } })
+    return Booking.find({ status: "pending" })
       .populate("studentId", "fullName studentCode email")
       .populate({
         path: "roomId",

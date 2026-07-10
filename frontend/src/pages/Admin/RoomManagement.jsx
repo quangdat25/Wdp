@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import AdminSidebar from "./AdminSidebar";
-import Sidebar from "../../components/Sidebar";
 import {
   getAllBuildings,
   createBuilding,
@@ -54,7 +53,7 @@ const statusConfig = {
   },
 };
 
-function RoomManagement({ role = "admin" }) {
+function RoomManagement() {
   const [buildings, setBuildings] = useState([]);
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [selectedFloor, setSelectedFloor] = useState(1);
@@ -308,7 +307,7 @@ const handleRemoveStudent = (studentId) => {
         background: "linear-gradient(180deg, #f8fbff 0%, #f3f8f6 100%)",
       }}
     >
-      {role === "admin" ? <AdminSidebar /> : <Sidebar />}
+      <AdminSidebar />
 
       <main
         style={{
@@ -339,14 +338,14 @@ const handleRemoveStudent = (studentId) => {
               <FaBuilding
                 style={{ marginRight: 12, verticalAlign: "middle" }}
               />
-              {role === "admin" ? "Quản lý phòng ở" : "Tòa nhà"}
+              Quản lý phòng ở
             </h1>
             <p style={{ color: "#64748b", marginBottom: 0, marginTop: 6 }}>
               Quản lý tòa nhà, tầng và phòng trong ký túc xá.
             </p>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            {role === "admin" && buildings.length === 0 && (
+            {buildings.length === 0 && (
               <button
                 onClick={handleSeed}
                 disabled={seeding}
@@ -372,7 +371,6 @@ const handleRemoveStudent = (studentId) => {
                 {seeding ? "Đang khởi tạo..." : "Khởi tạo A, B, C, D"}
               </button>
             )}
-            {role === "admin" && (
             <button
               onClick={() => setShowCreateModal(true)}
               style={{
@@ -395,7 +393,6 @@ const handleRemoveStudent = (studentId) => {
               <FaPlus />
               Tạo tòa mới
             </button>
-            )}
           </div>
         </div>
 
@@ -539,7 +536,6 @@ const handleRemoveStudent = (studentId) => {
                             {b.totalRooms || 0}
                           </span>
                         </button>
-                        {role === "admin" && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -567,7 +563,6 @@ const handleRemoveStudent = (studentId) => {
                         >
                           <FaTimes />
                         </button>
-                        )}
                       </div>
                     );
                   })}

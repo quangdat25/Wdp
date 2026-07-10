@@ -164,11 +164,6 @@ function Sidebar() {
         icon: <FaChartPie />,
       },
       {
-        path: "/manager/buildings",
-        label: "Quản lý tòa nhà",
-        icon: <FaBuilding />,
-      },
-      {
         path: "/manager/students",
         label: "Quản lý sinh viên",
         icon: <FaUserGraduate />,

@@ -69,8 +69,8 @@ function App() {
                 path="/admin/notifications"
                 element={<NotificationManagement />}
               />
-              <Route path="/admin/buildings" element={<RoomManagement role="admin" />} />
-              <Route path="/admin/rooms" element={<RoomManagement role="admin" />} />
+              <Route path="/admin/buildings" element={<RoomManagement />} />
+              <Route path="/admin/rooms" element={<RoomManagement />} />
             </Route>
 
             {/* Student Routes */}
@@ -102,7 +102,6 @@ function App() {
                 path="/manager/violations"
                 element={<ViolationManagement />}
               />
-              <Route path="/manager/buildings" element={<RoomManagement role="manager" />} />
               <Route
                 path="/manager/utility-invoices"
                 element={<UtilityInvoiceManagement />}

@@ -82,9 +82,8 @@ class DashboardService {
     // Building stats with occupancy per building
     const buildingStats = await Promise.all(
       buildings.map(async (b) => {
-        const stats = await dashboardRepository.getBuildingBedStats(b._id);
-        const total = stats.totalBeds;
-        const occupied = stats.occupiedBeds;
+        const total = await dashboardRepository.countRoomsByBuilding(b._id);
+        const occupied = await dashboardRepository.countOccupiedRoomsByBuilding(b._id);
 
         return {
           name: `Khu ${b.name}`,
@@ -146,7 +145,7 @@ class DashboardService {
         date: b.createdAt
           ? new Date(b.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
           : "--",
-        status: b.status === "pending" ? "Chờ thanh toán" : b.status === "confirmed" ? "Đã thanh toán" : b.status === "checked_in" ? "Đang ở" : b.status,
+        status: b.status === "pending" ? "Pending" : b.status,
         statusColor:
           b.status === "pending"
             ? { bg: "#fef3c7", color: "#92400e" }
