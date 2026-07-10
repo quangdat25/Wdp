@@ -1,5 +1,4 @@
 const dashboardRepository = require("../repositories/dashboard.repository");
-const Invoice = require("../models/invoice.model");
 
 class DashboardService {
   async getDashboardData() {
@@ -131,12 +130,6 @@ class DashboardService {
               : t.status || "Chờ",
     }));
 
-    // Fetch corresponding invoices to get the amount
-    const bookingIds = bookingRequests.map(b => b._id);
-    const invoices = await Invoice.find({ bookingId: { $in: bookingIds }, type: "room_fee" }).lean();
-    const invoiceMap = {};
-    invoices.forEach(inv => invoiceMap[inv.bookingId.toString()] = inv.amount);
-
     // Format booking requests for table
     const formattedBookings = bookingRequests.map((b) => {
       const buildingName = b.roomId?.building?.name || "";
@@ -144,7 +137,6 @@ class DashboardService {
         ? b.studentId.fullName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
         : "--";
       return {
-        id: b._id,
         initials,
         name: b.studentId?.fullName || "Unknown",
         code: b.studentId?.studentCode || "--",
@@ -161,7 +153,6 @@ class DashboardService {
             : b.status === "confirmed" || b.status === "approved"
               ? { bg: "#dcfce7", color: "#166534" }
               : { bg: "#fee2e2", color: "#991b1b" },
-        amount: invoiceMap[b._id.toString()] || 0,
       };
     });
 

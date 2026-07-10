@@ -57,8 +57,6 @@ function AdminDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filterStatus, setFilterStatus] = useState("All");
-  const [selectedBooking, setSelectedBooking] = useState(null);
 
   const heroRef = useRef(null);
   const cardsRef = useRef(null);
@@ -123,13 +121,6 @@ function AdminDashboard() {
   const { students, occupancy, pendingTickets, monthlyRevenue, occupancySeries, buildings, alerts, bookingRequests, recentActivities } = data;
 
   const totalRooms = occupancy.totalRooms || 1;
-  const filteredBookings = bookingRequests ? bookingRequests.filter(b => filterStatus === "All" || b.status === filterStatus) : [];
-
-  const toggleFilter = () => {
-    const statuses = ["All", "Chờ thanh toán", "Đã thanh toán", "Đang ở"];
-    const nextIdx = (statuses.indexOf(filterStatus) + 1) % statuses.length;
-    setFilterStatus(statuses[nextIdx]);
-  };
   const donutData = [
     { label: "Đang sử dụng", value: occupancy.occupiedRooms, color: "#22C55E" },
     { label: "Còn trống", value: occupancy.availableRooms, color: "#DCFCE7" },
@@ -373,8 +364,8 @@ function AdminDashboard() {
         <Card title="Giao dịch đặt phòng gần đây" noPadding>
           <div style={{ padding: "16px 24px", borderBottom: "1px solid #E7EFEA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 14, color: "#6B7280" }}>Các giao dịch thanh toán và đặt phòng mới nhất</span>
-            <button onClick={toggleFilter} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", border: "1px solid #E7EFEA", borderRadius: 8, fontSize: 13, fontWeight: 500, background: filterStatus !== "All" ? "#ECFDF5" : "#fff", color: filterStatus !== "All" ? "#10B981" : "#374151", cursor: "pointer" }}>
-              <FaFilter size={12} /> {filterStatus === "All" ? "Lọc" : filterStatus}
+            <button onClick={() => alert("Tính năng lọc giao dịch đang được phát triển.")} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", border: "1px solid #E7EFEA", borderRadius: 8, fontSize: 13, fontWeight: 500, background: "#fff", color: "#374151", cursor: "pointer" }}>
+              <FaFilter size={12} /> Lọc
             </button>
           </div>
           <div style={{ overflowX: "auto" }}>
@@ -390,7 +381,7 @@ function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {filteredBookings.length > 0 ? filteredBookings.map((b, i) => (
+                {bookingRequests && bookingRequests.length > 0 ? bookingRequests.map((b, i) => (
                   <tr key={i} style={{ borderBottom: "1px solid #E7EFEA", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "#F6FAF7"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     <td style={{ padding: "16px 24px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -415,7 +406,7 @@ function AdminDashboard() {
                       </span>
                     </td>
                     <td style={{ padding: "16px 24px", textAlign: "right" }}>
-                      <button onClick={() => setSelectedBooking(b)} style={{ padding: 6, border: "none", background: "transparent", color: "#3B82F6", cursor: "pointer", marginRight: 8 }}><FaEye size={16} /></button>
+                      <button onClick={() => alert("Tính năng xem chi tiết biên lai đang được phát triển.")} style={{ padding: 6, border: "none", background: "transparent", color: "#3B82F6", cursor: "pointer", marginRight: 8 }}><FaEye size={16} /></button>
                       {b.status === "Chờ thanh toán" && (
                         <button onClick={() => alert("Tính năng duyệt đơn thủ công đang được phát triển.")} style={{ padding: 6, border: "none", background: "transparent", color: "#22C55E", cursor: "pointer" }}><FaCheck size={16} /></button>
                       )}
@@ -436,50 +427,6 @@ function AdminDashboard() {
             </table>
           </div>
         </Card>
-
-        {/* Modal Chi tiết giao dịch */}
-        {selectedBooking && (
-          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-            <div style={{ background: "#fff", padding: 32, borderRadius: 16, width: 400, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}>
-              <h3 style={{ marginTop: 0, color: "#111827", fontSize: 20 }}>Chi tiết giao dịch</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 24, fontSize: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#6B7280" }}>Mã hệ thống:</span>
-                  <span style={{ fontWeight: 500, fontFamily: "monospace", color: "#374151" }}>{selectedBooking.id?.toUpperCase() || "N/A"}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#6B7280" }}>Sinh viên:</span>
-                  <span style={{ fontWeight: 500 }}>{selectedBooking.name} ({selectedBooking.code})</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#6B7280" }}>Phòng:</span>
-                  <span style={{ fontWeight: 500 }}>{selectedBooking.room} - {selectedBooking.building}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#6B7280" }}>Kỳ học:</span>
-                  <span style={{ fontWeight: 500 }}>{selectedBooking.semester}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#6B7280" }}>Ngày yêu cầu:</span>
-                  <span style={{ fontWeight: 500 }}>{selectedBooking.date}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#6B7280" }}>Số tiền:</span>
-                  <span style={{ fontWeight: 700, color: "#16A34A" }}>
-                    {selectedBooking.amount ? selectedBooking.amount.toLocaleString("vi-VN") + " VNĐ" : "Chưa có"}
-                  </span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ color: "#6B7280" }}>Trạng thái:</span>
-                  <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600, background: selectedBooking.statusColor?.bg, color: selectedBooking.statusColor?.color }}>{selectedBooking.status}</span>
-                </div>
-              </div>
-              <button onClick={() => setSelectedBooking(null)} style={{ marginTop: 32, width: "100%", padding: "12px", background: "#F3F4F6", border: "none", borderRadius: 8, color: "#374151", fontWeight: 600, cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "#E5E7EB"} onMouseLeave={e => e.currentTarget.style.background = "#F3F4F6"}>
-                Đóng
-              </button>
-            </div>
-          </div>
-        )}
       </main>
 
       <style>{`
