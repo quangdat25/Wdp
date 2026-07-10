@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import AdminSidebar from "./AdminSidebar";
+import Sidebar from "../../components/Sidebar";
 import {
   getAllBuildings,
   createBuilding,
@@ -11,6 +11,7 @@ import {
   assignStudentToRoom,
   removeStudentFromRoom,
   getAvailableStudents,
+  getRoomHistory,
 } from "../../api/roomService";
 import {
   FaBuilding,
@@ -24,6 +25,7 @@ import {
   FaSearch,
   FaUserPlus,
   FaUserMinus,
+  FaHistory,
 } from "react-icons/fa";
 import { Modal } from "antd";
 const statusConfig = {
@@ -71,7 +73,9 @@ function RoomManagement() {
   const [updatingRoom, setUpdatingRoom] = useState(false);
   const [editStatus, setEditStatus] = useState("");
   const [editCapacity, setEditCapacity] = useState(4);
-
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [roomHistory, setRoomHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   // Student assignment states
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [availableStudents, setAvailableStudents] = useState([]);
@@ -79,7 +83,24 @@ function RoomManagement() {
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [removing, setRemoving] = useState(false);
-const { confirm } = Modal;
+  const { confirm } = Modal;
+
+  const openRoomHistory = async () => {
+    if (!selectedRoom) return;
+
+    try {
+      setLoadingHistory(true);
+      setShowHistoryModal(true);
+
+      const res = await getRoomHistory(selectedRoom._id);
+      setRoomHistory(res.data?.data || res.data || []);
+    } catch (error) {
+      console.error("Error fetching room history:", error);
+      alert(error.response?.data?.message || "Lỗi tải lịch sử phòng");
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
   // Fetch buildings
   const fetchBuildings = useCallback(async () => {
     try {
@@ -124,15 +145,15 @@ const { confirm } = Modal;
     const total = buildings.reduce((sum, b) => sum + (b.totalRooms || 0), 0);
     const available = buildings.reduce(
       (sum, b) => sum + (b.availableRooms || 0),
-      0
+      0,
     );
     const occupied = buildings.reduce(
       (sum, b) => sum + (b.occupiedRooms || 0),
-      0
+      0,
     );
     const maintenance = buildings.reduce(
       (sum, b) => sum + (b.maintenanceRooms || 0),
-      0
+      0,
     );
     return { total, available, occupied, maintenance };
   }, [buildings]);
@@ -269,30 +290,30 @@ const { confirm } = Modal;
   };
 
   // Remove student from room
-const handleRemoveStudent = (studentId) => {
-  if (!selectedRoom) return;
+  const handleRemoveStudent = (studentId) => {
+    if (!selectedRoom) return;
 
-  confirm({
-    title: "Xác nhận",
-    content: "Bạn có chắc chắn muốn xóa sinh viên khỏi phòng này không?",
-    okText: "Xóa",
-    cancelText: "Hủy",
-    okType: "danger",
-    async onOk() {
-      try {
-        setRemoving(true);
-        const res = await removeStudentFromRoom(selectedRoom._id, studentId);
-        setSelectedRoom(res.data);
-        await fetchRooms();
-        await fetchBuildings();
-      } catch (error) {
-        alert(error.response?.data?.message || "Lỗi xóa sinh viên");
-      } finally {
-        setRemoving(false);
-      }
-    },
-  });
-};
+    confirm({
+      title: "Xác nhận",
+      content: "Bạn có chắc chắn muốn xóa sinh viên khỏi phòng này không?",
+      okText: "Xóa",
+      cancelText: "Hủy",
+      okType: "danger",
+      async onOk() {
+        try {
+          setRemoving(true);
+          const res = await removeStudentFromRoom(selectedRoom._id, studentId);
+          setSelectedRoom(res.data);
+          await fetchRooms();
+          await fetchBuildings();
+        } catch (error) {
+          alert(error.response?.data?.message || "Lỗi xóa sinh viên");
+        } finally {
+          setRemoving(false);
+        }
+      },
+    });
+  };
 
   // Select building
   const selectBuilding = (building) => {
@@ -307,7 +328,7 @@ const handleRemoveStudent = (studentId) => {
         background: "linear-gradient(180deg, #f8fbff 0%, #f3f8f6 100%)",
       }}
     >
-      <AdminSidebar />
+      <Sidebar />
 
       <main
         style={{
@@ -377,8 +398,7 @@ const handleRemoveStudent = (studentId) => {
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                background:
-                  "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
                 color: "#fff",
                 border: "none",
                 borderRadius: 14,
@@ -443,9 +463,7 @@ const handleRemoveStudent = (studentId) => {
           }}
         >
           {loading ? (
-            <div
-              style={{ padding: 40, textAlign: "center", color: "#64748b" }}
-            >
+            <div style={{ padding: 40, textAlign: "center", color: "#64748b" }}>
               Đang tải dữ liệu...
             </div>
           ) : buildings.length === 0 ? (
@@ -463,8 +481,8 @@ const handleRemoveStudent = (studentId) => {
                 Chưa có tòa nhà nào
               </div>
               <div style={{ marginTop: 8, fontSize: 14 }}>
-                Bấm &quot;Khởi tạo A, B, C, D&quot; hoặc &quot;Tạo tòa
-                mới&quot; để bắt đầu.
+                Bấm &quot;Khởi tạo A, B, C, D&quot; hoặc &quot;Tạo tòa mới&quot;
+                để bắt đầu.
               </div>
             </div>
           ) : (
@@ -640,8 +658,7 @@ const handleRemoveStudent = (studentId) => {
                         fontWeight: 700,
                       }}
                     >
-                      Phòng — Tòa {selectedBuilding.name} — Tầng{" "}
-                      {selectedFloor}
+                      Phòng — Tòa {selectedBuilding.name} — Tầng {selectedFloor}
                     </h3>
                     <div style={{ display: "flex", gap: 16 }}>
                       {Object.entries(statusConfig).map(([key, cfg]) => (
@@ -706,8 +723,7 @@ const handleRemoveStudent = (studentId) => {
                               padding: "16px 10px 14px",
                               background: cfg.cardBg,
                               cursor: "pointer",
-                              transition:
-                                "all 0.3s cubic-bezier(.4,0,.2,1)",
+                              transition: "all 0.3s cubic-bezier(.4,0,.2,1)",
                               display: "flex",
                               flexDirection: "column",
                               alignItems: "center",
@@ -780,7 +796,9 @@ const handleRemoveStudent = (studentId) => {
                                   verticalAlign: "middle",
                                 }}
                               />
-                              {room.currentOccupants || (room.students || []).length}/{room.capacity}
+                              {room.currentOccupants ||
+                                (room.students || []).length}
+                              /{room.capacity}
                             </div>
                             {/* Student names preview */}
                             {studentNames.length > 0 && (
@@ -904,9 +922,7 @@ const handleRemoveStudent = (studentId) => {
 
       {/* Delete Confirm Modal */}
       {showDeleteConfirm && (
-        <ModalOverlay
-          onClose={() => !deleting && setShowDeleteConfirm(null)}
-        >
+        <ModalOverlay onClose={() => !deleting && setShowDeleteConfirm(null)}>
           <ModalCard style={{ maxWidth: 440 }}>
             <h2
               style={{
@@ -966,9 +982,7 @@ const handleRemoveStudent = (studentId) => {
 
       {/* Room Detail Modal with Students */}
       {selectedRoom && (
-        <ModalOverlay
-          onClose={() => !updatingRoom && setSelectedRoom(null)}
-        >
+        <ModalOverlay onClose={() => !updatingRoom && setSelectedRoom(null)}>
           <ModalCard style={{ maxWidth: 600 }}>
             <div
               style={{
@@ -1161,14 +1175,10 @@ const handleRemoveStudent = (studentId) => {
                               {student.email || ""}
                             </div>
                           </td>
-                          <td style={tdStyle}>
-                            {student.phone || "Chưa có"}
-                          </td>
+                          <td style={tdStyle}>{student.phone || "Chưa có"}</td>
                           <td style={{ ...tdStyle, textAlign: "center" }}>
                             <button
-                              onClick={() =>
-                                handleRemoveStudent(student._id)
-                              }
+                              onClick={() => handleRemoveStudent(student._id)}
                               disabled={removing}
                               title="Xóa khỏi phòng"
                               style={{
@@ -1178,9 +1188,7 @@ const handleRemoveStudent = (studentId) => {
                                 border: "none",
                                 background: "rgba(239, 68, 68, 0.1)",
                                 color: "#ef4444",
-                                cursor: removing
-                                  ? "not-allowed"
-                                  : "pointer",
+                                cursor: removing ? "not-allowed" : "pointer",
                                 display: "inline-flex",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -1321,14 +1329,11 @@ const handleRemoveStudent = (studentId) => {
                                 marginTop: 2,
                               }}
                             >
-                              {student.studentCode} •{" "}
-                              {student.email}
+                              {student.studentCode} • {student.email}
                             </div>
                           </div>
                           <button
-                            onClick={() =>
-                              handleAssignStudent(student._id)
-                            }
+                            onClick={() => handleAssignStudent(student._id)}
                             disabled={assigning}
                             style={{
                               padding: "6px 12px",
@@ -1339,9 +1344,7 @@ const handleRemoveStudent = (studentId) => {
                               color: "#fff",
                               fontWeight: 700,
                               fontSize: 11,
-                              cursor: assigning
-                                ? "not-allowed"
-                                : "pointer",
+                              cursor: assigning ? "not-allowed" : "pointer",
                               display: "flex",
                               alignItems: "center",
                               gap: 4,
@@ -1361,11 +1364,18 @@ const handleRemoveStudent = (studentId) => {
 
             {/* Edit Fields */}
             <div style={{ marginTop: 20 }}>
-              <label style={labelStyle}>Trạng thái (Hệ thống tự nhận diện Trống/Đang ở)</label>
+              <label style={labelStyle}>
+                Trạng thái (Hệ thống tự nhận diện Trống/Đang ở)
+              </label>
               <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
                 {Object.entries(statusConfig).map(([key, cfg]) => {
                   const hasStudents = (selectedRoom.students || []).length > 0;
-                  const isDisabled = key === "maintenance" ? hasStudents : (editStatus === "maintenance" ? false : key !== editStatus);
+                  const isDisabled =
+                    key === "maintenance"
+                      ? hasStudents
+                      : editStatus === "maintenance"
+                        ? false
+                        : key !== editStatus;
                   const isSelected = editStatus === key;
 
                   return (
@@ -1373,14 +1383,28 @@ const handleRemoveStudent = (studentId) => {
                       key={key}
                       onClick={() => setEditStatus(key)}
                       disabled={isDisabled}
-                      title={key === "maintenance" && hasStudents ? "Phòng đang có người, không thể bảo trì" : ""}
+                      title={
+                        key === "maintenance" && hasStudents
+                          ? "Phòng đang có người, không thể bảo trì"
+                          : ""
+                      }
                       style={{
                         flex: 1,
                         padding: "10px 12px",
                         borderRadius: 12,
-                        border: isSelected ? `2px solid ${cfg.dot}` : "2px solid #e2e8f0",
-                        background: isSelected ? cfg.cardBg : isDisabled ? "#f1f5f9" : "#fff",
-                        color: isSelected ? cfg.dot : isDisabled ? "#cbd5e1" : "#64748b",
+                        border: isSelected
+                          ? `2px solid ${cfg.dot}`
+                          : "2px solid #e2e8f0",
+                        background: isSelected
+                          ? cfg.cardBg
+                          : isDisabled
+                            ? "#f1f5f9"
+                            : "#fff",
+                        color: isSelected
+                          ? cfg.dot
+                          : isDisabled
+                            ? "#cbd5e1"
+                            : "#64748b",
                         fontWeight: 700,
                         fontSize: 13,
                         cursor: isDisabled ? "not-allowed" : "pointer",
@@ -1396,7 +1420,8 @@ const handleRemoveStudent = (studentId) => {
                           width: 8,
                           height: 8,
                           borderRadius: 999,
-                          background: isDisabled && !isSelected ? "#cbd5e1" : cfg.dot,
+                          background:
+                            isDisabled && !isSelected ? "#cbd5e1" : cfg.dot,
                         }}
                       />
                       {cfg.label}
@@ -1415,6 +1440,14 @@ const handleRemoveStudent = (studentId) => {
               }}
             >
               <ActionButton
+                onClick={openRoomHistory}
+                disabled={loadingHistory}
+                variant="secondary"
+              >
+                <FaHistory style={{ marginRight: 6 }} />
+                Xem lịch sử
+              </ActionButton>
+              <ActionButton
                 onClick={() => setSelectedRoom(null)}
                 disabled={updatingRoom}
                 variant="secondary"
@@ -1432,11 +1465,184 @@ const handleRemoveStudent = (studentId) => {
           </ModalCard>
         </ModalOverlay>
       )}
+
+      {showHistoryModal && (
+        <HistoryModal
+          selectedRoom={selectedRoom}
+          roomHistory={roomHistory}
+          loadingHistory={loadingHistory}
+          onClose={() => setShowHistoryModal(false)}
+        />
+      )}
     </div>
   );
 }
 
 /* ===== SHARED COMPONENTS ===== */
+
+function HistoryModal({ selectedRoom, roomHistory, loadingHistory, onClose }) {
+  return (
+    <ModalOverlay onClose={onClose} variant="soft">
+      <ModalCard
+        style={{
+          width: "1120px",
+          maxWidth: "calc(100vw - 48px)",
+          height: "78vh",
+          maxHeight: "760px",
+          display: "flex",
+          flexDirection: "column",
+          padding: 0,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            padding: "24px 28px 18px",
+            borderBottom: "1px solid #e2e8f0",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            flexShrink: 0,
+            background: "#fff",
+          }}
+        >
+          <div>
+            <h2 style={{ margin: 0, fontSize: 24, color: "#0f172a" }}>
+              <FaHistory
+                style={{
+                  marginRight: 10,
+                  color: "#8b5cf6",
+                  fontSize: 18,
+                }}
+              />
+              Lịch sử phòng {selectedRoom?.roomNumber}
+            </h2>
+            <p style={{ margin: "8px 0 0", color: "#64748b", fontSize: 14 }}>
+              Danh sách sinh viên đã ở phòng này theo từng kỳ
+            </p>
+          </div>
+
+          <CloseButton onClick={onClose} />
+        </div>
+
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "22px 28px 28px",
+            background: "#fff",
+          }}
+        >
+          {loadingHistory ? (
+            <EmptyState text="Đang tải lịch sử..." />
+          ) : roomHistory.length === 0 ? (
+            <EmptyState text="Chưa có lịch sử sinh viên trong phòng này" />
+          ) : (
+            roomHistory.map((semesterGroup, index) => (
+              <div
+                key={semesterGroup.semester || index}
+                style={{
+                  marginBottom: 18,
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 16,
+                  overflow: "hidden",
+                  background: "#fff",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "14px 18px",
+                    background: "#f8fafc",
+                    fontWeight: 800,
+                    color: "#1e293b",
+                    borderBottom: "1px solid #e2e8f0",
+                    fontSize: 17,
+                  }}
+                >
+                  {semesterGroup.semester}
+                </div>
+
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    tableLayout: "fixed",
+                  }}
+                >
+                  <thead>
+                    <tr style={{ background: "#fff" }}>
+                      <th style={{ ...thStyle, width: "13%" }}>Giường</th>
+                      <th style={{ ...thStyle, width: "16%" }}>Mã SV</th>
+                      <th style={{ ...thStyle, width: "22%" }}>Họ tên</th>
+                      <th style={{ ...thStyle, width: "31%" }}>Email</th>
+                      <th style={{ ...thStyle, width: "18%" }}>Trạng thái</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {(semesterGroup.students || []).map((student, idx) => (
+                      <tr
+                        key={`${student._id || idx}-${student.bedNumber}`}
+                        style={{
+                          borderBottom:
+                            idx < semesterGroup.students.length - 1
+                              ? "1px solid #f1f5f9"
+                              : "none",
+                        }}
+                      >
+                        <td style={tdStyle}>Giường {student.bedNumber || "-"}</td>
+                        <td style={tdStyle}>{student.studentCode || "N/A"}</td>
+                        <td style={tdStyle}>
+                          <strong>{student.fullName || "N/A"}</strong>
+                        </td>
+                        <td
+                          style={{
+                            ...tdStyle,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                          title={student.email || "-"}
+                        >
+                          {student.email || "-"}
+                        </td>
+                        <td style={tdStyle}>
+                          {student.status === "checked_in"
+                            ? "Đang ở"
+                            : student.status === "checked_out"
+                              ? "Đã rời phòng"
+                              : student.status || "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))
+          )}
+        </div>
+      </ModalCard>
+    </ModalOverlay>
+  );
+}
+
+function EmptyState({ text }) {
+  return (
+    <div
+      style={{
+        padding: 36,
+        textAlign: "center",
+        color: "#94a3b8",
+        background: "#f8fafc",
+        borderRadius: 16,
+        border: "1px dashed #e2e8f0",
+        fontWeight: 600,
+      }}
+    >
+      {text}
+    </div>
+  );
+}
 
 function SummaryCard({ title, value, icon, gradient }) {
   return (
@@ -1489,23 +1695,39 @@ function SummaryCard({ title, value, icon, gradient }) {
   );
 }
 
-function ModalOverlay({ children, onClose }) {
+function ModalOverlay({ children, onClose, variant = "default" }) {
   return (
     <div
       onClick={onClose}
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(15, 23, 42, 0.55)",
-        backdropFilter: "blur(4px)",
-        display: "grid",
-        placeItems: "center",
-        zIndex: 1000,
-        padding: 20,
-        overflowY: "auto",
+        background:
+          variant === "soft"
+            ? "rgba(15, 23, 42, 0.12)"
+            : "rgba(15, 23, 42, 0.35)",
+        backdropFilter: variant === "soft" ? "none" : "blur(3px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 9999,
+        padding: 24,
+        boxSizing: "border-box",
+        overflow: "hidden",
       }}
     >
-      <div onClick={(e) => e.stopPropagation()}>{children}</div>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: "100%",
+          maxHeight: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }

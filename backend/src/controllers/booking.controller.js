@@ -455,9 +455,175 @@ const getMyBooking = async (req, res) => {
   }
 };
 
+const getRoomHistory = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+      return res.status(400).json({
+        success: false,
+        message: "roomId không hợp lệ",
+      });
+    }
+
+    const currentSemester = await semesterService.getCurrentSemester();
+
+    const currentSemesterText = `${currentSemester.name} ${currentSemester.year}`;
+
+    const semesterOrder = {
+      Spring: 1,
+      Summer: 2,
+      Fall: 3,
+    };
+
+    const parseSemester = (semester) => {
+      const [name, year] = semester.split(" ");
+
+      return {
+        name,
+        year: Number(year),
+        order: semesterOrder[name] || 0,
+      };
+    };
+
+    const current = parseSemester(currentSemesterText);
+
+    const isBeforeCurrentSemester = (semester) => {
+      const s = parseSemester(semester);
+
+      if (s.year < current.year) return true;
+      if (s.year > current.year) return false;
+
+      return s.order < current.order;
+    };
+
+    const bookings = await Booking.find({
+      roomId,
+      status: { $in: ["confirmed", "checked_in", "checked_out"] },
+    })
+      .populate({
+        path: "studentId",
+        model: "User",
+        select: "fullName studentCode email phone gender",
+      })
+      .sort({ startDate: 1, createdAt: 1 })
+      .lean();
+
+    const filteredBookings = bookings.filter((booking) =>
+      isBeforeCurrentSemester(booking.semester),
+    );
+
+    const grouped = {};
+
+    filteredBookings.forEach((booking) => {
+      const semesterName = booking.semester || "Không xác định";
+
+      if (!grouped[semesterName]) {
+        grouped[semesterName] = {
+          semester: semesterName,
+          students: [],
+        };
+      }
+
+      grouped[semesterName].students.push({
+        _id: booking.studentId?._id,
+        fullName: booking.studentId?.fullName || "N/A",
+        studentCode: booking.studentId?.studentCode || "N/A",
+        email: booking.studentId?.email || "",
+        phone: booking.studentId?.phone || "",
+        gender: booking.studentId?.gender || "",
+        bedNumber: booking.bedNumber,
+        status: booking.status,
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+        checkInDate: booking.checkInDate,
+        checkOutDate: booking.checkOutDate,
+      });
+    });
+
+    return res.status(200).json({
+      success: true,
+      currentSemester: currentSemesterText,
+      data: Object.values(grouped),
+    });
+  } catch (error) {
+    console.error("GET ROOM HISTORY ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy lịch sử phòng",
+      error: error.message,
+    });
+  }
+};
+// Manager: Lấy tất cả booking
+const getAllBookings = async (req, res) => {
+  try {
+    const { status, semester, studentCode, roomId } = req.query;
+
+    const query = {};
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (semester) {
+      query.semester = semester;
+    }
+
+    if (roomId) {
+      if (!mongoose.Types.ObjectId.isValid(roomId)) {
+        return res.status(400).json({
+          success: false,
+          message: "roomId không hợp lệ",
+        });
+      }
+
+      query.roomId = roomId;
+    }
+
+    if (studentCode) {
+      const students = await User.find({
+        role: "student",
+        studentCode: { $regex: studentCode, $options: "i" },
+      }).select("_id");
+
+      query.studentId = { $in: students.map((s) => s._id) };
+    }
+
+    const bookings = await Booking.find(query)
+      .populate("studentId", "fullName studentCode email phone gender")
+      .populate({
+        path: "roomId",
+        select: "roomNumber displayName floor price capacity status building",
+        populate: {
+          path: "building",
+          select: "name",
+        },
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      total: bookings.length,
+      data: bookings,
+    });
+  } catch (error) {
+    console.error("GET ALL BOOKINGS ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy danh sách đặt phòng",
+      error: error.message,
+    });
+  }
+};
 module.exports = {
   checkBookingEligibility,
   getAvailableRooms,
   createBooking,
   getMyBooking,
+  getRoomHistory,
+  getAllBookings,
 };

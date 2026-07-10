@@ -85,21 +85,6 @@ function Sidebar() {
         icon: <FaBell />,
       },
       {
-        path: "/admin/payments",
-        label: "Thanh toán",
-        icon: <FaMoneyBillWave />,
-      },
-      {
-        path: "/admin/requests",
-        label: "Yêu cầu",
-        icon: <FaTools />,
-      },
-      {
-        path: "/admin/accounts",
-        label: "Tài khoản",
-        icon: <FaUsersCog />,
-      },
-      {
         path: "/admin/semesters",
         label: "Quản lý kỳ học",
         icon: <FaCalendarAlt />,
@@ -116,6 +101,11 @@ function Sidebar() {
         path: "/manager/students",
         label: "Quản lý sinh viên",
         icon: <FaUserGraduate />,
+      },
+      {
+        path: "/manager/bookings",
+        label: "Quản lý đặt phòng",
+        icon: <FaBed />,
       },
       {
         path: "/manager/tickets",

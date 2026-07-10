@@ -8,14 +8,14 @@ router.get(
   "/check-eligibility",
   authenticate,
   authorize("student"),
-  bookingController.checkBookingEligibility
+  bookingController.checkBookingEligibility,
 );
 
 // Lấy danh sách phòng trống theo tòa nhà
 router.get(
   "/available-rooms/:buildingId",
   authenticate,
-  bookingController.getAvailableRooms
+  bookingController.getAvailableRooms,
 );
 
 // Tạo booking mới
@@ -23,7 +23,7 @@ router.post(
   "/create",
   authenticate,
   authorize("student"),
-  bookingController.createBooking
+  bookingController.createBooking,
 );
 
 // Lấy booking hiện tại của sinh viên
@@ -31,7 +31,20 @@ router.get(
   "/my-booking",
   authenticate,
   authorize("student"),
-  bookingController.getMyBooking
+  bookingController.getMyBooking,
 );
 
+router.get(
+  "/room/:roomId/history",
+  authenticate,
+  authorize("admin"),
+  bookingController.getRoomHistory,
+);
+
+router.get(
+  "/",
+  authenticate,
+  authorize("manager"),
+  bookingController.getAllBookings,
+);
 module.exports = router;

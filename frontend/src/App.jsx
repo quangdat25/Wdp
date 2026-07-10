@@ -36,6 +36,7 @@ import UtilityInvoiceManagement from "./pages/Manager/UtilityInvoiceManagement";
 import MyInvoices from "./pages/Student/MyInvoices";
 import PaymentResult from "./pages/Student/PaymentResult";
 import SemesterManagement from "./pages/Admin/SemesterManagement";
+import BookingManagement from "./pages/Manager/BookingManagement";
 
 function App() {
   const location = useLocation();
@@ -102,6 +103,10 @@ function App() {
               <Route
                 path="/manager/utility-invoices"
                 element={<UtilityInvoiceManagement />}
+              />
+              <Route
+                path="/manager/bookings"
+                element={<BookingManagement />}
               />
             </Route>
 

@@ -25,10 +25,17 @@ export const getMyBooking = async () => {
   const res = await request.get("/api/booking/my-booking");
   return res.data;
 };
+// Lấy booking 
+export const getAllBookings = async () => {
+  const res = await request.get("/api/booking");
+  return res.data;
+};
 
 // Tạo URL thanh toán VNPAY cho booking
 export const createBookingPayment = async (bookingId) => {
-  const res = await request.post("/api/payment/create-booking-payment", { bookingId });
+  const res = await request.post("/api/payment/create-booking-payment", {
+    bookingId,
+  });
   return res.data;
 };
 
