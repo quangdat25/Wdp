@@ -4,7 +4,7 @@ const bookingSchema = new mongoose.Schema(
     {
         studentId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Student",
+            ref: "student",
             required: true,
         },
 
