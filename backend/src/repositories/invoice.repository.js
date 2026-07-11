@@ -6,13 +6,6 @@ class InvoiceRepository {
       .populate("bookingId")
       .sort({ createdAt: -1 });
   }
-
-  async findUnpaidInvoicesByStudentId(studentId) {
-    return Invoice.find({
-      studentId,
-      status: { $in: ["unpaid", "overdue"] },
-    });
-  }
   async findAllInvoices(filter = {}) {
     return Invoice.find(filter)
       .populate("studentId", "fullName username studentCode email phone")

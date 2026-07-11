@@ -12,17 +12,22 @@ const getVNDateString = (date) => {
 };
 
 const updateRoomOccupancyAndStatus = async (roomId) => {
-  const room = await Room.findById(roomId);
-  if (!room) return;
+  const room = await Room.findById(roomId).select("students capacity status");
+
+  if (!room) {
+    console.log(`Không tìm thấy phòng: ${roomId}`);
+    return;
+  }
 
   const currentOccupants = room.students.length;
 
-  const newStatus =
-    room.status === "maintenance"
-      ? "maintenance"
-      : currentOccupants >= room.capacity
-      ? "occupied"
-      : "available";
+  let newStatus;
+
+  if (room.status === "maintenance") {
+    newStatus = "maintenance";
+  } else {
+    newStatus = currentOccupants > 0 ? "occupied" : "available";
+  }
 
   await Room.updateOne(
     { _id: roomId },
@@ -31,7 +36,7 @@ const updateRoomOccupancyAndStatus = async (roomId) => {
         currentOccupants,
         status: newStatus,
       },
-    }
+    },
   );
 };
 
@@ -72,7 +77,7 @@ const autoCheckInBookings = () => {
                   bedNumber: booking.bedNumber,
                 },
               },
-            }
+            },
           );
 
           await updateRoomOccupancyAndStatus(booking.roomId);
@@ -86,7 +91,7 @@ const autoCheckInBookings = () => {
               $set: {
                 status: "checked_in",
               },
-            }
+            },
           );
         }
 
@@ -97,7 +102,7 @@ const autoCheckInBookings = () => {
     },
     {
       timezone: "Asia/Ho_Chi_Minh",
-    }
+    },
   );
 };
 

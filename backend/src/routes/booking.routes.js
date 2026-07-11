@@ -1,37 +1,69 @@
 const express = require("express");
-const router = express.Router();
-const bookingController = require("../controllers/booking.controller");
-const { authenticate, authorize } = require("../middleware/authUser");
 
-// Kiểm tra điều kiện booking (CFD Score + Invoice)
+const router = express.Router();
+
+const {
+  checkBookingEligibility,
+  getAvailableRooms,
+  getRoomBedAvailability,
+  createBooking,
+  getMyBooking,
+  getRoomHistory,
+  getAllBookings,
+} = require("../controllers/booking.controller");
+
+const {
+  authenticate,
+  authorize,
+} = require("../middleware/authUser");
+
 router.get(
   "/check-eligibility",
   authenticate,
   authorize("student"),
-  bookingController.checkBookingEligibility
+  checkBookingEligibility,
 );
 
-// Lấy danh sách phòng trống theo tòa nhà
 router.get(
   "/available-rooms/:buildingId",
   authenticate,
-  bookingController.getAvailableRooms
+  authorize("student"),
+  getAvailableRooms,
 );
 
-// Tạo booking mới
-router.post(
-  "/create",
+router.get(
+  "/rooms/:roomId/beds",
   authenticate,
   authorize("student"),
-  bookingController.createBooking
+  getRoomBedAvailability,
 );
 
-// Lấy booking hiện tại của sinh viên
+router.post(
+  "/",
+  authenticate,
+  authorize("student"),
+  createBooking,
+);
+
 router.get(
   "/my-booking",
   authenticate,
   authorize("student"),
-  bookingController.getMyBooking
+  getMyBooking,
+);
+
+router.get(
+  "/",
+  authenticate,
+  authorize("manager", "admin"),
+  getAllBookings,
+);
+
+router.get(
+  "/room/:roomId/history",
+  authenticate,
+  authorize("manager", "admin"),
+  getRoomHistory,
 );
 
 module.exports = router;

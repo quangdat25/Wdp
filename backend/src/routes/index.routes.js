@@ -1,11 +1,10 @@
-﻿const studentRoutes = require("./student.routes");
+const studentRoutes = require("./student.routes");
 const personnelRoutes = require("./personnel.routes");
 const userRoutes = require("./user.routes");
 const roomRoutes = require("./room.routes");
 const notificationRoutes = require("./notification.routes");
 const violationRoutes = require("./violation.routes");
 const ticketRoutes = require("./ticket.routes");
-const dashboardRoutes = require("./dashboard.routes");
 const uploadRoutes = require("./uploadImage.routes");
 const ticketManagementRoutes = require("./ticketManagement.routes");
 const parentRoutes = require("./parent.routes");
@@ -17,13 +16,11 @@ const semesterRoutes = require("./semester.routes");
 const newsRoutes = require("./news.routes");
 
 function routes(app) {
-  app.use("/api/semesters", semesterRoutes);
   app.use("/api/students", studentRoutes);
   app.use("/api/personnel", personnelRoutes);
   app.use("/api/users", userRoutes);
   app.use("/api/parents", parentRoutes);
   app.use("/api", roomRoutes);
-  app.use("/api/admin", dashboardRoutes);
   app.use("/api/booking", bookingRoutes);
   app.use("/api/payment", paymentRoutes);
   app.use("/api/notifications", notificationRoutes);
@@ -38,4 +35,3 @@ function routes(app) {
 }
 
 module.exports = routes;
-

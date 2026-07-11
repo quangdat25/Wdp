@@ -165,11 +165,7 @@ function Sidebar() {
       },
       {
         path: "/manager/buildings",
-<<<<<<< HEAD
         label: "Quản lý tòa nhà",
-=======
-        label: "Tòa nhà",
->>>>>>> a061068 (update manage room)
         icon: <FaBuilding />,
       },
       {

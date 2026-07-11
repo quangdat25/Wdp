@@ -9,12 +9,10 @@ const {
   deletePersonnel,
 } = require("../controllers/personnel.controller");
 
-const { authenticate, authorize } = require("../middleware/authUser");
-
-router.get("/", authenticate, authorize("admin"), getAllPersonnel);
-router.get("/:id", authenticate, authorize("admin"), getPersonnelById);
-router.post("/", authenticate, authorize("admin"), createPersonnel);
-router.put("/:id", authenticate, authorize("admin"), updatePersonnel);
-router.delete("/:id", authenticate, authorize("admin"), deletePersonnel);
+router.get("/", getAllPersonnel);
+router.get("/:id", getPersonnelById);
+router.post("/", createPersonnel);
+router.put("/:id", updatePersonnel);
+router.delete("/:id", deletePersonnel);
 
 module.exports = router;

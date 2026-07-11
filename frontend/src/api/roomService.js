@@ -78,6 +78,10 @@ export const healthCheck = async () => {
   return res.data;
 };
 
+export const getRoomHistory = async (roomId) => {
+  const res = await request.get(`api/booking/room/${roomId}/history`);
+  return res.data;
+};
 export default {
   healthCheck,
   getAllBuildings,
@@ -90,4 +94,5 @@ export default {
   assignStudentToRoom,
   removeStudentFromRoom,
   getAvailableStudents,
+  getRoomHistory,
 };
