@@ -38,6 +38,7 @@ import PaymentResult from "./pages/Student/PaymentResult";
 import SemesterManagement from "./pages/Admin/SemesterManagement";
 import BookingManagement from "./pages/Manager/BookingManagement";
 import MyUtilities from "./pages/Student/MyUtilities";
+import MyRoom from "./pages/Student/MyRoom";
 
 function App() {
   const location = useLocation();
@@ -89,6 +90,7 @@ function App() {
                 element={<PaymentResult />}
               />
               <Route path="/student/my-utilities" element={<MyUtilities />} />
+              <Route path="/student/room" element={<MyRoom />} />
             </Route>
 
             {/* Parent Routes */}
