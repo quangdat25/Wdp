@@ -25,7 +25,6 @@ import {
   FaSearch,
   FaUserPlus,
   FaUserMinus,
-  FaHistory,
 } from "react-icons/fa";
 import { Modal } from "antd";
 const statusConfig = {
@@ -73,9 +72,12 @@ function RoomManagement() {
   const [updatingRoom, setUpdatingRoom] = useState(false);
   const [editStatus, setEditStatus] = useState("");
   const [editCapacity, setEditCapacity] = useState(4);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showOccupancyModal, setShowOccupancyModal] = useState(false);
   const [roomHistory, setRoomHistory] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [upcomingStudents, setUpcomingStudents] = useState([]);
+  const [currentSemesterName, setCurrentSemesterName] = useState("");
+  const [nextSemesterName, setNextSemesterName] = useState("");
+  const [loadingOccupancy, setLoadingOccupancy] = useState(false);
   // Student assignment states
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [availableStudents, setAvailableStudents] = useState([]);
@@ -85,20 +87,107 @@ function RoomManagement() {
   const [removing, setRemoving] = useState(false);
   const { confirm } = Modal;
 
-  const openRoomHistory = async () => {
-    if (!selectedRoom) return;
+  const openRoomOccupancy = async () => {
+    if (!selectedRoom?._id) return;
 
     try {
-      setLoadingHistory(true);
-      setShowHistoryModal(true);
+      setLoadingOccupancy(true);
+      setShowOccupancyModal(true);
 
-      const res = await getRoomHistory(selectedRoom._id);
-      setRoomHistory(res.data?.data || res.data || []);
+      const response = await getRoomHistory(selectedRoom._id);
+
+      // Hỗ trợ cả hai kiểu service:
+      // 1. return res.data
+      // 2. return nguyên Axios response
+      const payload =
+        response?.success !== undefined
+          ? response
+          : response?.data?.success !== undefined
+            ? response.data
+            : response?.data || {};
+
+      const rawHistory = Array.isArray(payload.history)
+        ? payload.history
+        : Array.isArray(payload.data)
+          ? payload.data
+          : [];
+
+      const rawUpcoming = Array.isArray(payload.upcoming) ? payload.upcoming : [];
+
+      // Thu thập tất cả sinh viên từ cả history và upcoming
+      const allStudents = [];
+      rawUpcoming.forEach((student) => {
+        if (student) allStudents.push(student);
+      });
+      rawHistory.forEach((group) => {
+        if (group && Array.isArray(group.students)) {
+          group.students.forEach((student) => {
+            if (student) {
+              const studentSemester = student.semester || group.semester;
+              allStudents.push({ ...student, semester: studentSemester });
+            }
+          });
+        }
+      });
+
+      // Loại bỏ trùng lặp dựa trên _id hoặc mã SV + kỳ học
+      const seenKeys = new Set();
+      const uniqueStudents = [];
+      allStudents.forEach((student) => {
+        const key = student._id || `${student.studentCode}-${student.semester}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          uniqueStudents.push(student);
+        }
+      });
+
+      const currentVal = parseSemester(payload.currentSemester);
+      const nextVal = parseSemester(payload.nextSemester);
+
+      const upcomingList = [];
+      const historyMap = {};
+
+      uniqueStudents.forEach((student) => {
+        const semVal = parseSemester(student.semester);
+        if (semVal === nextVal && nextVal !== 0) {
+          upcomingList.push(student);
+        } else if (semVal < currentVal && semVal !== 0) {
+          const formattedSem = formatSemesterName(student.semester);
+          if (!historyMap[formattedSem]) {
+            historyMap[formattedSem] = {
+              semester: student.semester,
+              semVal: semVal,
+              students: [],
+            };
+          }
+          historyMap[formattedSem].students.push(student);
+        }
+      });
+
+      // Chuyển historyMap thành mảng và sắp xếp giảm dần theo semVal
+      const sortedHistory = Object.values(historyMap)
+        .sort((a, b) => b.semVal - a.semVal)
+        .map((group) => ({
+          semester: group.semester,
+          students: group.students,
+        }));
+
+      setRoomHistory(sortedHistory);
+      setUpcomingStudents(upcomingList);
+
+      setCurrentSemesterName(payload.currentSemester || "");
+      setNextSemesterName(payload.nextSemester || "");
     } catch (error) {
-      console.error("Error fetching room history:", error);
-      alert(error.response?.data?.message || "Lỗi tải lịch sử phòng");
+      console.error("GET ROOM OCCUPANCY ERROR:", error);
+      alert(
+        error.response?.data?.message ||
+        "Lỗi khi tải thông tin cư trú của phòng",
+      );
+
+      setRoomHistory([]);
+      setUpcomingStudents([]);
     } finally {
-      setLoadingHistory(false);
+      setLoadingOccupancy(false);
     }
   };
   // Fetch buildings
@@ -1065,36 +1154,36 @@ function RoomManagement() {
                 </h3>
                 {(selectedRoom.students || []).length <
                   selectedRoom.capacity && (
-                  <button
-                    onClick={toggleAddStudent}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "8px 14px",
-                      borderRadius: 10,
-                      border: "none",
-                      background: showAddStudent
-                        ? "#f1f5f9"
-                        : "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-                      color: showAddStudent ? "#475569" : "#fff",
-                      fontWeight: 700,
-                      fontSize: 12,
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                    }}
-                  >
-                    {showAddStudent ? (
-                      <>
-                        <FaTimes /> Đóng
-                      </>
-                    ) : (
-                      <>
-                        <FaUserPlus /> Thêm SV
-                      </>
-                    )}
-                  </button>
-                )}
+                    <button
+                      onClick={toggleAddStudent}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "8px 14px",
+                        borderRadius: 10,
+                        border: "none",
+                        background: showAddStudent
+                          ? "#f1f5f9"
+                          : "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                        color: showAddStudent ? "#475569" : "#fff",
+                        fontWeight: 700,
+                        fontSize: 12,
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {showAddStudent ? (
+                        <>
+                          <FaTimes /> Đóng
+                        </>
+                      ) : (
+                        <>
+                          <FaUserPlus /> Thêm SV
+                        </>
+                      )}
+                    </button>
+                  )}
               </div>
 
               {/* Current Students List */}
@@ -1365,7 +1454,7 @@ function RoomManagement() {
             {/* Edit Fields */}
             <div style={{ marginTop: 20 }}>
               <label style={labelStyle}>
-                Trạng thái (Hệ thống tự nhận diện Trống/Đang ở)
+                Trạng thái
               </label>
               <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
                 {Object.entries(statusConfig).map(([key, cfg]) => {
@@ -1440,12 +1529,12 @@ function RoomManagement() {
               }}
             >
               <ActionButton
-                onClick={openRoomHistory}
-                disabled={loadingHistory}
+                onClick={openRoomOccupancy}
+                disabled={loadingOccupancy}
                 variant="secondary"
               >
-                <FaHistory style={{ marginRight: 6 }} />
-                Xem lịch sử
+                <FaUserGraduate style={{ marginRight: 6 }} />
+                Thông tin cư trú
               </ActionButton>
               <ActionButton
                 onClick={() => setSelectedRoom(null)}
@@ -1466,12 +1555,21 @@ function RoomManagement() {
         </ModalOverlay>
       )}
 
-      {showHistoryModal && (
-        <HistoryModal
+      {showOccupancyModal && (
+        <RoomOccupancyModal
           selectedRoom={selectedRoom}
           roomHistory={roomHistory}
-          loadingHistory={loadingHistory}
-          onClose={() => setShowHistoryModal(false)}
+          upcomingStudents={upcomingStudents}
+          currentSemesterName={currentSemesterName}
+          nextSemesterName={nextSemesterName}
+          loading={loadingOccupancy}
+          onClose={() => {
+            setShowOccupancyModal(false);
+            setRoomHistory([]);
+            setUpcomingStudents([]);
+            setCurrentSemesterName("");
+            setNextSemesterName("");
+          }}
         />
       )}
     </div>
@@ -1480,15 +1578,23 @@ function RoomManagement() {
 
 /* ===== SHARED COMPONENTS ===== */
 
-function HistoryModal({ selectedRoom, roomHistory, loadingHistory, onClose }) {
+function RoomOccupancyModal({
+  selectedRoom,
+  roomHistory,
+  upcomingStudents,
+  currentSemesterName,
+  nextSemesterName,
+  loading,
+  onClose,
+}) {
   return (
     <ModalOverlay onClose={onClose} variant="soft">
       <ModalCard
         style={{
           width: "1120px",
           maxWidth: "calc(100vw - 48px)",
-          height: "78vh",
-          maxHeight: "760px",
+          height: "82vh",
+          maxHeight: "800px",
           display: "flex",
           flexDirection: "column",
           padding: 0,
@@ -1497,7 +1603,7 @@ function HistoryModal({ selectedRoom, roomHistory, loadingHistory, onClose }) {
       >
         <div
           style={{
-            padding: "24px 28px 18px",
+            padding: "22px 28px 18px",
             borderBottom: "1px solid #e2e8f0",
             display: "flex",
             justifyContent: "space-between",
@@ -1508,17 +1614,18 @@ function HistoryModal({ selectedRoom, roomHistory, loadingHistory, onClose }) {
         >
           <div>
             <h2 style={{ margin: 0, fontSize: 24, color: "#0f172a" }}>
-              <FaHistory
+              <FaUserGraduate
                 style={{
                   marginRight: 10,
-                  color: "#8b5cf6",
-                  fontSize: 18,
+                  color: "#2563eb",
+                  fontSize: 19,
+                  verticalAlign: "middle",
                 }}
               />
-              Lịch sử phòng {selectedRoom?.roomNumber}
+              Thông tin cư trú phòng {selectedRoom?.roomNumber}
             </h2>
             <p style={{ margin: "8px 0 0", color: "#64748b", fontSize: 14 }}>
-              Danh sách sinh viên đã ở phòng này theo từng kỳ
+              Theo dõi sinh viên đã đặt chỗ cho kỳ tiếp theo và dữ liệu cư trú các kỳ trước.
             </p>
           </div>
 
@@ -1530,101 +1637,306 @@ function HistoryModal({ selectedRoom, roomHistory, loadingHistory, onClose }) {
             flex: 1,
             overflowY: "auto",
             padding: "22px 28px 28px",
-            background: "#fff",
+            background: "#f8fafc",
           }}
         >
-          {loadingHistory ? (
-            <EmptyState text="Đang tải lịch sử..." />
-          ) : roomHistory.length === 0 ? (
-            <EmptyState text="Chưa có lịch sử sinh viên trong phòng này" />
+          {loading ? (
+            <EmptyState text="Đang tải thông tin cư trú..." />
           ) : (
-            roomHistory.map((semesterGroup, index) => (
-              <div
-                key={semesterGroup.semester || index}
-                style={{
-                  marginBottom: 18,
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 16,
-                  overflow: "hidden",
-                  background: "#fff",
-                }}
-              >
+            <>
+              <section style={{ marginBottom: 26 }}>
                 <div
                   style={{
-                    padding: "14px 18px",
-                    background: "#f8fafc",
-                    fontWeight: 800,
-                    color: "#1e293b",
-                    borderBottom: "1px solid #e2e8f0",
-                    fontSize: 17,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 12,
+                    gap: 12,
                   }}
                 >
-                  {semesterGroup.semester}
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 18, color: "#0f172a" }}>
+                      Sinh viên đã đặt chỗ cho kì tới
+                    </h3>
+                    <p
+                      style={{
+                        margin: "4px 0 0",
+                        color: "#64748b",
+                        fontSize: 13,
+                      }}
+                    >
+                      Danh sách booking cho kỳ tiếp theo.
+                    </p>
+                  </div>
+
+                  <span
+                    style={{
+                      background: "#dbeafe",
+                      color: "#1d4ed8",
+                      padding: "7px 12px",
+                      borderRadius: 999,
+                      fontSize: 13,
+                      fontWeight: 800,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {nextSemesterName || "Kỳ tiếp theo"}
+                  </span>
                 </div>
 
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    tableLayout: "fixed",
-                  }}
-                >
-                  <thead>
-                    <tr style={{ background: "#fff" }}>
-                      <th style={{ ...thStyle, width: "13%" }}>Giường</th>
-                      <th style={{ ...thStyle, width: "16%" }}>Mã SV</th>
-                      <th style={{ ...thStyle, width: "22%" }}>Họ tên</th>
-                      <th style={{ ...thStyle, width: "31%" }}>Email</th>
-                      <th style={{ ...thStyle, width: "18%" }}>Trạng thái</th>
-                    </tr>
-                  </thead>
+                {upcomingStudents.length === 0 ? (
+                  <div
+                    style={{
+                      padding: "26px 20px",
+                      textAlign: "center",
+                      color: "#64748b",
+                      background: "#fff",
+                      borderRadius: 14,
+                      border: "1px dashed #cbd5e1",
+                      fontSize: 14,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Chưa có sinh viên đặt chỗ cho {nextSemesterName || "kỳ tiếp theo"}.
+                  </div>
+                ) : (
+                  <OccupancyTable
+                    students={upcomingStudents}
+                    headerBackground="#eff6ff"
+                    borderColor="#bfdbfe"
+                  />
+                )}
+              </section>
 
-                  <tbody>
-                    {(semesterGroup.students || []).map((student, idx) => (
-                      <tr
-                        key={`${student._id || idx}-${student.bedNumber}`}
+              <section>
+                <div style={{ marginBottom: 12 }}>
+                  <h3 style={{ margin: 0, fontSize: 18, color: "#0f172a" }}>
+                    Dữ liệu cư trú các kỳ trước
+                  </h3>
+                  <p
+                    style={{
+                      margin: "4px 0 0",
+                      color: "#64748b",
+                      fontSize: 13,
+                    }}
+                  >
+                    Chỉ hiển thị các kỳ trước {currentSemesterName || "kỳ hiện tại"}.
+                  </p>
+                </div>
+
+                {roomHistory.length === 0 ? (
+                  <EmptyState text="Phòng chưa có dữ liệu cư trú của các kỳ trước" />
+                ) : (
+                  roomHistory.map((semesterGroup, index) => (
+                    <div
+                      key={semesterGroup.semester || index}
+                      style={{
+                        marginBottom: 16,
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 14,
+                        overflow: "hidden",
+                        background: "#fff",
+                      }}
+                    >
+                      <div
                         style={{
-                          borderBottom:
-                            idx < semesterGroup.students.length - 1
-                              ? "1px solid #f1f5f9"
-                              : "none",
+                          padding: "13px 18px",
+                          background: "#f1f5f9",
+                          fontWeight: 800,
+                          color: "#1e293b",
+                          borderBottom: "1px solid #e2e8f0",
+                          fontSize: 16,
                         }}
                       >
-                        <td style={tdStyle}>Giường {student.bedNumber || "-"}</td>
-                        <td style={tdStyle}>{student.studentCode || "N/A"}</td>
-                        <td style={tdStyle}>
-                          <strong>{student.fullName || "N/A"}</strong>
-                        </td>
-                        <td
-                          style={{
-                            ...tdStyle,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                          title={student.email || "-"}
-                        >
-                          {student.email || "-"}
-                        </td>
-                        <td style={tdStyle}>
-                          {student.status === "checked_in"
-                            ? "Đang ở"
-                            : student.status === "checked_out"
-                              ? "Đã rời phòng"
-                              : student.status || "-"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ))
+                        {formatSemesterName(semesterGroup.semester)}
+                      </div>
+
+                      <OccupancyTable
+                        students={semesterGroup.students || []}
+                        headerBackground="#fff"
+                        borderColor="#e2e8f0"
+                        withoutOuterBorder
+                      />
+                    </div>
+                  ))
+                )}
+              </section>
+            </>
           )}
         </div>
       </ModalCard>
     </ModalOverlay>
   );
 }
+
+function OccupancyTable({
+  students,
+  headerBackground,
+  borderColor,
+  withoutOuterBorder = false,
+}) {
+  return (
+    <div
+      style={{
+        overflow: "hidden",
+        borderRadius: withoutOuterBorder ? 0 : 14,
+        border: withoutOuterBorder ? "none" : `1px solid ${borderColor}`,
+        background: "#fff",
+      }}
+    >
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          tableLayout: "fixed",
+        }}
+      >
+        <thead>
+          <tr style={{ background: headerBackground }}>
+            <th style={{ ...thStyle, width: "11%" }}>Giường</th>
+            <th style={{ ...thStyle, width: "15%" }}>Mã SV</th>
+            <th style={{ ...thStyle, width: "22%" }}>Họ tên</th>
+            <th style={{ ...thStyle, width: "30%" }}>Email</th>
+            <th style={{ ...thStyle, width: "22%" }}>Trạng thái</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {students.map((student, index) => (
+            <tr
+              key={
+                student._id ||
+                `${student.studentCode}-${student.bedNumber}-${index}`
+              }
+              style={{
+                borderBottom:
+                  index < students.length - 1 ? "1px solid #f1f5f9" : "none",
+              }}
+            >
+              <td style={tdStyle}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    background: "#eff6ff",
+                    color: "#2563eb",
+                    padding: "4px 9px",
+                    borderRadius: 7,
+                    fontWeight: 800,
+                    fontSize: 12,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Giường {student.bedNumber || "-"}
+                </span>
+              </td>
+
+              <td style={tdStyle}>{student.studentCode || "N/A"}</td>
+
+              <td style={tdStyle}>
+                <strong>{student.fullName || "N/A"}</strong>
+              </td>
+
+              <td
+                style={{
+                  ...tdStyle,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+                title={student.email || "-"}
+              >
+                {student.email || "-"}
+              </td>
+
+              <td style={tdStyle}>
+                <BookingStatusBadge status={student.status} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function BookingStatusBadge({ status }) {
+  const statusMap = {
+    pending: {
+      label: "Chờ thanh toán",
+      background: "#fef3c7",
+      color: "#b45309",
+    },
+    confirmed: {
+      label: "Đã xác nhận",
+      background: "#dcfce7",
+      color: "#15803d",
+    },
+    checked_in: {
+      label: "Đang ở",
+      background: "#dbeafe",
+      color: "#1d4ed8",
+    },
+    checked_out: {
+      label: "Đã rời phòng",
+      background: "#f1f5f9",
+      color: "#64748b",
+    },
+    cancelled: {
+      label: "Đã hủy",
+      background: "#fee2e2",
+      color: "#dc2626",
+    },
+  };
+
+  const config = statusMap[status] || {
+    label: status || "Không xác định",
+    background: "#f1f5f9",
+    color: "#64748b",
+  };
+
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        borderRadius: 999,
+        padding: "5px 10px",
+        background: config.background,
+        color: config.color,
+        fontSize: 12,
+        fontWeight: 800,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {config.label}
+    </span>
+  );
+}
+
+function formatSemesterName(semester) {
+  if (!semester) return "Không xác định";
+
+  return String(semester)
+    .trim()
+    .replace(/^(Spring|Summer|Fall)\s*(\d{4})$/i, (_, name, year) => {
+      const normalizedName =
+        name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+
+      return `${normalizedName} ${year}`;
+    });
+}
+
+function parseSemester(semStr) {
+  if (!semStr) return 0;
+  const cleanStr = String(semStr).replace(/\s+/g, "").toLowerCase();
+  const match = cleanStr.match(/^(spring|summer|fall)(\d{4})$/);
+  if (!match) return 0;
+  const season = match[1];
+  const year = parseInt(match[2], 10);
+  const seasonVal = season === "spring" ? 1 : season === "summer" ? 2 : 3;
+  return year * 10 + seasonVal;
+}
+
 
 function EmptyState({ text }) {
   return (

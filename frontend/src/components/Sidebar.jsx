@@ -17,6 +17,7 @@ import {
   FaDoorOpen,
   FaFileInvoiceDollar,
   FaCalendarAlt,
+  FaBolt,
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -216,6 +217,11 @@ function Sidebar() {
         path: "/student/room",
         label: "Phòng của tôi",
         icon: <FaBed />,
+      },
+      {
+        path: "/student/my-utilities",
+        label: "Điện nước",
+        icon: <FaBolt />,
       },
       {
         path: "/student/invoices",
