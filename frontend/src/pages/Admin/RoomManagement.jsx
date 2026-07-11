@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import AdminSidebar from "./AdminSidebar";
 import Sidebar from "../../components/Sidebar";
 import {
   getAllBuildings,
@@ -308,7 +307,7 @@ function RoomManagement({ role = "admin" }) {
         background: "linear-gradient(180deg, #f8fbff 0%, #f3f8f6 100%)",
       }}
     >
-      {role === "admin" ? <AdminSidebar /> : <Sidebar />}
+      <Sidebar />
 
       <main
         style={{

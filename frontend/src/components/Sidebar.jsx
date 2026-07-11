@@ -121,11 +121,6 @@ function Sidebar() {
         icon: <FaBed />,
       },
       {
-        path: "/admin/buildings",
-        label: "Quản lý tòa nhà",
-        icon: <FaBuilding />,
-      },
-      {
         path: "/admin/students",
         label: "Quản lý sinh viên",
         icon: <FaUserGraduate />,
@@ -172,6 +167,11 @@ function Sidebar() {
         path: "/manager/students",
         label: "Quản lý sinh viên",
         icon: <FaUserGraduate />,
+      },
+      {
+        path: "/manager/bookings",
+        label: "Quản lý đặt phòng",
+        icon: <FaClipboardList />,
       },
       {
         path: "/manager/tickets",

@@ -1,888 +1,578 @@
 /* eslint-disable react/prop-types */
 
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import gsap from "gsap";
 import {
   FaBed,
-  FaClipboardList,
-  FaChartLine,
+  FaDoorOpen,
   FaExclamationTriangle,
   FaMoneyBillWave,
   FaUsers,
-  FaUserCheck,
-  FaBell,
   FaArrowUp,
   FaArrowDown,
+  FaBuilding,
+  FaCalendarAlt,
+  FaPlus,
+  FaHome,
+  FaUserPlus,
+  FaCheck,
+  FaEye,
+  FaChevronLeft,
+  FaChevronRight,
+  FaFilter,
+  FaInfo,
+  FaExclamationCircle,
+  FaSpinner,
+  FaWrench,
+  FaShieldAlt,
   FaClock,
-  FaMapMarkerAlt,
 } from "react-icons/fa";
-import { useEffect } from "react";
-import { showSuccess } from "../../components/Alert";
 import Sidebar from "../../components/Sidebar";
-const overviewCards = [
-  {
-    title: "Tổng sinh viên",
-    value: "1,248",
-    change: "+8.2%",
-    direction: "up",
-    accent: "#2563eb",
-    icon: FaUsers,
-  },
-  {
-    title: "Tỷ lệ lấp đầy",
-    value: "92%",
-    change: "+4.1%",
-    direction: "up",
-    accent: "#16a34a",
-    icon: FaBed,
-  },
-  {
-    title: "Yêu cầu chờ xử lý",
-    value: "18",
-    change: "-6.5%",
-    direction: "down",
-    accent: "#f59e0b",
-    icon: FaClipboardList,
-  },
-  {
-    title: "Doanh thu tháng",
-    value: "248.6M",
-    change: "+11.3%",
-    direction: "up",
-    accent: "#0f766e",
-    icon: FaMoneyBillWave,
-  },
-];
+import Header from "../../components/Headers";
+import getAdminDashboard from "../../api/dashboardService";
 
-const occupancySeries = [
-  { label: "T1", value: 72 },
-  { label: "T2", value: 78 },
-  { label: "T3", value: 83 },
-  { label: "T4", value: 81 },
-  { label: "T5", value: 88 },
-  { label: "T6", value: 90 },
-  { label: "T7", value: 92 },
-  { label: "T8", value: 95 },
-  { label: "T9", value: 94 },
-  { label: "T10", value: 96 },
-  { label: "T11", value: 97 },
-  { label: "T12", value: 92 },
-];
+// Format Currency
+function formatCurrency(amount) {
+  if (!amount) return "$0";
+  if (amount >= 1_000_000) return "$" + (amount / 1_000_000).toFixed(1) + "M";
+  if (amount >= 1_000) return "$" + (amount / 1_000).toFixed(1) + "k";
+  return "$" + amount.toString();
+}
 
-const blocks = [
-  { name: "Khu A", occupied: 96, total: 120, tone: "#2563eb" },
-  { name: "Khu B", occupied: 88, total: 100, tone: "#16a34a" },
-  { name: "Khu C", occupied: 74, total: 90, tone: "#f59e0b" },
-  { name: "Khu D", occupied: 65, total: 80, tone: "#0f766e" },
-];
+// Current Date Formatter
+function getCurrentDateFormatted() {
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  return new Date().toLocaleDateString('en-US', options);
+}
 
-const alerts = [
-  {
-    title: "Phòng chờ xác nhận",
-    detail: "12 đơn đăng ký mới đang chờ phân phòng.",
-    icon: FaBell,
-    tone: "#2563eb",
-  },
-  {
-    title: "Phòng bảo trì",
-    detail: "7 phòng cần xử lý trong 24 giờ tới.",
-    icon: FaExclamationTriangle,
-    tone: "#f59e0b",
-  },
-  {
-    title: "Nhân sự trực ca",
-    detail: "Đủ 18/18 người đang làm việc theo lịch hôm nay.",
-    icon: FaUserCheck,
-    tone: "#16a34a",
-  },
-];
+// Mock Data for Revenue Line Chart
+const REVENUE_DATA = [40, 45, 42, 55, 60, 58, 70, 75, 85, 80, 95, 100]; // percentages
+// Mock Data for Sparklines
+const SPARK_UP = "M0,20 Q5,15 10,18 T20,10 T30,5 T40,2";
+const SPARK_DOWN = "M0,2 Q5,8 10,6 T20,12 T30,15 T40,18";
 
-const recentActivities = [
-  {
-    title: "Sinh viên vào ký túc xá",
-    time: "08:45",
-    note: "23 sinh viên làm thủ tục nhận phòng sáng nay.",
-  },
-  {
-    title: "Cập nhật bảo trì phòng",
-    time: "10:10",
-    note: "Bộ phận kỹ thuật hoàn tất sửa chữa dãy B2.",
-  },
-  {
-    title: "Thông báo quy định mới",
-    time: "13:20",
-    note: "Đã gửi thông báo lịch sinh hoạt tuần tới đến toàn bộ sinh viên.",
-  },
-  {
-    title: "Đối soát thanh toán",
-    time: "15:05",
-    note: "Còn 14 hóa đơn cần xác nhận trước cuối ngày.",
-  },
-];
+function AdminDashboard() {
+  const navigate = useNavigate();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [selectedBooking, setSelectedBooking] = useState(null);
 
-const maintenanceQueue = [
-  { room: "A-302", issue: "Điều hòa yếu", status: "Đang xử lý" },
-  { room: "B-114", issue: "Đèn hành lang", status: "Chờ kiểm tra" },
-  { room: "C-208", issue: "Khóa cửa", status: "Ưu tiên cao" },
-  { room: "D-506", issue: "Nước nóng", status: "Đã lên lịch" },
-];
+  const heroRef = useRef(null);
+  const cardsRef = useRef(null);
+  const chartRef = useRef(null);
 
-function AdminDashboard() { 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await getAdminDashboard();
+        if (res.success) setData(res.data);
+        else setError("Không thể tải dữ liệu");
+      } catch (err) {
+        setError("Lỗi kết nối máy chủ");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (loading || !data) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(heroRef.current, { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" });
+      gsap.fromTo(cardsRef.current?.children, { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: "power2.out", delay: 0.2 });
+      gsap.fromTo(chartRef.current?.querySelectorAll("[data-anim]"), { scaleY: 0, opacity: 0, transformOrigin: "bottom" }, { scaleY: 1, opacity: 1, duration: 0.6, stagger: 0.05, ease: "power2.out", delay: 0.4 });
+    });
+    return () => ctx.revert();
+  }, [loading, data]);
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#F6FAF7", display: "flex" }}>
+        <Sidebar />
+        <main style={{ flex: 1, marginLeft: 240, padding: "24px 40px" }}>
+          <Header />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "50vh", color: "#22C55E", gap: 12, fontSize: 16, fontWeight: 600 }}>
+            <FaSpinner className="animate-spin" style={{ fontSize: 24 }} /> Loading...
+            <style>{`@keyframes spin { to { transform: rotate(360deg) } } .animate-spin { animation: spin 1s linear infinite; }`}</style>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#F6FAF7", display: "flex" }}>
+        <Sidebar />
+        <main style={{ flex: 1, marginLeft: 240, padding: "24px 40px" }}>
+          <Header />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "50vh", color: "#dc2626", gap: 16 }}>
+            <FaExclamationTriangle size={32} />
+            <span style={{ fontWeight: 600, fontSize: 16 }}>{error || "Không có dữ liệu"}</span>
+            <button onClick={() => navigate(0)} style={{ padding: "10px 24px", borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontWeight: 600, cursor: "pointer" }}>Thử lại</button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const { students, occupancy, pendingTickets, monthlyRevenue, occupancySeries, buildings, alerts, bookingRequests, recentActivities } = data;
+
+  const totalRooms = occupancy.totalRooms || 1;
+  const filteredBookings = bookingRequests ? bookingRequests.filter(b => filterStatus === "All" || b.status === filterStatus) : [];
+
+  const toggleFilter = () => {
+    const statuses = ["All", "Chờ thanh toán", "Đã thanh toán", "Đang ở"];
+    const nextIdx = (statuses.indexOf(filterStatus) + 1) % statuses.length;
+    setFilterStatus(statuses[nextIdx]);
+  };
+  const donutData = [
+    { label: "Đang sử dụng", value: occupancy.occupiedRooms, color: "#22C55E" },
+    { label: "Còn trống", value: occupancy.availableRooms, color: "#DCFCE7" },
+    { label: "Bảo trì", value: occupancy.maintenanceRooms, color: "#F59E0B" },
+    { label: "Đã đặt", value: alerts.pendingBookings, color: "#3B82F6" },
+  ];
+  let currentAngle = 0;
+
   return (
-    <div style={styles.pageShell}>
+    <div style={{ minHeight: "100vh", background: "#F6FAF7", display: "flex", fontFamily: "'Inter', sans-serif" }}>
       <Sidebar />
+      <main style={{ flex: 1, marginLeft: 240, padding: "24px 32px", boxSizing: "border-box", maxWidth: "calc(100vw - 240px)" }}>
+        <Header />
 
-      <main style={styles.main}>
-        <section style={styles.heroCard}>
-          <div style={styles.heroCopy}>
-            <p style={styles.eyebrow}>Admin dashboard</p>
-            <h1 style={styles.heroTitle}>Bảng điều khiển quản trị</h1>
-            <p style={styles.heroText}>
-              Tổng quan tức thì về sinh viên, phòng ở, doanh thu và các công
-              việc đang chờ xử lý trong hệ thống ký túc xá.
-            </p>
+        {/* HERO CARD */}
+        <section ref={heroRef} style={{ marginBottom: 24, borderRadius: 20, padding: 32, background: "linear-gradient(135deg, #16A34A 0%, #22C55E 100%)", color: "#fff", boxShadow: "0 10px 30px rgba(34,197,94,0.2)", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: -50, right: -50, width: 300, height: 300, background: "radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%)", borderRadius: "50%" }} />
 
-            <div style={styles.heroMetaRow}>
-              <MetaPill icon={FaChartLine} label="Tổng quan realtime" />
-              <MetaPill icon={FaClock} label="Cập nhật theo dữ liệu mẫu" />
-              <MetaPill icon={FaMapMarkerAlt} label="FPT Dormitory" />
-            </div>
-          </div>
-
-          <div style={styles.heroStatsPanel}>
-            <div style={styles.heroStatsHeader}>
-              <span style={styles.heroStatsLabel}>Tình trạng hôm nay</span>
-              <span style={styles.heroStatsDate}>09/06/2026</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", position: "relative", zIndex: 1 }}>
+            <div>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 12px", background: "rgba(255,255,255,0.2)", borderRadius: 999, fontSize: 12, fontWeight: 600, marginBottom: 16 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff", boxShadow: "0 0 10px #fff" }} />
+                Hệ thống trực tuyến • {getCurrentDateFormatted()}
+              </div>
+              <h1 style={{ fontSize: 32, fontWeight: 600, margin: "0 0 8px", letterSpacing: "-0.5px" }}>Quản trị viên</h1>
+              <p style={{ margin: 0, fontSize: 16, opacity: 0.9 }}>Tổng quan ký túc xá & Chỉ số thời gian thực</p>
             </div>
 
-            <div style={styles.heroStatsValue}>92%</div>
-            <div style={styles.heroStatsNote}>
-              Tỷ lệ lấp đầy ổn định, còn 102 phòng trống trên toàn hệ thống.
-            </div>
-
-            <div style={styles.heroStatsBars}>
-              <div
-                style={{
-                  ...styles.heroStatsBar,
-                  width: "92%",
-                  background: "linear-gradient(90deg, #16a34a, #22c55e)",
-                }}
-              />
-              <div
-                style={{
-                  ...styles.heroStatsBar,
-                  width: "78%",
-                  background: "linear-gradient(90deg, #2563eb, #60a5fa)",
-                }}
-              />
-              <div
-                style={{
-                  ...styles.heroStatsBar,
-                  width: "64%",
-                  background: "linear-gradient(90deg, #f59e0b, #fb923c)",
-                }}
-              />
+            <div style={{ display: "flex", gap: 32, background: "rgba(255,255,255,0.1)", padding: "20px 32px", borderRadius: 16, backdropFilter: "blur(10px)" }}>
+              <HeroMetric label="Tỷ lệ lấp đầy" value={`${occupancy.rate}%`} />
+              <HeroMetric label="Phòng trống" value={occupancy.availableRooms} />
+              <HeroMetric label="Yêu cầu chờ duyệt" value={pendingTickets} />
+              <HeroMetric label="Doanh thu tháng" value={formatCurrency(monthlyRevenue.total)} />
             </div>
           </div>
         </section>
 
-        <section style={styles.cardGrid}>
-          {overviewCards.map((card) => (
-            <OverviewCard key={card.title} card={card} />
-          ))}
+        {/* KPI CARDS */}
+        <section ref={cardsRef} style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24, marginBottom: 24 }}>
+          <KpiCard title="Tổng sinh viên" value={students.total.toLocaleString()} icon={<FaUsers />} color="#22C55E" trend="+2.4%" sparkline={SPARK_UP} />
+          <KpiCard title="Phòng đang ở" value={occupancy.occupiedRooms.toLocaleString()} icon={<FaBed />} color="#3B82F6" trend="+1.2%" sparkline={SPARK_UP} />
+          <KpiCard title="Phòng trống" value={occupancy.availableRooms.toLocaleString()} icon={<FaDoorOpen />} color="#F59E0B" trend="-0.5%" sparkline={SPARK_DOWN} isNegative />
+          <KpiCard title="Tổng tòa nhà" value={buildings.length} icon={<FaBuilding />} color="#8B5CF6" trend="Đang HĐ" sparkline={SPARK_UP} />
         </section>
 
-        <section style={styles.contentGrid}>
-          <div style={styles.chartCard}>
-            <div style={styles.sectionHeader}>
-              <div>
-                <p style={styles.sectionEyebrow}>Xu hướng vận hành</p>
-                <h2 style={styles.sectionTitle}>Tỷ lệ lấp đầy 12 tháng</h2>
-              </div>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24, marginBottom: 24 }} ref={chartRef}>
+          {/* CHARTS SECTION */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-              <div style={styles.legendPill}>
-                <span aria-hidden="true" style={styles.legendDot} /> Dữ liệu mô
-                phỏng
-              </div>
-            </div>
-
-            <div style={styles.chartWrap}>
-              <div style={styles.chartAxis}>
-                <span>100%</span>
-                <span>75%</span>
-                <span>50%</span>
-                <span>25%</span>
-                <span>0%</span>
-              </div>
-
-              <div style={styles.barArea}>
-                {occupancySeries.map((item) => (
-                  <div key={item.label} style={styles.barGroup}>
-                    <div style={styles.barTrack}>
-                      <div
-                        style={{
-                          ...styles.barFill,
-                          height: `${item.value}%`,
-                        }}
-                      />
+            {/* OCCUPANCY & REVENUE CHARTS (2 Cols) */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+              {/* Occupancy Trend Bar Chart */}
+              <Card title="Xu hướng lấp đầy" subtitle="Tỷ lệ lấp đầy 12 tháng qua">
+                <div style={{ height: 200, display: "flex", alignItems: "flex-end", justifyContent: "space-between", paddingTop: 20 }}>
+                  {occupancySeries.map((item, i) => (
+                    <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flex: 1 }}>
+                      <div style={{ width: "100%", maxWidth: 24, height: 140, background: "#F6FAF7", borderRadius: 4, position: "relative" }}>
+                        <div data-anim style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: `${Math.max(5, item.value)}%`, background: "#22C55E", borderRadius: 4 }} />
+                      </div>
+                      <span style={{ fontSize: 11, color: "#9CA3AF" }}>{item.label}</span>
                     </div>
-                    <span style={styles.barLabel}>{item.label}</span>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Revenue Line Chart */}
+              <Card title="Biểu đồ doanh thu" subtitle="Hiệu suất doanh thu hàng tháng">
+                <div style={{ height: 200, position: "relative", paddingTop: 20 }}>
+                  <svg width="100%" height="160" viewBox="0 0 400 160" preserveAspectRatio="none">
+                    <path d="M0,160 L0,100 C50,80 80,120 120,90 C160,60 200,110 240,70 C280,30 320,60 360,20 L400,40 L400,160 Z" fill="url(#grad)" opacity="0.5" />
+                    <path data-anim d="M0,100 C50,80 80,120 120,90 C160,60 200,110 240,70 C280,30 320,60 360,20 L400,40" fill="none" stroke="#22C55E" strokeWidth="4" strokeLinecap="round" />
+                    <defs>
+                      <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#22C55E" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="#22C55E" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+                    {['Th.1', 'Th.3', 'Th.5', 'Th.7', 'Th.9', 'Th.11'].map(m => <span key={m} style={{ fontSize: 11, color: "#9CA3AF" }}>{m}</span>)}
                   </div>
-                ))}
-              </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* BUILDING COMPARISON & DONUT */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+              {/* Building Progress Bars */}
+              <Card title="Công suất tòa nhà" subtitle="Mức độ sử dụng theo từng tòa nhà">
+                <div style={{ display: "flex", flexDirection: "column", gap: 24, marginTop: 16 }}>
+                  {buildings.map((b) => (
+                    <div key={b.name}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                        <div>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>{b.name}</span>
+                          <span style={{ marginLeft: 8, fontSize: 12, color: "#6B7280" }}>{b.occupied} / {b.total} Giường</span>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: b.rate >= 90 ? "#EF4444" : "#22C55E" }}>{b.rate}%</span>
+                        </div>
+                      </div>
+                      <div style={{ width: "100%", height: 8, background: "#E7EFEA", borderRadius: 4, overflow: "hidden", position: "relative" }}>
+                        <div data-anim style={{ width: `${b.rate}%`, height: "100%", background: b.rate >= 90 ? "#EF4444" : "#22C55E", borderRadius: 4, transition: "width 1s ease-out" }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, fontSize: 12 }}>
+                        <span style={{ color: "#6B7280" }}>{b.total - b.occupied} Giường trống</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ color: "#9CA3AF" }}>Trạng thái:</span>
+                          <span style={{ display: "inline-block", background: b.rate >= 90 ? "#FEE2E2" : "#DCFCE7", color: b.rate >= 90 ? "#DC2626" : "#16A34A", padding: "2px 8px", borderRadius: 12, fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>{b.rate >= 90 ? "Đã đầy" : "Bình thường"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Room Distribution Donut */}
+              <Card title="Phân bổ phòng" subtitle="Tổng quan trạng thái các phòng">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 180, marginTop: 16 }}>
+                  <div style={{ position: "relative", width: 140, height: 140 }}>
+                    <svg viewBox="0 0 36 36" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
+                      {donutData.map((d, i) => {
+                        const dashArray = `${(d.value / totalRooms) * 100} 100`;
+                        const offset = -currentAngle;
+                        currentAngle += (d.value / totalRooms) * 100;
+                        return (
+                          <circle 
+                            key={i} 
+                            cx="18" 
+                            cy="18" 
+                            r="16" 
+                            fill="none" 
+                            stroke={d.color} 
+                            strokeWidth="4" 
+                            strokeDasharray={dashArray} 
+                            strokeDashoffset={offset}
+                            style={{ animation: "drawDonut 1s ease-out forwards", opacity: 0 }}
+                          >
+                            <title>{d.label}: {d.value} phòng ({((d.value / (totalRooms || 1)) * 100).toFixed(1)}%)</title>
+                          </circle>
+                        );
+                      })}
+                    </svg>
+                    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ fontSize: 24, fontWeight: 700, color: "#111827", lineHeight: 1 }}>{totalRooms}</span>
+                      <span style={{ fontSize: 10, color: "#9CA3AF" }}>Tổng</span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", flex: 1, paddingLeft: 32 }}>
+                    {donutData.map((d, i) => {
+                      const pct = ((d.value / (totalRooms || 1)) * 100).toFixed(1);
+                      return (
+                        <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13, marginBottom: 10 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ width: 10, height: 10, borderRadius: "50%", background: d.color }} />
+                            <span style={{ color: "#4B5563", fontWeight: 500 }}>{d.label}</span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <span style={{ fontWeight: 700, color: "#111827", minWidth: 24, textAlign: "right" }}>{d.value}</span>
+                            <span style={{ color: "#9CA3AF", fontSize: 11, minWidth: 32, textAlign: "right" }}>{pct}%</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </Card>
             </div>
           </div>
 
-          <div style={styles.sidebarColumn}>
-            <div style={styles.panelCard}>
-              <div style={styles.sectionHeader}>
-                <div>
-                  <p style={styles.sectionEyebrow}>Cảnh báo nhanh</p>
-                  <h2 style={styles.sectionTitle}>Việc cần chú ý</h2>
+          {/* SIDEBAR WIDGETS (Right 1/3) */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            {/* Quick Actions */}
+            <Card title="Thao tác nhanh">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16 }}>
+                <Button primary icon={<FaBuilding />} label="Thêm tòa nhà" onClick={() => navigate("/admin/buildings")} />
+                <Button primary icon={<FaHome />} label="Thêm phòng" onClick={() => navigate("/admin/rooms")} />
+                <Button icon={<FaCalendarAlt />} label="Kỳ học" onClick={() => navigate("/admin/semesters")} />
+                <Button icon={<FaUserPlus />} label="Tài khoản" onClick={() => navigate("/admin/personnel")} />
+              </div>
+            </Card>
+
+            {/* Priority Alerts */}
+            <Card title="Cảnh báo ưu tiên">
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
+                {(() => {
+                  const activeAlerts = [];
+                  if (alerts.maintenanceRooms > 0) {
+                    activeAlerts.push({ type: "error", icon: <FaWrench />, badge: "Nghiêm trọng", title: "Cần bảo trì", text: `${alerts.maintenanceRooms} phòng cần bảo trì ngay`, time: "Vừa xong" });
+                  }
+                  if (alerts.pendingBookings > 0) {
+                    activeAlerts.push({ type: "warning", icon: <FaExclamationCircle />, badge: "Cảnh báo", title: "Chờ duyệt", text: `${alerts.pendingBookings} yêu cầu đặt phòng đang chờ duyệt`, time: "2 giờ trước" });
+                  }
+                  
+                  if (activeAlerts.length === 0) {
+                    return (
+                      <div style={{ textAlign: "center", padding: "24px 0", color: "#6B7280" }}>
+                        <div style={{ fontSize: 32, marginBottom: 12, opacity: 0.5 }}>✓</div>
+                        <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "#374151" }}>Không có cảnh báo</p>
+                        <p style={{ margin: "4px 0 0", fontSize: 12 }}>Mọi thứ đang hoạt động ổn định.</p>
+                      </div>
+                    );
+                  }
+
+                  return activeAlerts.map((act, i) => <Alert key={i} item={act} />);
+                })()}
+              </div>
+            </Card>
+
+            {/* Recent Activities */}
+            <Card title="Hoạt động gần đây">
+              <div style={{ display: "flex", flexDirection: "column", minHeight: 250, marginTop: 16 }}>
+                {recentActivities && recentActivities.length > 0 ? (
+                  <div style={{ position: "relative", paddingLeft: 24, borderLeft: "2px solid #E7EFEA", display: "flex", flexDirection: "column", gap: 24 }}>
+                    {recentActivities.slice(0, 4).map((act, i) => (
+                      <div key={i} style={{ position: "relative" }}>
+                        <div style={{ position: "absolute", left: -31, top: 0, width: 16, height: 16, borderRadius: "50%", background: "#DCFCE7", color: "#16A34A", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff", fontSize: 8 }}>
+                          <FaCheck />
+                        </div>
+                        <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 600, color: "#111827" }}>{act.title}</p>
+                        {act.description && <p style={{ margin: "0 0 6px", fontSize: 12, color: "#6B7280" }}>{act.description}</p>}
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#9CA3AF", fontWeight: 500 }}>
+                          <FaClock size={10} /> {act.time}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", color: "#6B7280" }}>
+                    <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.5 }}>📭</div>
+                    <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#374151" }}>Chưa có hoạt động</p>
+                    <p style={{ margin: "4px 0 0", fontSize: 12, maxWidth: 200, lineHeight: 1.4 }}>Các hoạt động hệ thống sẽ xuất hiện tại đây khi người dùng tương tác.</p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {/* RECENT ROOM REQUESTS TABLE */}
+        <Card title="Giao dịch đặt phòng gần đây" noPadding>
+          <div style={{ padding: "16px 24px", borderBottom: "1px solid #E7EFEA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 14, color: "#6B7280" }}>Các giao dịch thanh toán và đặt phòng mới nhất</span>
+            <button onClick={toggleFilter} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", border: "1px solid #E7EFEA", borderRadius: 8, fontSize: 13, fontWeight: 500, background: filterStatus !== "All" ? "#ECFDF5" : "#fff", color: filterStatus !== "All" ? "#10B981" : "#374151", cursor: "pointer" }}>
+              <FaFilter size={12} /> {filterStatus === "All" ? "Lọc" : filterStatus}
+            </button>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, textAlign: "left" }}>
+              <thead>
+                <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E7EFEA", color: "#6B7280", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  <th style={{ padding: "16px 24px", fontWeight: 600 }}>Sinh viên</th>
+                  <th style={{ padding: "16px 24px", fontWeight: 600 }}>Phòng / Khu</th>
+                  <th style={{ padding: "16px 24px", fontWeight: 600 }}>Kỳ học</th>
+                  <th style={{ padding: "16px 24px", fontWeight: 600 }}>Ngày yêu cầu</th>
+                  <th style={{ padding: "16px 24px", fontWeight: 600 }}>Trạng thái</th>
+                  <th style={{ padding: "16px 24px", fontWeight: 600, textAlign: "right" }}>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredBookings.length > 0 ? filteredBookings.map((b, i) => (
+                  <tr key={i} style={{ borderBottom: "1px solid #E7EFEA", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "#F6FAF7"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <td style={{ padding: "16px 24px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#DCFCE7", color: "#16A34A", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>
+                          {b.initials}
+                        </div>
+                        <div>
+                          <p style={{ margin: 0, fontWeight: 500, color: "#111827" }}>{b.name}</p>
+                          <p style={{ margin: 0, fontSize: 12, color: "#6B7280" }}>{b.code}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: "16px 24px" }}>
+                      <p style={{ margin: 0, fontWeight: 500, color: "#111827" }}>{b.room}</p>
+                      <p style={{ margin: 0, fontSize: 12, color: "#6B7280" }}>{b.building}</p>
+                    </td>
+                    <td style={{ padding: "16px 24px", color: "#374151" }}>{b.semester}</td>
+                    <td style={{ padding: "16px 24px", color: "#6B7280" }}>{b.date}</td>
+                    <td style={{ padding: "16px 24px" }}>
+                      <span style={{ display: "inline-flex", padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600, background: b.statusColor?.bg || "#DCFCE7", color: b.statusColor?.color || "#16A34A" }}>
+                        {b.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: "16px 24px", textAlign: "right" }}>
+                      <button onClick={() => setSelectedBooking(b)} style={{ padding: 6, border: "none", background: "transparent", color: "#3B82F6", cursor: "pointer", marginRight: 8 }}><FaEye size={16} /></button>
+                      {b.status === "Chờ thanh toán" && (
+                        <button onClick={() => alert("Tính năng duyệt đơn thủ công đang được phát triển.")} style={{ padding: 6, border: "none", background: "transparent", color: "#22C55E", cursor: "pointer" }}><FaCheck size={16} /></button>
+                      )}
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan="6" style={{ padding: "48px 24px", textAlign: "center" }}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#6B7280" }}>
+                        <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.5 }}>📂</div>
+                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#374151" }}>Chưa có giao dịch</p>
+                        <p style={{ margin: "4px 0 0", fontSize: 12, maxWidth: 250, lineHeight: 1.4 }}>Các giao dịch đặt phòng mới sẽ xuất hiện tại đây.</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        {/* Modal Chi tiết giao dịch */}
+        {selectedBooking && (
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+            <div style={{ background: "#fff", padding: 32, borderRadius: 16, width: 400, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}>
+              <h3 style={{ marginTop: 0, color: "#111827", fontSize: 20 }}>Chi tiết giao dịch</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 24, fontSize: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#6B7280" }}>Mã hệ thống:</span>
+                  <span style={{ fontWeight: 500, fontFamily: "monospace", color: "#374151" }}>{selectedBooking.id?.toUpperCase() || "N/A"}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#6B7280" }}>Sinh viên:</span>
+                  <span style={{ fontWeight: 500 }}>{selectedBooking.name} ({selectedBooking.code})</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#6B7280" }}>Phòng:</span>
+                  <span style={{ fontWeight: 500 }}>{selectedBooking.room} - {selectedBooking.building}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#6B7280" }}>Kỳ học:</span>
+                  <span style={{ fontWeight: 500 }}>{selectedBooking.semester}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#6B7280" }}>Ngày yêu cầu:</span>
+                  <span style={{ fontWeight: 500 }}>{selectedBooking.date}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#6B7280" }}>Số tiền:</span>
+                  <span style={{ fontWeight: 700, color: "#16A34A" }}>
+                    {selectedBooking.amount ? selectedBooking.amount.toLocaleString("vi-VN") + " VNĐ" : "Chưa có"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ color: "#6B7280" }}>Trạng thái:</span>
+                  <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600, background: selectedBooking.statusColor?.bg, color: selectedBooking.statusColor?.color }}>{selectedBooking.status}</span>
                 </div>
               </div>
-
-              <div style={styles.alertList}>
-                {alerts.map((alert) => (
-                  <AlertRow key={alert.title} alert={alert} />
-                ))}
-              </div>
-            </div>
-
-            <div style={styles.panelCard}>
-              <div style={styles.sectionHeader}>
-                <div>
-                  <p style={styles.sectionEyebrow}>Nhân sự vận hành</p>
-                  <h2 style={styles.sectionTitle}>Trạng thái khu vực</h2>
-                </div>
-              </div>
-
-              <div style={styles.blockList}>
-                {blocks.map((block) => (
-                  <BlockRow key={block.name} block={block} />
-                ))}
-              </div>
+              <button onClick={() => setSelectedBooking(null)} style={{ marginTop: 32, width: "100%", padding: "12px", background: "#F3F4F6", border: "none", borderRadius: 8, color: "#374151", fontWeight: 600, cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "#E5E7EB"} onMouseLeave={e => e.currentTarget.style.background = "#F3F4F6"}>
+                Đóng
+              </button>
             </div>
           </div>
-        </section>
+        )}
       </main>
+
+      <style>{`
+        @keyframes drawDonut {
+          from { opacity: 0; stroke-dashoffset: 100; }
+          to { opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
 
-function OverviewCard({ card }) {
-  const Icon = card.icon;
-  const trendColor = card.direction === "up" ? "#16a34a" : "#dc2626";
-  const TrendIcon = card.direction === "up" ? FaArrowUp : FaArrowDown;
+/* UI COMPONENTS */
 
+function HeroMetric({ label, value }) {
   return (
-    <article style={styles.overviewCard}>
-      <div
-        style={{
-          ...styles.overviewIcon,
-          background: `${card.accent}16`,
-          color: card.accent,
-        }}
-      >
-        <Icon />
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <span style={{ fontSize: 12, opacity: 0.8, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500 }}>{label}</span>
+      <span style={{ fontSize: 28, fontWeight: 700, lineHeight: 1 }}>{value}</span>
+    </div>
+  );
+}
 
-      <div style={styles.overviewBody}>
-        <p style={styles.overviewTitle}>{card.title}</p>
-        <div style={styles.overviewValueRow}>
-          <strong style={styles.overviewValue}>{card.value}</strong>
-          <span
-            style={{
-              ...styles.trendPill,
-              color: trendColor,
-              background: `${trendColor}14`,
-            }}
-          >
-            <TrendIcon />
-            {card.change}
-          </span>
+function Card({ title, subtitle, children, noPadding }) {
+  return (
+    <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E7EFEA", boxShadow: "0 4px 20px rgba(0,0,0,0.03)", padding: noPadding ? 0 : 24, display: "flex", flexDirection: "column" }}>
+      {(title || subtitle) && !noPadding && (
+        <div style={{ marginBottom: children ? 16 : 0 }}>
+          {title && <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#111827" }}>{title}</h3>}
+          {subtitle && <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6B7280" }}>{subtitle}</p>}
+        </div>
+      )}
+      {noPadding && title && (
+        <div style={{ padding: "24px 24px 0" }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#111827" }}>{title}</h3>
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function KpiCard({ title, value, icon, color, trend, sparkline, isNegative }) {
+  return (
+    <div style={{ background: "#fff", borderRadius: 20, padding: 24, border: "1px solid #E7EFEA", boxShadow: "0 4px 20px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden", transition: "transform 0.2s" }} onMouseEnter={e => e.currentTarget.style.transform = "translateY(-4px)"} onMouseLeave={e => e.currentTarget.style.transform = "none"}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+        <div style={{ width: 48, height: 48, borderRadius: 12, background: `${color}15`, color: color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
+          {icon}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: isNegative ? "#EF4444" : "#22C55E", background: isNegative ? "#FEE2E2" : "#DCFCE7", padding: "4px 8px", borderRadius: 999 }}>
+          {isNegative ? <FaArrowDown size={10} /> : <FaArrowUp size={10} />} {trend}
         </div>
       </div>
-    </article>
+      <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "#6B7280", marginBottom: 4 }}>{title}</p>
+      <p style={{ margin: 0, fontSize: 32, fontWeight: 700, color: "#111827" }}>{value}</p>
+      <svg style={{ position: "absolute", bottom: -5, left: 0, width: "100%", height: 40 }} viewBox="0 0 40 20" preserveAspectRatio="none">
+        <path d={sparkline} fill="none" stroke={color} strokeWidth="2" opacity="0.2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
   );
 }
 
-function MetaPill({ icon: Icon, label }) {
+function Button({ icon, label, primary, onClick }) {
   return (
-    <span style={styles.metaPill}>
-      <Icon />
-      {label}
-    </span>
+    <button onClick={onClick} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px 8px", gap: 8, borderRadius: 12, border: primary ? "none" : "1px solid #E7EFEA", background: primary ? "#22C55E" : "#fff", color: primary ? "#fff" : "#374151", cursor: "pointer", transition: "all 0.2s" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.02)"} onMouseLeave={e => e.currentTarget.style.transform = "none"}>
+      <span style={{ fontSize: 20 }}>{icon}</span>
+      <span style={{ fontSize: 12, fontWeight: 600 }}>{label}</span>
+    </button>
   );
 }
 
-function AlertRow({ alert }) {
-  const Icon = alert.icon;
+function Alert({ item }) {
+  const colors = {
+    error: { bg: "#FEF2F2", text: "#EF4444", badgeBg: "#EF4444", badgeText: "#fff" },
+    warning: { bg: "#FFFBEB", text: "#F59E0B", badgeBg: "#F59E0B", badgeText: "#fff" },
+    info: { bg: "#EFF6FF", text: "#3B82F6", badgeBg: "#3B82F6", badgeText: "#fff" },
+  }[item.type];
 
   return (
-    <div style={styles.alertRow}>
-      <div
-        style={{
-          ...styles.alertIcon,
-          color: alert.tone,
-          background: `${alert.tone}14`,
-        }}
-      >
-        <Icon />
-      </div>
-
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: 16, background: colors.bg, borderRadius: 12, transition: "transform 0.2s" }} onMouseEnter={e => e.currentTarget.style.transform = "translateX(4px)"} onMouseLeave={e => e.currentTarget.style.transform = "none"}>
+      <div style={{ color: colors.text, marginTop: 2, fontSize: 16 }}>{item.icon}</div>
       <div style={{ flex: 1 }}>
-        <div style={styles.alertTitle}>{alert.title}</div>
-        <div style={styles.alertDetail}>{alert.detail}</div>
-      </div>
-    </div>
-  );
-}
-
-function BlockRow({ block }) {
-  const occupancy = Math.round((block.occupied / block.total) * 100);
-
-  return (
-    <div style={styles.blockRow}>
-      <div style={styles.blockTopRow}>
-        <div>
-          <div style={styles.blockName}>{block.name}</div>
-          <div style={styles.blockSubText}>
-            {block.occupied}/{block.total} phòng đang sử dụng
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", background: colors.badgeBg, color: colors.badgeText, padding: "2px 8px", borderRadius: 4 }}>{item.badge}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{item.title}</span>
           </div>
+          <span style={{ fontSize: 11, color: "#9CA3AF" }}>{item.time}</span>
         </div>
-        <div
-          style={{
-            ...styles.blockBadge,
-            color: block.tone,
-            background: `${block.tone}14`,
-          }}
-        >
-          {occupancy}%
-        </div>
-      </div>
-
-      <div style={styles.progressTrack}>
-        <div
-          style={{
-            ...styles.progressFill,
-            width: `${occupancy}%`,
-            background: block.tone,
-          }}
-        />
+        <p style={{ margin: 0, fontSize: 13, color: "#4B5563", lineHeight: 1.4 }}>{item.text}</p>
       </div>
     </div>
   );
 }
-
-function ActivityItem({ activity }) {
-  return (
-    <div style={styles.activityRow}>
-      <div style={styles.activityTime}>{activity.time}</div>
-      <div>
-        <div style={styles.activityTitle}>{activity.title}</div>
-        <div style={styles.activityNote}>{activity.note}</div>
-      </div>
-    </div>
-  );
-}
-
-function QueueItem({ item }) {
-  return (
-    <div style={styles.queueRow}>
-      <div>
-        <div style={styles.queueRoom}>{item.room}</div>
-        <div style={styles.queueIssue}>{item.issue}</div>
-      </div>
-      <span style={styles.queueStatus}>{item.status}</span>
-    </div>
-  );
-}
-
-const styles = {
-  pageShell: {
-    minHeight: "100vh",
-    background:
-      "radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 36%), radial-gradient(circle at top right, rgba(22, 163, 74, 0.16), transparent 32%), linear-gradient(180deg, #f6fbff 0%, #f4faf6 100%)",
-  },
-  main: {
-    marginLeft: 270,
-    width: "calc(100% - 270px)",
-    padding: "24px 28px 32px",
-    minHeight: "100vh",
-  },
-  heroCard: {
-    display: "grid",
-    gridTemplateColumns: "1.45fr 0.9fr",
-    gap: 20,
-    alignItems: "stretch",
-    marginBottom: 22,
-  },
-  heroCopy: {
-    background:
-      "linear-gradient(135deg, rgba(255,255,255,0.94) 0%, rgba(243, 250, 244, 0.92) 100%)",
-    border: "1px solid rgba(148, 163, 184, 0.16)",
-    borderRadius: 28,
-    padding: 28,
-    boxShadow: "0 18px 52px rgba(15, 23, 42, 0.08)",
-  },
-  eyebrow: {
-    margin: 0,
-    textTransform: "uppercase",
-    letterSpacing: 1.2,
-    fontWeight: 800,
-    fontSize: 12,
-    color: "#16a34a",
-  },
-  heroTitle: {
-    margin: "10px 0 0",
-    fontSize: 40,
-    lineHeight: 1.05,
-    color: "#0f172a",
-  },
-  heroText: {
-    margin: "14px 0 0",
-    maxWidth: 760,
-    color: "#475569",
-    fontSize: 15,
-  },
-  heroMetaRow: {
-    marginTop: 22,
-    display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-  },
-  metaPill: {
-    minHeight: 40,
-    padding: "0 14px",
-    borderRadius: 999,
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    background: "#fff",
-    border: "1px solid rgba(148, 163, 184, 0.18)",
-    color: "#334155",
-    fontSize: 13,
-    fontWeight: 700,
-  },
-  heroStatsPanel: {
-    background:
-      "linear-gradient(160deg, rgba(15, 118, 110, 0.96) 0%, rgba(37, 99, 235, 0.96) 100%)",
-    borderRadius: 28,
-    padding: 24,
-    color: "#fff",
-    boxShadow: "0 18px 52px rgba(15, 23, 42, 0.16)",
-    position: "relative",
-    overflow: "hidden",
-  },
-  heroStatsHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 12,
-    alignItems: "center",
-  },
-  heroStatsLabel: {
-    fontSize: 13,
-    fontWeight: 700,
-    opacity: 0.9,
-  },
-  heroStatsDate: {
-    fontSize: 13,
-    fontWeight: 700,
-    opacity: 0.8,
-  },
-  heroStatsValue: {
-    marginTop: 18,
-    fontSize: 64,
-    lineHeight: 1,
-    fontWeight: 900,
-    letterSpacing: -2,
-  },
-  heroStatsNote: {
-    marginTop: 12,
-    fontSize: 14,
-    lineHeight: 1.6,
-    maxWidth: 360,
-    opacity: 0.92,
-  },
-  heroStatsBars: {
-    marginTop: 20,
-    display: "grid",
-    gap: 10,
-  },
-  heroStatsBar: {
-    height: 10,
-    borderRadius: 999,
-  },
-  cardGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-    gap: 16,
-    marginBottom: 22,
-  },
-  overviewCard: {
-    background: "rgba(255,255,255,0.9)",
-    border: "1px solid rgba(148, 163, 184, 0.14)",
-    borderRadius: 24,
-    padding: 20,
-    boxShadow: "0 14px 40px rgba(15, 23, 42, 0.06)",
-    display: "flex",
-    gap: 14,
-    alignItems: "center",
-  },
-  overviewIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
-    display: "grid",
-    placeItems: "center",
-    fontSize: 20,
-    flexShrink: 0,
-  },
-  overviewBody: {
-    minWidth: 0,
-    flex: 1,
-  },
-  overviewTitle: {
-    margin: 0,
-    color: "#64748b",
-    fontSize: 13,
-    fontWeight: 700,
-  },
-  overviewValueRow: {
-    display: "flex",
-    gap: 10,
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  overviewValue: {
-    color: "#0f172a",
-    fontSize: 28,
-    lineHeight: 1,
-  },
-  trendPill: {
-    minHeight: 30,
-    padding: "0 10px",
-    borderRadius: 999,
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    fontSize: 12,
-    fontWeight: 800,
-    whiteSpace: "nowrap",
-  },
-  contentGrid: {
-    display: "grid",
-    gridTemplateColumns: "1.35fr 0.85fr",
-    gap: 16,
-    marginBottom: 16,
-  },
-  chartCard: {
-    background: "rgba(255,255,255,0.9)",
-    border: "1px solid rgba(148, 163, 184, 0.14)",
-    borderRadius: 26,
-    padding: 22,
-    boxShadow: "0 14px 40px rgba(15, 23, 42, 0.06)",
-  },
-  sectionHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 12,
-    alignItems: "center",
-    marginBottom: 18,
-  },
-  sectionEyebrow: {
-    margin: 0,
-    color: "#16a34a",
-    fontSize: 12,
-    fontWeight: 800,
-    textTransform: "uppercase",
-    letterSpacing: 1.1,
-  },
-  sectionTitle: {
-    margin: "6px 0 0",
-    color: "#0f172a",
-    fontSize: 22,
-  },
-  legendPill: {
-    minHeight: 36,
-    padding: "0 12px",
-    borderRadius: 999,
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
-    color: "#334155",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    fontSize: 13,
-    fontWeight: 700,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 999,
-    background: "linear-gradient(135deg, #2563eb, #16a34a)",
-  },
-  chartWrap: {
-    display: "grid",
-    gridTemplateColumns: "48px 1fr",
-    gap: 12,
-    alignItems: "stretch",
-    minHeight: 340,
-  },
-  chartAxis: {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-    color: "#94a3b8",
-    fontSize: 12,
-    fontWeight: 700,
-    paddingBottom: 28,
-  },
-  barArea: {
-    display: "grid",
-    gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
-    gap: 10,
-    alignItems: "end",
-    padding: "10px 2px 0",
-    borderLeft: "1px solid #e2e8f0",
-    borderBottom: "1px solid #e2e8f0",
-    position: "relative",
-  },
-  barGroup: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    minHeight: 300,
-    gap: 10,
-  },
-  barTrack: {
-    width: "100%",
-    maxWidth: 42,
-    height: 260,
-    borderRadius: 16,
-    background: "linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%)",
-    display: "flex",
-    alignItems: "flex-end",
-    overflow: "hidden",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7)",
-  },
-  barFill: {
-    width: "100%",
-    borderRadius: 16,
-    background: "linear-gradient(180deg, #2563eb 0%, #22c55e 100%)",
-    minHeight: 22,
-  },
-  barLabel: {
-    color: "#64748b",
-    fontSize: 12,
-    fontWeight: 700,
-  },
-  sidebarColumn: {
-    display: "grid",
-    gap: 16,
-  },
-  panelCard: {
-    background: "rgba(255,255,255,0.9)",
-    border: "1px solid rgba(148, 163, 184, 0.14)",
-    borderRadius: 26,
-    padding: 22,
-    boxShadow: "0 14px 40px rgba(15, 23, 42, 0.06)",
-  },
-  alertList: {
-    display: "grid",
-    gap: 14,
-  },
-  alertRow: {
-    display: "flex",
-    gap: 12,
-    alignItems: "flex-start",
-    padding: 14,
-    borderRadius: 18,
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
-  },
-  alertIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    display: "grid",
-    placeItems: "center",
-    fontSize: 16,
-    flexShrink: 0,
-  },
-  alertTitle: {
-    color: "#0f172a",
-    fontWeight: 800,
-    fontSize: 14,
-  },
-  alertDetail: {
-    marginTop: 4,
-    color: "#64748b",
-    fontSize: 13,
-    lineHeight: 1.6,
-  },
-  blockList: {
-    display: "grid",
-    gap: 14,
-  },
-  blockRow: {
-    padding: 14,
-    borderRadius: 18,
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
-  },
-  blockTopRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 10,
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  blockName: {
-    color: "#0f172a",
-    fontWeight: 800,
-  },
-  blockSubText: {
-    marginTop: 4,
-    color: "#64748b",
-    fontSize: 13,
-  },
-  blockBadge: {
-    minHeight: 30,
-    padding: "0 10px",
-    borderRadius: 999,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 12,
-    fontWeight: 800,
-  },
-  progressTrack: {
-    width: "100%",
-    height: 10,
-    borderRadius: 999,
-    background: "#e2e8f0",
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 999,
-  },
-  bottomGrid: {
-    display: "grid",
-    gridTemplateColumns: "1.15fr 0.85fr",
-    gap: 16,
-  },
-  activityList: {
-    display: "grid",
-    gap: 12,
-  },
-  activityRow: {
-    display: "grid",
-    gridTemplateColumns: "64px 1fr",
-    gap: 12,
-    alignItems: "start",
-    padding: 14,
-    borderRadius: 18,
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
-  },
-  activityTime: {
-    minHeight: 34,
-    borderRadius: 999,
-    background: "#fff",
-    border: "1px solid #dbe4ee",
-    display: "grid",
-    placeItems: "center",
-    color: "#2563eb",
-    fontWeight: 800,
-    fontSize: 13,
-  },
-  activityTitle: {
-    color: "#0f172a",
-    fontWeight: 800,
-    fontSize: 14,
-  },
-  activityNote: {
-    marginTop: 4,
-    color: "#64748b",
-    fontSize: 13,
-    lineHeight: 1.6,
-  },
-  queueList: {
-    display: "grid",
-    gap: 12,
-  },
-  queueRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 12,
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 18,
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
-  },
-  queueRoom: {
-    color: "#0f172a",
-    fontWeight: 900,
-    fontSize: 14,
-  },
-  queueIssue: {
-    marginTop: 4,
-    color: "#64748b",
-    fontSize: 13,
-  },
-  queueStatus: {
-    minHeight: 32,
-    padding: "0 10px",
-    borderRadius: 999,
-    background: "#fff",
-    border: "1px solid #dbe4ee",
-    color: "#334155",
-    display: "inline-flex",
-    alignItems: "center",
-    fontWeight: 700,
-    fontSize: 12,
-    whiteSpace: "nowrap",
-  },
-  "@media (max-width: 1280px)": {
-    heroCard: {
-      gridTemplateColumns: "1fr",
-    },
-    cardGrid: {
-      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    },
-    contentGrid: {
-      gridTemplateColumns: "1fr",
-    },
-    bottomGrid: {
-      gridTemplateColumns: "1fr",
-    },
-  },
-  "@media (max-width: 900px)": {
-    main: {
-      marginLeft: 0,
-      width: "100%",
-      padding: "16px",
-    },
-    cardGrid: {
-      gridTemplateColumns: "1fr",
-    },
-    heroTitle: {
-      fontSize: 32,
-    },
-    chartWrap: {
-      gridTemplateColumns: "1fr",
-    },
-    chartAxis: {
-      display: "none",
-    },
-    barArea: {
-      gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
-    },
-  },
-};
 
 export default AdminDashboard;

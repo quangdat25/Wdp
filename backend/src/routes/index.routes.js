@@ -14,8 +14,10 @@ const utilityUsageRoutes = require("./utilityUsage.routes");
 const invoiceRoutes = require("./invoice.routes");
 const semesterRoutes = require("./semester.routes");
 const newsRoutes = require("./news.routes");
+const dashboardRoutes = require("./dashboard.routes");
 
 function routes(app) {
+  app.use("/api/dashboard", dashboardRoutes);
   app.use("/api/students", studentRoutes);
   app.use("/api/personnel", personnelRoutes);
   app.use("/api/users", userRoutes);
