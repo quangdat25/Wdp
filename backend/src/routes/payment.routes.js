@@ -21,7 +21,9 @@ router.post(
 // VNPAY return URL (không cần authenticate vì VNPAY redirect về)
 router.get("/vnpay-callback", paymentController.vnpayReturn.bind(paymentController));
 
-// VNPAY IPN URL (Server-to-Server, không cần authenticate)
-router.get("/vnpay-ipn", paymentController.vnpayIpn.bind(paymentController));
+router.get(
+  "/vnpay-callback",
+  paymentController.vnpayReturn.bind(paymentController)
+);
 
 module.exports = router;

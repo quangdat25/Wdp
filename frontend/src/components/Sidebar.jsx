@@ -15,7 +15,6 @@ import {
   FaShieldAlt,
   FaPlusCircle,
   FaSearch,
-  FaBuilding,
   FaDoorOpen,
   FaFileInvoiceDollar,
   FaCalendarAlt,
@@ -105,19 +104,9 @@ function Sidebar() {
         icon: <FaChartPie />,
       },
       {
-        path: "/admin/semesters",
-        label: "Quản lý kỳ học",
-        icon: <FaCalendarAlt />,
-      },
-      {
         path: "/admin/rooms",
         label: "Quản lý phòng ở",
         icon: <FaBed />,
-      },
-      {
-        path: "/admin/buildings",
-        label: "Quản lý tòa nhà",
-        icon: <FaBuilding />,
       },
       {
         path: "/admin/students",

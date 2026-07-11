@@ -1,6 +1,13 @@
-const paymentService = require("../services/payment.service");
-const { verifyVNPayReturn, verifyVNPayIpn } = require("../config/vnpay");
-const Booking = require("../models/booking.model"); // Cần cho việc rollback nếu huỷ ở ReturnUrl
+const Booking = require("../models/booking.model");
+const Room = require("../models/room.models");
+const User = require("../models/user.model");
+const Invoice = require("../models/invoice.model");
+
+const {
+  createVNPayUrl,
+  verifyVNPayReturn,
+  generatePayID,
+} = require("../config/vnpay");
 
 class PaymentController {
   async createBookingPayment(req, res) {
@@ -8,16 +15,49 @@ class PaymentController {
       const { bookingId } = req.body;
       const studentId = req.user._id;
 
-      const data = await paymentService.getBookingPaymentUrl(bookingId, studentId, req.ip);
+      const booking = await Booking.findById(bookingId).populate("roomId");
+
+      if (!booking) {
+        return res.status(404).json({
+          success: false,
+          message: "Không tìm thấy booking",
+        });
+      }
+
+      if (booking.studentId.toString() !== studentId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "Không có quyền thanh toán booking này",
+        });
+      }
+
+      if (booking.status !== "pending") {
+        return res.status(400).json({
+          success: false,
+          message: "Booking không ở trạng thái chờ thanh toán",
+        });
+      }
+
+      const amount = booking.roomId?.price || 2000000;
+
+      const paymentUrl = createVNPayUrl({
+        amount,
+        ipAddr: req.ip,
+        txnRef: `BOOKING_${booking._id}_${generatePayID()}`,
+        orderInfo: `Thanh toan dat phong ${booking.roomId?.displayName || booking.roomId?.roomNumber}`,
+      });
 
       return res.status(200).json({
         success: true,
         message: "Tạo URL thanh toán thành công",
-        data,
+        data: {
+          paymentUrl,
+          bookingId: booking._id,
+        },
       });
     } catch (error) {
       console.error("Create Booking Payment Error:", error);
-      return res.status(error.message.includes("Không tìm thấy") ? 404 : 400).json({
+      return res.status(500).json({
         success: false,
         message: error.message,
       });
@@ -29,68 +69,57 @@ class PaymentController {
       const { invoiceId } = req.body;
       const studentId = req.user._id;
 
-      const data = await paymentService.getInvoicePaymentUrl(invoiceId, studentId, req.ip);
+      const invoice = await Invoice.findById(invoiceId);
+
+      if (!invoice) {
+        return res.status(404).json({
+          success: false,
+          message: "Không tìm thấy hóa đơn",
+        });
+      }
+
+      if (invoice.studentId.toString() !== studentId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "Không có quyền thanh toán hóa đơn này",
+        });
+      }
+
+      if (invoice.status === "paid") {
+        return res.status(400).json({
+          success: false,
+          message: "Hóa đơn này đã được thanh toán",
+        });
+      }
+
+      const paymentUrl = createVNPayUrl({
+        amount: invoice.amount,
+        ipAddr: req.ip,
+        txnRef: `INVOICE_${invoice._id}_${generatePayID()}`,
+        orderInfo: `Thanh toan hoa don ${invoice.invoiceCode}`,
+      });
 
       return res.status(200).json({
         success: true,
         message: "Tạo URL thanh toán hóa đơn thành công",
-        data,
+        data: {
+          paymentUrl,
+          invoiceId: invoice._id,
+        },
       });
     } catch (error) {
       console.error("Create Invoice Payment Error:", error);
-      return res.status(error.message.includes("Không tìm thấy") ? 404 : 400).json({
+      return res.status(500).json({
         success: false,
         message: error.message,
       });
     }
   }
 
-  // Webhook hứng IPN Server-to-Server từ VNPay
-  async vnpayIpn(req, res) {
-    try {
-      const verifyResult = verifyVNPayIpn(req.query);
-      if (!verifyResult.isVerified) {
-        return res.status(200).json({ RspCode: "97", Message: "Invalid signature" });
-      }
-
-      const { vnp_ResponseCode, vnp_TxnRef } = req.query;
-
-      const parts = vnp_TxnRef.split("_");
-      const paymentType = parts[0];
-      const targetId = parts[1];
-
-      // Nếu VNPay báo thanh toán không thành công
-      if (vnp_ResponseCode !== "00") {
-        if (paymentType === "BOOKING") {
-          // IPN cũng có thể tự dọn dẹp nếu muốn, nhưng return success RspCode để VNPay biết đã nhận
-          await Booking.findByIdAndDelete(targetId);
-        }
-        return res.status(200).json({ RspCode: "00", Message: "Confirm Success" });
-      }
-
-      // Xử lý thanh toán thành công
-      if (paymentType === "BOOKING") {
-        await paymentService.processBookingSuccess(targetId);
-      } else if (paymentType === "INVOICE") {
-        await paymentService.processInvoiceSuccess(targetId);
-      } else {
-        return res.status(200).json({ RspCode: "99", Message: "Unknown payment type" });
-      }
-
-      // Luôn trả về 00 khi xử lý xong để VNPay không gọi lại nữa
-      return res.status(200).json({ RspCode: "00", Message: "Confirm Success" });
-
-    } catch (error) {
-      console.error("VNPAY IPN Error:", error);
-      // RspCode 99 để báo VNPay lỗi không xác định
-      return res.status(200).json({ RspCode: "99", Message: "Unknown error" });
-    }
-  }
-
-  // URL Return dành cho trình duyệt của người dùng sau khi thanh toán xong
   async vnpayReturn(req, res) {
     try {
       const verifyResult = verifyVNPayReturn(req.query);
+
       const { vnp_ResponseCode, vnp_TxnRef } = req.query;
 
       if (!verifyResult.isVerified) {
@@ -104,33 +133,21 @@ class PaymentController {
       const targetId = parts[1];
 
       if (vnp_ResponseCode !== "00") {
-        // Có thể dọn dẹp thêm ở đây để frontend phản hồi nhanh hơn nếu IPN chưa tới kịp
         if (paymentType === "BOOKING") {
           await Booking.findByIdAndDelete(targetId);
         }
+
         return res.redirect(
           `${process.env.CLIENT_URL}/student/payment-result?status=error&message=PaymentFailed`,
         );
       }
 
-      // Thanh toán thành công, redirect thẳng về trang kết quả 
-      // (DB đã được cập nhật bởi IPN, hoặc sẽ cập nhật ngay sau đó)
       if (paymentType === "BOOKING") {
-        // Fallback: Nếu IPN bị chậm, ta vẫn có thể chủ động trigger logic ngay tại đây
-        // để người dùng thấy kết quả ngay lập tức mà không phải chờ.
-        await paymentService.processBookingSuccess(targetId).catch(console.error);
-
-        return res.redirect(
-          `${process.env.CLIENT_URL}/student/booking-result?status=success&bookingId=${targetId}`,
-        );
+        return await this.handleBookingSuccess(targetId, res);
       }
 
       if (paymentType === "INVOICE") {
-        await paymentService.processInvoiceSuccess(targetId).catch(console.error);
-
-        return res.redirect(
-          `${process.env.CLIENT_URL}/student/payment-result?status=success&invoiceId=${targetId}`,
-        );
+        return await this.handleInvoiceSuccess(targetId, res);
       }
 
       return res.redirect(
@@ -142,6 +159,60 @@ class PaymentController {
         `${process.env.CLIENT_URL}/student/payment-result?status=error`,
       );
     }
+  }
+
+  async handleBookingSuccess(bookingId, res) {
+    const booking = await Booking.findById(bookingId).populate("roomId");
+
+    if (!booking) {
+      return res.redirect(
+        `${process.env.CLIENT_URL}/student/payment-result?status=error&message=BookingNotFound`,
+      );
+    }
+
+    if (booking.status === "confirmed") {
+      return res.redirect(
+        `${process.env.CLIENT_URL}/student/booking-result?status=success&bookingId=${booking._id}`,
+      );
+    }
+
+    booking.status = "confirmed";
+    await booking.save();
+
+    const amount = booking.roomId?.price || 2000000;
+
+    await Invoice.create({
+      bookingId: booking._id,
+      studentId: booking.studentId,
+      invoiceCode: `INV-${booking._id.toString().slice(-6).toUpperCase()}-${Date.now().toString().slice(-4)}`,
+      type: "room_fee",
+      amount,
+      status: "paid",
+      paidAt: new Date(),
+      dueDate: new Date(),
+    });
+
+    return res.redirect(
+      `${process.env.CLIENT_URL}/student/booking-result?status=success&bookingId=${booking._id}`,
+    );
+  }
+
+  async handleInvoiceSuccess(invoiceId, res) {
+    const invoice = await Invoice.findById(invoiceId);
+
+    if (!invoice) {
+      return res.redirect(
+        `${process.env.CLIENT_URL}/student/payment-result?status=error&message=InvoiceNotFound`,
+      );
+    }
+
+    invoice.status = "paid";
+    invoice.paidAt = new Date();
+    await invoice.save();
+
+    return res.redirect(
+      `${process.env.CLIENT_URL}/student/payment-result?status=success&invoiceId=${invoice._id}`,
+    );
   }
 }
 

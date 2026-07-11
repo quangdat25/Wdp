@@ -173,30 +173,6 @@ const semesterService = {
     return nextSemester;
   },
 
-  getTargetBookingSemester: async () => {
-    const years = await semesterRepository.findAllActiveAsc();
-    const periods = getAllSemesterPeriods(years);
-    const now = new Date();
-
-    const targetSemester = periods.find(
-      (period) =>
-        now >= new Date(period.bookingStartDate) &&
-        now <= new Date(period.bookingEndDate)
-    );
-
-    // HACK CHO HỘI ĐỒNG BẢO VỆ: Luôn luôn bypass để cho phép đặt phòng
-    if (!targetSemester) {
-      const currentSemester = periods.find(
-        (period) =>
-          now >= new Date(period.startDate) &&
-          now <= new Date(period.endDate)
-      );
-      return currentSemester || periods[0];
-    }
-
-    return targetSemester;
-  },
-
   createSemester: async (data) => {
     const { year, spring, summer, fall } = data;
 

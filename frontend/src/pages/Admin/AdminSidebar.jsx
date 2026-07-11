@@ -98,7 +98,9 @@ function AdminSidebar() {
           <button style={menuStyle("/admin/rooms")} onClick={() => navigate("/admin/rooms")}>
             <FaBed /> Quản lý phòng ở
           </button>
-
+          <button style={menuStyle("/admin/buildings")} onClick={() => navigate("/admin/buildings")}>
+            <FaBuilding /> Quản lý tòa nhà
+          </button>
           <button style={menuStyle("/admin/students")} onClick={() => navigate("/admin/students")}>
             <FaUserGraduate /> Quản lý sinh viên
           </button>

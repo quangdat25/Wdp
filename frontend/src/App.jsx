@@ -17,7 +17,6 @@ import PersonnelManagement from "./pages/Admin/PersonnelManagement";
 import NotificationManagement from "./pages/Admin/NotificationManagement";
 import RoomManagement from "./pages/Admin/RoomManagement";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
-import SemesterManagement from "./pages/Admin/SemesterManagement";
 
 import ManagerDashboard from "./pages/Manager/ManagerDashboard";
 import StudentDashboard from "./pages/Student/StudentDashboard";
@@ -36,7 +35,7 @@ import UtilityUsageManagement from "./pages/Staff/UtilityUsageManagement";
 import UtilityInvoiceManagement from "./pages/Manager/UtilityInvoiceManagement";
 import MyInvoices from "./pages/Student/MyInvoices";
 import PaymentResult from "./pages/Student/PaymentResult";
-import MyRoom from "./pages/Student/MyRoom";
+import SemesterManagement from "./pages/Admin/SemesterManagement";
 
 function App() {
   const location = useLocation();
@@ -59,7 +58,6 @@ function App() {
                 element={<Navigate to="/admin/dashboard" replace />}
               />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/semesters" element={<SemesterManagement />} />
               <Route path="/admin/students" element={<StudentManagement />} />
               <Route
                 path="/admin/personnel"
@@ -71,6 +69,7 @@ function App() {
               />
               <Route path="/admin/buildings" element={<RoomManagement />} />
               <Route path="/admin/rooms" element={<RoomManagement />} />
+              <Route path="/admin/semesters" element={<SemesterManagement />} />
             </Route>
 
             {/* Student Routes */}
@@ -83,7 +82,6 @@ function App() {
               />
               <Route path="/student/tickets" element={<MyTickets />} />
               <Route path="/student/invoices" element={<MyInvoices />} />
-              <Route path="/student/room" element={<MyRoom />} />
               <Route path="/student/payment-result" element={<PaymentResult />} />
             </Route>
 
