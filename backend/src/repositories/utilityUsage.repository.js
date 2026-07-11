@@ -6,7 +6,6 @@ const Booking = require("../models/booking.model");
 const Invoice = require("../models/invoice.model");
 const User = require("../models/user.model");
 
-
 class UtilityUsageRepository {
   async findRoomByImportInfo({ floor, roomNumber }) {
     return Room.findOne({
@@ -55,7 +54,79 @@ class UtilityUsageRepository {
       },
     });
   }
+  async findByStudentId(studentId) {
+    const bookings = await Booking.find({
+      studentId,
+      status: {
+        $in: ["confirmed", "checked_in", "checked_out"],
+      },
+    })
+      .select("_id roomId semester startDate endDate status")
+      .populate({
+        path: "roomId",
+        select: "roomNumber floor building",
+        populate: {
+          path: "building",
+          select: "name buildingName displayName",
+        },
+      })
+      .lean();
 
+    if (!bookings.length) {
+      return [];
+    }
+
+    const results = [];
+
+    for (const booking of bookings) {
+      if (!booking.roomId) {
+        continue;
+      }
+
+      const usages = await UtilityUsage.find({
+        roomId: booking.roomId._id,
+        semester: booking.semester,
+      })
+        .sort({
+          year: -1,
+          month: -1,
+        })
+        .lean();
+
+      for (const usage of usages) {
+        results.push({
+          ...usage,
+
+          bookingId: booking._id,
+
+          bookingStatus: booking.status,
+
+          bookingStartDate: booking.startDate,
+          bookingEndDate: booking.endDate,
+
+          room: {
+            _id: booking.roomId._id,
+            roomNumber: booking.roomId.roomNumber,
+            floor: booking.roomId.floor,
+
+            building:
+              booking.roomId.building?.name ||
+              booking.roomId.building?.buildingName ||
+              booking.roomId.building?.displayName ||
+              "",
+          },
+        });
+      }
+    }
+
+    return results.sort((a, b) => {
+      if (a.year !== b.year) {
+        return b.year - a.year;
+      }
+
+      return b.month - a.month;
+    });
+  }
   async deleteById(id) {
     return UtilityUsage.findByIdAndDelete(id);
   }

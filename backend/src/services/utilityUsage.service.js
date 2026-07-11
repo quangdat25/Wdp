@@ -367,7 +367,13 @@ class UtilityUsageService {
 
     return utilityUsageRepository.findAll(filter);
   }
+  async getUtilityByStudentId(studentId) {
+    if (!studentId) {
+      throw createError(400, "Thiếu ID sinh viên");
+    }
 
+    return utilityUsageRepository.findByStudentId(studentId);
+  }
   async deleteUtilityUsage(id) {
     const record = await utilityUsageRepository.findById(id);
 

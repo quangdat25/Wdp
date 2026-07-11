@@ -36,6 +36,8 @@ import UtilityInvoiceManagement from "./pages/Manager/UtilityInvoiceManagement";
 import MyInvoices from "./pages/Student/MyInvoices";
 import PaymentResult from "./pages/Student/PaymentResult";
 import SemesterManagement from "./pages/Admin/SemesterManagement";
+import BookingManagement from "./pages/Manager/BookingManagement";
+import MyUtilities from "./pages/Student/MyUtilities";
 
 function App() {
   const location = useLocation();
@@ -82,7 +84,11 @@ function App() {
               />
               <Route path="/student/tickets" element={<MyTickets />} />
               <Route path="/student/invoices" element={<MyInvoices />} />
-              <Route path="/student/payment-result" element={<PaymentResult />} />
+              <Route
+                path="/student/payment-result"
+                element={<PaymentResult />}
+              />
+              <Route path="/student/my-utilities" element={<MyUtilities />} />
             </Route>
 
             {/* Parent Routes */}
@@ -104,6 +110,7 @@ function App() {
                 path="/manager/utility-invoices"
                 element={<UtilityInvoiceManagement />}
               />
+              <Route path="/manager/bookings" element={<BookingManagement />} />
             </Route>
 
             {/* Staff Routes */}
