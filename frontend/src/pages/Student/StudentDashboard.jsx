@@ -17,25 +17,8 @@ import {
 import "./StudentDashboard.css";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Headers";
-
-const newsItems = [
-  {
-    title: "Thông báo về việc đóng tiền nước sinh hoạt tháng 06/2026",
-    date: "10/06/2026",
-  },
-  {
-    title: "Lịch bảo trì điều hòa toàn bộ tòa nhà KTX từ 10/06 đến 15/06",
-    date: "09/06/2026",
-  },
-  {
-    title: "Giải bóng đá thường niên Dormitory Cup 2026 chính thức khởi tranh",
-    date: "08/06/2026",
-  },
-  {
-    title: "Quy định mới về giờ giấc ra vào cổng KTX áp dụng từ tuần sau",
-    date: "07/06/2026",
-  },
-];
+import NewsWidget from "./NewsWidget";
+import NewsPage from "./NewsPage";
 
 const studentModules = [
   { id: "home", title: "Trang chủ", label: "Trang chủ", icon: <FaChartPie /> },
@@ -71,7 +54,9 @@ function StudentDashboard() {
             <UnbookedHomeScreen setActiveModule={setActiveModule} />
           ))}
 
-        {activeModule !== "home" && (
+        {activeModule === "news" && <NewsPage />}
+
+        {activeModule !== "home" && activeModule !== "news" && (
           <PlaceholderScreen activeConfig={activeConfig} />
         )}
       </main>
@@ -220,32 +205,7 @@ function BookedHomeScreen({ setActiveModule }) {
 function HomeInfoGrid({ setActiveModule }) {
   return (
     <section className="student-grid student-grid--wide">
-      <div className="student-panel">
-        <div className="student-panel__header">
-          <div>
-            <h3>Tin tức mới nhất</h3>
-            <p>Thông báo từ Ban Quản Lý KTX</p>
-          </div>
-
-          <button
-            type="button"
-            className="student-panel__see-more"
-            onClick={() => setActiveModule("news")}
-          >
-            Xem thêm
-          </button>
-        </div>
-
-        <div className="student-news-list">
-          {newsItems.map((item, idx) => (
-            <div key={idx} className="student-news-item">
-              <span className="student-news-item__dot" />
-              <span className="student-news-item__text">{item.title}</span>
-              <span className="student-news-item__date">{item.date}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <NewsWidget onViewMore={() => setActiveModule("news")} />
 
       <div className="student-panel">
         <div className="student-panel__header">

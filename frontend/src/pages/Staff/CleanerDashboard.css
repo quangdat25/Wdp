@@ -213,3 +213,15 @@
     grid-template-columns: 1fr;
   }
 }
+
+.cleaner-tasks-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .cleaner-tasks-grid {
+    grid-template-columns: 1fr;
+  }
+}
