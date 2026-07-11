@@ -33,7 +33,7 @@ function routes(app) {
   app.use("/api/upload-image", uploadRoutes);
   app.use("/api/utility-usages", utilityUsageRoutes);
   app.use("/api/invoices", invoiceRoutes);
-  app.use("/api/semesters", semesterRoutes );
+  app.use("/api/semesters", semesterRoutes);
   app.use("/api/news", newsRoutes);
 }
 
