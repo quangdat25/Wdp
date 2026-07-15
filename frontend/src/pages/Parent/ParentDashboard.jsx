@@ -131,13 +131,13 @@ function HomeScreen({ setActiveModule, childData, invoices, loading }) {
   let waterValue = "0 đ";
   let utilityNote = "Chưa có hóa đơn";
   let utilityStatus = "";
-  
+
   if (childData?.previousUtility) {
     const { month, electricityAmount, waterAmount, status } = childData.previousUtility;
-    
+
     electricityValue = `${electricityAmount.toLocaleString("vi-VN")} đ`;
     waterValue = `${waterAmount.toLocaleString("vi-VN")} đ`;
-    
+
     utilityNote = `Tháng ${month < 10 ? '0' + month : month}`;
     utilityStatus = status === "unpaid" ? "Chưa thanh toán" : status === "paid" ? "Đã thanh toán" : "";
   }
@@ -176,29 +176,17 @@ function HomeScreen({ setActiveModule, childData, invoices, loading }) {
 
         <MetricCard
           icon={<FaTachometerAlt />}
-<<<<<<< Updated upstream
-          label={`Điện tháng ${childData?.previousUtility?.month < 10 ? '0' : ''}${childData?.previousUtility?.month || 'trước'}`}
-          value={childData ? `${childData.previousUtility.electricityAmount.toLocaleString()} VNĐ` : "N/A"}
-          note={`Năm ${childData?.previousUtility?.year || ''}`}
-=======
           label={`Tiền điện ${utilityNote}`}
           value={electricityValue}
           note={utilityStatus}
->>>>>>> Stashed changes
           tone="amber"
         />
 
         <MetricCard
           icon={<FaTint />}
-<<<<<<< Updated upstream
-          label={`Nước tháng ${childData?.previousUtility?.month < 10 ? '0' : ''}${childData?.previousUtility?.month || 'trước'}`}
-          value={childData ? `${childData.previousUtility.waterAmount.toLocaleString()} VNĐ` : "N/A"}
-          note={`Năm ${childData?.previousUtility?.year || ''}`}
-=======
           label={`Tiền nước ${utilityNote}`}
           value={waterValue}
           note={utilityStatus}
->>>>>>> Stashed changes
           tone="rose"
         />
 
