@@ -1,5 +1,6 @@
 const User = require("../models/user.model");
 const Room = require("../models/room.models");
+const Invoice = require("../models/invoice.model");
 
 const getMyChildRoom = async (req, res) => {
     try {
@@ -27,29 +28,34 @@ const getMyChildRoom = async (req, res) => {
             (s) => s.student.toString() === student._id.toString()
         );
 
-        const Invoice = require("../models/invoice.model");
+        // Xử lý nghiệp vụ: Lấy tháng trước đó
         const today = new Date();
-        let previousMonth = today.getMonth();
+        let previousMonth = today.getMonth(); // 0 (Jan) - 11 (Dec)
         let previousMonthYear = today.getFullYear();
+        
+        // Nếu đang là tháng 1 (previousMonth === 0), lùi về tháng 12 năm ngoái
         if (previousMonth === 0) {
             previousMonth = 12;
             previousMonthYear -= 1;
         }
 
+        // Lấy hóa đơn tiện ích (utility) mới nhất của học sinh thay vì query theo billingMonth (do model Invoice không có trường này)
         const utilityInvoice = await Invoice.findOne({
             studentId: student._id,
-            type: "utility",
-            billingMonth: previousMonth
+            type: "utility"
         }).sort({ createdAt: -1 });
 
         let electricityAmount = 0;
         let waterAmount = 0;
+        let invoiceStatus = "";
 
         if (utilityInvoice && utilityInvoice.items) {
             const electricityItem = utilityInvoice.items.find(item => item.name === "electricity");
             const waterItem = utilityInvoice.items.find(item => item.name === "water");
+            
             if (electricityItem) electricityAmount = electricityItem.amount;
             if (waterItem) waterAmount = waterItem.amount;
+            invoiceStatus = utilityInvoice.status;
         }
 
         return res.json({
@@ -77,6 +83,7 @@ const getMyChildRoom = async (req, res) => {
                     year: previousMonthYear,
                     electricityAmount: electricityAmount,
                     waterAmount: waterAmount,
+                    status: invoiceStatus
                 }
             },
         });
@@ -116,19 +123,27 @@ const getStudentInfo = async (req, res) => {
 
 const getStudentInvoices = async (req, res) => {
     try {
-        const Invoice = require("../models/invoice.model");
+        const student = await User.findById(req.user);
         
-        const invoices = await Invoice.find({ studentId: req.user._id }).sort({ createdAt: -1 });
+        if (!student || student.role !== "student") {
+            return res.status(404).json({
+                success: false,
+                message: "Không tìm thấy thông tin sinh viên",
+            });
+        }
+
+        const invoices = await Invoice.find({
+            studentId: student._id,
+        }).sort({ createdAt: -1 });
 
         return res.json({
             success: true,
             data: invoices,
         });
     } catch (error) {
-        console.error("Lỗi khi lấy hóa đơn:", error);
         res.status(500).json({
             success: false,
-            message: "Lỗi máy chủ khi lấy dữ liệu hóa đơn",
+            message: error.message,
         });
     }
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getMyChildRoom } from "../../api/parentService";
+import { getMyChildRoom, getStudentInvoices } from "../../api/parentService";
 import {
   FaBed,
   FaCalendarAlt,
@@ -56,14 +56,21 @@ const parentModules = [
 function ParentDashboard() {
   const [activeModule, setActiveModule] = useState("home");
   const [childData, setChildData] = useState(null);
+  const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchChildData = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getMyChildRoom();
-        if (data && data.success) {
-          setChildData(data.data);
+        const [roomData, invoiceData] = await Promise.all([
+          getMyChildRoom(),
+          getStudentInvoices()
+        ]);
+        if (roomData && roomData.success) {
+          setChildData(roomData.data);
+        }
+        if (invoiceData && invoiceData.success) {
+          setInvoices(invoiceData.data);
         }
       } catch (error) {
         console.error("Lỗi khi tải thông tin:", error);
@@ -71,7 +78,7 @@ function ParentDashboard() {
         setLoading(false);
       }
     };
-    fetchChildData();
+    fetchData();
   }, []);
 
   const activeConfig =
@@ -87,7 +94,7 @@ function ParentDashboard() {
         <Header avatarText="P" />
 
         {activeModule === "home" && (
-          <HomeScreen setActiveModule={setActiveModule} childData={childData} loading={loading} />
+          <HomeScreen setActiveModule={setActiveModule} childData={childData} invoices={invoices} loading={loading} />
         )}
 
         {activeModule !== "home" && (
@@ -102,7 +109,7 @@ function ParentDashboard() {
   );
 }
 
-function HomeScreen({ setActiveModule, childData, loading }) {
+function HomeScreen({ setActiveModule, childData, invoices, loading }) {
   if (loading) {
     return (
       <div className="parent-stack">
@@ -119,6 +126,21 @@ function HomeScreen({ setActiveModule, childData, loading }) {
   const bedText = childData
     ? `Giường số ${childData.bedNumber} · Đang hoạt động`
     : "Vui lòng liên hệ BQL";
+
+  let electricityValue = "0 đ";
+  let waterValue = "0 đ";
+  let utilityNote = "Chưa có hóa đơn";
+  let utilityStatus = "";
+  
+  if (childData?.previousUtility) {
+    const { month, electricityAmount, waterAmount, status } = childData.previousUtility;
+    
+    electricityValue = `${electricityAmount.toLocaleString("vi-VN")} đ`;
+    waterValue = `${waterAmount.toLocaleString("vi-VN")} đ`;
+    
+    utilityNote = `Tháng ${month < 10 ? '0' + month : month}`;
+    utilityStatus = status === "unpaid" ? "Chưa thanh toán" : status === "paid" ? "Đã thanh toán" : "";
+  }
 
   return (
     <div className="parent-stack">
@@ -154,17 +176,29 @@ function HomeScreen({ setActiveModule, childData, loading }) {
 
         <MetricCard
           icon={<FaTachometerAlt />}
+<<<<<<< Updated upstream
           label={`Điện tháng ${childData?.previousUtility?.month < 10 ? '0' : ''}${childData?.previousUtility?.month || 'trước'}`}
           value={childData ? `${childData.previousUtility.electricityAmount.toLocaleString()} VNĐ` : "N/A"}
           note={`Năm ${childData?.previousUtility?.year || ''}`}
+=======
+          label={`Tiền điện ${utilityNote}`}
+          value={electricityValue}
+          note={utilityStatus}
+>>>>>>> Stashed changes
           tone="amber"
         />
 
         <MetricCard
           icon={<FaTint />}
+<<<<<<< Updated upstream
           label={`Nước tháng ${childData?.previousUtility?.month < 10 ? '0' : ''}${childData?.previousUtility?.month || 'trước'}`}
           value={childData ? `${childData.previousUtility.waterAmount.toLocaleString()} VNĐ` : "N/A"}
           note={`Năm ${childData?.previousUtility?.year || ''}`}
+=======
+          label={`Tiền nước ${utilityNote}`}
+          value={waterValue}
+          note={utilityStatus}
+>>>>>>> Stashed changes
           tone="rose"
         />
 
