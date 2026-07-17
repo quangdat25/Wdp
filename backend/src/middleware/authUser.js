@@ -1,5 +1,5 @@
 const { verifyToken } = require("../utils/jwt.util");
-const userModel = require("../models/user.model");
+const userRepository = require("../repositories/user.repository");
 
 // 1. Middleware xác thực: Đảm bảo người dùng đã đăng nhập
 const authenticate = async (req, res, next) => {
@@ -48,7 +48,7 @@ const authenticate = async (req, res, next) => {
     }
 
     // Tìm user trong DB để xác nhận tồn tại
-    const user = await userModel.findById(decoded.id);
+    const user = await userRepository.findById(decoded.id);
     if (!user) {
       return res
         .status(401)

@@ -266,6 +266,24 @@ class BookingRepository {
    * Lịch sử phòng chỉ lấy các booking hợp lệ,
    * không lấy pending hoặc cancelled.
    */
+  async findMyBookingHistory(studentId) {
+    return Booking.find({ 
+      studentId,
+      status: { $nin: ["pending", "cancelled"] }
+    })
+      .populate({
+        path: "roomId",
+        populate: [
+          { path: "building", select: "name" },
+          {
+            path: "students.student",
+            select: "fullName studentCode gender phone email",
+          },
+        ],
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+  }
   async findRoomBookingHistory(roomId) {
     return Booking.find({
       roomId,

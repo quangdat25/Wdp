@@ -488,9 +488,46 @@ class PaymentController {
       );
     }
 
-    invoice.status = "paid";
-    invoice.paidAt = new Date();
-    await invoice.save();
+    if (invoice.status !== "paid") {
+      invoice.status = "paid";
+      invoice.paidAt = new Date();
+      await invoice.save();
+    }
+
+    if (invoice.type === "room_fee" && invoice.bookingId) {
+      try {
+        const booking = await Booking.findById(invoice.bookingId).populate({
+          path: "roomId",
+          populate: { path: "building", select: "name" },
+        });
+
+        if (booking && booking.status === "pending") {
+          booking.status = "confirmed";
+          await booking.save();
+
+          const student = await User.findById(booking.studentId)
+            .select("fullName username email studentCode role")
+            .lean();
+
+          if (student && booking.roomId) {
+            this.sendBookingSuccessMail({
+              booking,
+              student,
+              room: booking.roomId,
+              invoice,
+            }).catch((mailError) => {
+              console.error("SEND BOOKING MAIL PROMISE ERROR:", mailError.message);
+            });
+          }
+        }
+
+        return res.redirect(
+          `${process.env.CLIENT_URL}/student/booking-result?status=success&bookingId=${booking._id}`,
+        );
+      } catch (err) {
+        console.error("HANDLE INVOICE SUCCESS FOR ROOM FEE ERROR:", err);
+      }
+    }
 
     return res.redirect(
       `${process.env.CLIENT_URL}/student/payment-result?status=success&invoiceId=${invoice._id}`,

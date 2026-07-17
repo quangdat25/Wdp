@@ -30,3 +30,7 @@ export const getUtilityByStudentId = async (studentId) => {
   const res = await request.get(`/api/utility-usages/student/${studentId}`);
   return res.data;
 };
+
+export const createUtilityInvoices = (data) => {
+  return request.post("api/utility-usages/create-invoices", data);
+};

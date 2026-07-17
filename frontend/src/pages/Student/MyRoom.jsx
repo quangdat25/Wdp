@@ -1,277 +1,385 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import bookingService from "../../api/bookingService";
+import semesterService from "../../api/semesterService";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Headers";
+import { showError } from "../../components/alert";
+
+const statusColors = {
+  pending: { background: "#fef3c7", color: "#92400e", label: "Chờ thanh toán" },
+  confirmed: { background: "#dbeafe", color: "#1d4ed8", label: "Đã xác nhận" },
+  checked_in: { background: "#dcfce7", color: "#166534", label: "Đang ở" },
+  checked_out: { background: "#f1f5f9", color: "#475569", label: "Đã trả phòng" },
+  cancelled: { background: "#fee2e2", color: "#b91c1c", label: "Đã hủy" },
+};
+
+const filterOptions = [
+  { value: "", label: "Tất cả trạng thái" },
+  { value: "upcoming", label: "Sắp tới" },
+  { value: "staying", label: "Đang trong kì" },
+  { value: "completed", label: "Đã kết thúc" },
+];
 
 const MyRoom = () => {
-  const [bookingInfo, setBookingInfo] = useState(null);
+  const navigate = useNavigate();
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [currentSemester, setCurrentSemester] = useState(null);
+
   const [showRoommates, setShowRoommates] = useState(false);
+  const [selectedRoommates, setSelectedRoommates] = useState([]);
 
   useEffect(() => {
-    const fetchMyRoom = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await bookingService.getMyBooking();
-        if (res.success && res.data) {
-          setBookingInfo(res.data);
-        } else {
-          setError(res.message || "Bạn chưa có thông tin phòng.");
+        const [historyResult, semesterResult] = await Promise.allSettled([
+          bookingService.getMyBookingHistory(),
+          semesterService.getCurrentSemester(),
+        ]);
+
+        if (historyResult.status === "fulfilled" && historyResult.value?.success) {
+          setHistory(historyResult.value.data);
+        } else if (historyResult.status === "rejected") {
+          console.error("Lỗi khi tải lịch sử phòng:", historyResult.reason);
+          showError("Lỗi khi tải lịch sử phòng.");
+        }
+
+        if (semesterResult.status === "fulfilled" && semesterResult.value) {
+          // semesterResult.value is the semester object itself
+          setCurrentSemester(semesterResult.value);
+        } else if (semesterResult.status === "rejected") {
+          console.error("Không tải được kỳ hiện tại:", semesterResult.reason);
         }
       } catch (err) {
-        setError("Lỗi khi lấy thông tin phòng.");
+        showError("Lỗi không mong muốn khi tải dữ liệu.");
       } finally {
         setLoading(false);
       }
     };
-    fetchMyRoom();
+    fetchData();
   }, []);
 
-  if (loading) {
-    return <div style={styles.center}>Đang tải dữ liệu...</div>;
-  }
+  const filteredHistory = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
 
-  if (error || !bookingInfo) {
-    return (
-      <div style={styles.center}>
-        <h3>{error || "Bạn hiện tại chưa có phòng nào."}</h3>
-      </div>
-    );
-  }
+    return history.filter((booking) => {
+      // Hide pending bookings as they are handled in the invoice section
+      if (booking.status === "pending") return false;
 
-  const { semester, roomId, myBedNumber, endDate } = bookingInfo;
-  const buildingName = roomId?.building?.name || "N/A";
-  const roomName = roomId?.displayName || "N/A";
-  const roomPrice = roomId?.price || 2000000;
+      const room = booking.roomId || {};
+      const buildingName = room.building?.name || "";
+      const roomName = room.displayName || "";
 
-  // Xử lý hiển thị Semester (Spring -> 1, Summer -> 2, Fall -> 3)
-  let semNum = "N/A";
-  const semStr = semester || "";
-  if (semStr.toLowerCase().includes("spring")) semNum = 1;
-  else if (semStr.toLowerCase().includes("summer")) semNum = 2;
-  else if (semStr.toLowerCase().includes("fall")) semNum = 3;
+      // Filter by status category
+      let matchStatus = true;
+      if (statusFilter === "upcoming") {
+        matchStatus = booking.status === "confirmed";
+      } else if (statusFilter === "staying") {
+        matchStatus = booking.status === "checked_in";
+      } else if (statusFilter === "completed") {
+        matchStatus = booking.status === "checked_out" || booking.status === "cancelled";
+      }
 
-  const yearMatch = semStr.match(/\d{4}/);
-  const semYear = yearMatch ? yearMatch[0] : new Date().getFullYear();
+      // Filter by keyword
+      const matchKeyword = keyword
+        ? [buildingName, roomName, booking.semester, booking.status]
+          .join(" ")
+          .toLowerCase()
+          .includes(keyword)
+        : true;
 
-  // Xử lý hiển thị Check-out Date
-  const formatCheckoutDate = (dateString) => {
-    if (!dateString) return "Keep current bed";
-    const d = new Date(dateString);
-    if (isNaN(d)) return "Keep current bed";
-    return d.toLocaleDateString("vi-VN");
+      return matchStatus && matchKeyword;
+    });
+  }, [history, searchText, statusFilter]);
+
+  const formatSemesterDisplay = (semesterStr) => {
+    if (!semesterStr) return "N/A";
+    if (semesterStr.includes(" ")) return semesterStr;
+
+    const prefix = semesterStr.substring(0, 2).toUpperCase();
+    const yearSuffix = semesterStr.substring(2);
+    
+    let season = "";
+    if (prefix === "SU") season = "Summer";
+    else if (prefix === "FA") season = "Fall";
+    else if (prefix === "SP") season = "Spring";
+    else return semesterStr;
+    
+    return `${season} 20${yearSuffix}`;
   };
 
-  // Lấy danh sách bạn cùng phòng (trừ mình ra)
-  const roommates =
-    roomId?.students?.filter((s) => s.bedNumber !== myBedNumber) || [];
+  const groupedHistory = useMemo(() => {
+    const groups = {};
+    filteredHistory.forEach((booking) => {
+      const sem = formatSemesterDisplay(booking.semester);
+      if (!groups[sem]) groups[sem] = [];
+      groups[sem].push(booking);
+    });
+    return groups;
+  }, [filteredHistory]);
+
+  const handleRenew = (booking) => {
+    console.log("DEBUG handleRenew currentSemester:", currentSemester);
+    if (!currentSemester?.renewalStartDate || !currentSemester?.renewalEndDate) {
+      showError("Hệ thống chưa thiết lập thời gian gia hạn.");
+      return;
+    }
+
+    const now = new Date().getTime();
+    const start = new Date(currentSemester.renewalStartDate).setHours(0, 0, 0, 0);
+    const end = new Date(currentSemester.renewalEndDate).setHours(23, 59, 59, 999);
+
+    const bookingSemesterMatch = booking.semester === currentSemester.code || booking.semester === `${currentSemester.name} ${currentSemester.year}`;
+
+    if (!bookingSemesterMatch) {
+      showError(`Phòng này thuộc kỳ ${booking.semester}, hiện tại đang là kỳ ${currentSemester.name} ${currentSemester.year} nên chưa thể gia hạn.`);
+      return;
+    }
+
+    if (now < start || now > end) {
+      showError("Chưa đến thời gian gia hạn phòng hoặc hệ thống chưa mở.");
+      return;
+    }
+
+    navigate("/student/booking", {
+      state: {
+        isRenew: true,
+        roomId: booking.roomId._id,
+        roomNumber: booking.roomId.displayName,
+        bedNumber: booking.bedNumber,
+        renewedFrom: booking._id,
+      },
+    });
+  };
+
+  const handleShowRoommates = (booking) => {
+    const students = booking.roomId?.students || [];
+    const roommates = students.filter((s) => s.student);
+    setSelectedRoommates(roommates);
+    setShowRoommates(true);
+  };
+
+  const formatDate = (date) => {
+    if (!date) return "Chưa có";
+    return new Date(date).toLocaleDateString("vi-VN");
+  };
+
+  const formatDateTime = (date) => {
+    if (!date) return "Chưa có";
+    return new Date(date).toLocaleString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const getCheckoutDisplay = (booking) => {
+    // Check if there is a newer booking that renewed this one
+    const renewedBooking = history.find((b) => b.renewedFrom === booking._id);
+    if (renewedBooking) {
+      // Date the student clicked renew
+      return formatDate(renewedBooking.createdAt);
+    }
+    if (booking.status === "checked_out") {
+      return formatDate(booking.updatedAt);
+    }
+    return "—";
+  };
+
+  const formatMoney = (value) => {
+    return Number(value || 0).toLocaleString("vi-VN") + "đ";
+  };
 
   return (
-    <div className="student-shell" style={{ display: "flex", height: "100vh", backgroundColor: "#f9fafb" }}>
+    <div className="flex min-h-screen bg-gradient-to-b from-[#f8fbff] to-[#f3f8f6]">
       <Sidebar />
-      <main className="student-main" style={{ flex: 1, overflowY: "auto" }}>
+      <main className="ml-[270px] w-[calc(100%-270px)] p-6 min-h-screen font-sans relative">
         <Header />
-        <div style={styles.wrapper}>
-          <h1 style={styles.pageTitle}>Room Histories</h1>
-          <div style={styles.container}>
-            <table style={styles.historyTable}>
-              <thead>
-                <tr>
-                  <th style={styles.historyTh}>Student ID</th>
-                  <th style={styles.historyTh}>Bed Information</th>
-                  <th style={styles.historyTh}>Check-out Date</th>
-                  <th style={styles.historyTh}>Price</th>
-                  <th style={styles.historyTh}>Semester</th>
-                  <th style={styles.historyTh}>Year</th>
-                  <th style={styles.historyTh}></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td style={styles.historyTd}>{JSON.parse(localStorage.getItem("user"))?.studentCode || "N/A"}</td>
-                  <td style={styles.historyTd}>{buildingName}{roomName} - {myBedNumber}</td>
-                  <td style={styles.historyTd}>{formatCheckoutDate(endDate)}</td>
-                  <td style={styles.historyTd}>{roomPrice.toLocaleString("vi-VN")} VND</td>
-                  <td style={styles.historyTd}>{semNum}</td>
-                  <td style={styles.historyTd}>{semYear}</td>
-                  <td style={styles.historyTd}>
-                    <button
-                      style={styles.roommateBtn}
-                      onClick={() => setShowRoommates(true)}
-                    >
-                      Roommates
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
 
-            {/* Modal hiển thị Roommates */}
-            {showRoommates && (
-              <div style={styles.modalOverlay} onClick={() => setShowRoommates(false)}>
-                <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                  <div style={styles.modalHeader}>
-                    <h3 style={{ margin: 0 }}>Danh sách bạn cùng phòng</h3>
-                    <button
-                      style={styles.closeBtn}
-                      onClick={() => setShowRoommates(false)}
-                    >
-                      &times;
-                    </button>
+        <div className="bg-white/70 border border-slate-200 rounded-3xl p-6 shadow-sm flex items-center justify-between mb-6 backdrop-blur-md mt-6">
+          <div>
+            <h1 className="text-[34px] text-[#1e4f8f] m-0 font-bold">Lịch sử phòng ở</h1>
+            <p className="text-slate-500 m-0 mt-1">Xem danh sách các phòng bạn đã đặt và tiến hành gia hạn.</p>
+          </div>
+        </div>
+
+        <section className="bg-white/80 rounded-3xl p-6 shadow-md border border-slate-200 backdrop-blur-md">
+          <div className="flex flex-wrap gap-4 justify-between items-center mb-5">
+            <div>
+              <h2 className="m-0 text-[22px] font-bold text-slate-800">Danh sách phòng</h2>
+              <p className="m-0 mt-1.5 text-slate-500">
+                Có {filteredHistory.length} kết quả phù hợp
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[1fr_220px] gap-3 mb-5">
+            <input
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Tìm theo tòa nhà, phòng, kỳ..."
+              className="min-h-[46px] rounded-xl border border-slate-300 px-4 text-sm bg-white outline-none focus:border-blue-500 transition-colors shadow-inner"
+            />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="min-h-[46px] rounded-xl border border-slate-300 px-4 text-sm bg-white outline-none focus:border-blue-500 transition-colors"
+            >
+              {filterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {loading ? (
+            <div className="p-8 text-center text-slate-500 bg-white rounded-[18px] border border-slate-100">
+              Đang tải dữ liệu...
+            </div>
+          ) : filteredHistory.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 bg-white rounded-[18px] border border-slate-100">
+              Không có dữ liệu lịch sử phòng
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {Object.entries(groupedHistory).map(([semesterName, bookings]) => (
+                <div key={semesterName} className="bg-white rounded-[20px] shadow-sm border border-slate-200 overflow-hidden">
+                  <div className="bg-[#f0f5fa] px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                    <h3 className="m-0 text-[18px] font-bold text-[#1e4f8f] flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#3b82f6]" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                      </svg>
+                      Kỳ học: {semesterName}
+                    </h3>
+                    <span className="text-sm font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">
+                      {bookings.length} phòng
+                    </span>
                   </div>
-
-                  {roommates.length === 0 ? (
-                    <p style={{ textAlign: "center", padding: "20px" }}>Hiện tại chưa có bạn cùng phòng nào.</p>
-                  ) : (
-                    <table style={styles.table}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse min-w-[1000px]">
                       <thead>
-                        <tr>
-                          <th style={styles.th}>Giường</th>
-                          <th style={styles.th}>MSSV</th>
-                          <th style={styles.th}>Họ và tên</th>
-                          <th style={styles.th}>SĐT</th>
-                          <th style={styles.th}>Chuyên ngành</th>
+                        <tr className="bg-white text-left">
+                          <th className="px-5 py-4 border-b border-slate-100 text-slate-500 font-semibold text-sm uppercase tracking-wider">Mã sinh viên</th>
+                          <th className="px-5 py-4 border-b border-slate-100 text-slate-500 font-semibold text-sm uppercase tracking-wider">Phòng & Tòa</th>
+                          <th className="px-5 py-4 border-b border-slate-100 text-slate-500 font-semibold text-sm uppercase tracking-wider">Ngày check-in</th>
+                          <th className="px-5 py-4 border-b border-slate-100 text-slate-500 font-semibold text-sm uppercase tracking-wider">Ngày trả phòng</th>
+                          <th className="px-5 py-4 border-b border-slate-100 text-slate-500 font-semibold text-sm uppercase tracking-wider">Giá phòng</th>
+                          <th className="px-5 py-4 border-b border-slate-100 text-slate-500 font-semibold text-sm uppercase tracking-wider">Trạng thái</th>
+                          <th className="px-5 py-4 border-b border-slate-100 text-slate-500 font-semibold text-sm uppercase tracking-wider text-center">Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {roommates.map((r, idx) => (
-                          <tr key={idx} style={styles.tr}>
-                            <td style={styles.td}>{r.bedNumber}</td>
-                            <td style={styles.td}>{r.student?.studentCode}</td>
-                            <td style={styles.td}>{r.student?.fullName}</td>
-                            <td style={styles.td}>{r.student?.phone || "N/A"}</td>
-                            <td style={styles.td}>{r.student?.major || "N/A"}</td>
-                          </tr>
-                        ))}
+                        {bookings.map((booking) => {
+                          const room = booking.roomId || {};
+                          const building = room.building || {};
+                          const badge = statusColors[booking.status] || statusColors.pending;
+                          const studentCode = JSON.parse(localStorage.getItem("user"))?.studentCode || "N/A";
+
+                          return (
+                            <tr key={booking._id} className="hover:bg-slate-50/80 transition-colors group">
+                              <td className="px-5 py-4 border-b border-slate-100 align-middle text-slate-800 font-medium">
+                                {studentCode}
+                              </td>
+                              <td className="px-5 py-4 border-b border-slate-100 align-middle">
+                                <div className="font-bold text-slate-800 text-[15px] group-hover:text-[#1e4f8f] transition-colors">{room.displayName || "N/A"} - Giường {booking.bedNumber}</div>
+                                <div className="text-[13px] text-slate-500 mt-1 font-medium">{building.name || "Chưa có tòa"}</div>
+                              </td>
+                              <td className="px-5 py-4 border-b border-slate-100 align-middle text-slate-700 font-medium">
+                                {formatDate(booking.startDate)}
+                              </td>
+                              <td className="px-5 py-4 border-b border-slate-100 align-middle text-slate-700 font-medium">
+                                {getCheckoutDisplay(booking)}
+                              </td>
+                              <td className="px-5 py-4 border-b border-slate-100 align-middle text-slate-700 font-medium">
+                                {formatMoney(room.price)}
+                              </td>
+                              <td className="px-5 py-4 border-b border-slate-100 align-middle">
+                                <span
+                                  className="inline-flex items-center justify-center whitespace-nowrap min-w-[110px] px-3 py-1.5 rounded-full font-bold text-[12px] uppercase tracking-wide"
+                                  style={{ backgroundColor: badge.background, color: badge.color, border: `1px solid ${badge.color}30` }}
+                                >
+                                  {badge.label}
+                                </span>
+                              </td>
+                              <td className="px-5 py-4 border-b border-slate-100 align-middle text-center space-x-2">
+                                <button
+                                  onClick={() => handleShowRoommates(booking)}
+                                  className="bg-[#0056b3] hover:bg-[#004494] text-white font-semibold py-2 px-4 rounded-lg transition-all text-[13px] shadow-sm"
+                                >
+                                  Roommates
+                                </button>
+                                {booking.status === "checked_in" && (
+                                  <button
+                                    onClick={() => handleRenew(booking)}
+                                    className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-2 px-5 rounded-lg shadow-md shadow-orange-500/20 transition-all text-[13px] border border-orange-600/20"
+                                  >
+                                    Gia hạn
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
-                  )}
+                  </div>
                 </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {showRoommates && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl flex flex-col overflow-hidden">
+              <div className="flex justify-between items-center p-4 border-b border-slate-200">
+                <h3 className="text-[16px] font-medium text-slate-800 m-0">Roommates</h3>
+                <button
+                  onClick={() => setShowRoommates(false)}
+                  className="text-slate-400 hover:text-slate-600 text-xl font-light"
+                >
+                  ✕
+                </button>
               </div>
-            )}
+              <div className="p-6 overflow-x-auto">
+                {selectedRoommates.length > 0 ? (
+                  <table className="w-full border-collapse text-sm border border-solid border-[#b8daff]">
+                    <thead>
+                      <tr>
+                        <th className="border border-solid border-[#b8daff] text-[#0056b3] font-medium py-3 px-4 text-center whitespace-nowrap">Mã Sinh Viên</th>
+                        <th className="border border-solid border-[#b8daff] text-[#0056b3] font-medium py-3 px-4 text-center">Họ và tên</th>
+                        <th className="border border-solid border-[#b8daff] text-[#0056b3] font-medium py-3 px-4 text-center whitespace-nowrap">Số Điện thoại</th>
+                        <th className="border border-solid border-[#b8daff] text-[#0056b3] font-medium py-3 px-4 text-center whitespace-nowrap">Bed No</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedRoommates.map((r, idx) => (
+                        <tr key={idx}>
+                          <td className="border border-solid border-[#b8daff] py-3 px-4 text-center text-slate-600">{r.student?.studentCode || "N/A"}</td>
+                          <td className="border border-solid border-[#b8daff] py-3 px-4 text-center text-slate-600">{r.student?.fullName || "Chưa có thông tin"}</td>
+                          <td className="border border-solid border-[#b8daff] py-3 px-4 text-center text-slate-600">{r.student?.phone || "N/A"}</td>
+                          <td className="border border-solid border-[#b8daff] py-3 px-4 text-center text-slate-600">Bed {r.bedNumber}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-slate-500 text-center py-4">Phòng hiện chưa có sinh viên nào khác.</p>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
-};
-
-// Inline Styles (Gộp chung trong JSX theo yêu cầu)
-const styles = {
-  wrapper: {
-    maxWidth: "1200px",
-    margin: "20px auto 40px auto",
-    padding: "0 24px",
-  },
-  pageTitle: {
-    color: "#0052cc",
-    fontSize: "50px",
-    fontWeight: "bold",
-    marginBottom: "24px",
-    marginTop: "0",
-  },
-  container: {
-    backgroundColor: "#fff",
-    borderRadius: "12px",
-    boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
-    padding: "24px",
-  },
-  center: {
-    padding: "40px",
-    textAlign: "center",
-    color: "#666",
-  },
-  historyTable: {
-    width: "100%",
-    borderCollapse: "collapse",
-    border: "1px solid #e5e7eb",
-    borderRadius: "8px",
-    overflow: "hidden",
-  },
-  historyTh: {
-    backgroundColor: "#ffffff",
-    padding: "16px 12px",
-    textAlign: "center",
-    fontWeight: "700",
-    color: "#0052cc", // Màu xanh dương giống ảnh mẫu
-    borderBottom: "1px solid #e5e7eb",
-    borderRight: "1px solid #e5e7eb",
-    fontSize: "14px",
-  },
-  historyTd: {
-    padding: "16px 12px",
-    textAlign: "center",
-    color: "#4b5563",
-    borderRight: "1px solid #e5e7eb",
-    borderBottom: "1px solid #e5e7eb",
-    fontSize: "14px",
-  },
-  roommateBtn: {
-    backgroundColor: "#16a34a", // Giữ nguyên nút màu xanh lá cây theo yêu cầu
-    color: "#fff",
-    border: "none",
-    padding: "8px 16px",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontSize: "14px",
-    fontWeight: "600",
-    transition: "background-color 0.2s",
-  },
-  modalOverlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    backgroundColor: "rgba(0,0,0,0.5)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1000,
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: "8px",
-    width: "700px",
-    maxWidth: "90%",
-    padding: "24px",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-  },
-  modalHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "20px",
-    borderBottom: "1px solid #eee",
-    paddingBottom: "12px",
-  },
-  closeBtn: {
-    background: "none",
-    border: "none",
-    fontSize: "24px",
-    cursor: "pointer",
-    color: "#666",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-  th: {
-    backgroundColor: "#f3f4f6",
-    padding: "12px",
-    textAlign: "left",
-    fontWeight: "600",
-    color: "#374151",
-    borderBottom: "2px solid #e5e7eb",
-  },
-  tr: {
-    borderBottom: "1px solid #e5e7eb",
-  },
-  td: {
-    padding: "12px",
-    color: "#4b5563",
-  },
 };
 
 export default MyRoom;

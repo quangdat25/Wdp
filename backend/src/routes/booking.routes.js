@@ -8,6 +8,7 @@ const {
   getRoomBedAvailability,
   createBooking,
   getMyBooking,
+  getMyHistory,
   getRoomHistory,
   getAllBookings,
 } = require("../controllers/booking.controller");
@@ -50,6 +51,13 @@ router.get(
   authenticate,
   authorize("student"),
   getMyBooking,
+);
+
+router.get(
+  "/my-history",
+  authenticate,
+  authorize("student"),
+  getMyHistory,
 );
 
 router.get(
