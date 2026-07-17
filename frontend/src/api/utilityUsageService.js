@@ -31,6 +31,3 @@ export const getUtilityByStudentId = async (studentId) => {
   return res.data;
 };
 
-export const createUtilityInvoices = (data) => {
-  return request.post("api/utility-usages/create-invoices", data);
-};
