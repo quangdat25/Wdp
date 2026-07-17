@@ -20,3 +20,7 @@ export const getAllUtilityUsages = (params) => {
 export const createUtilityInvoices = (data) => {
   return request.post("api/utility-usages/create-invoices", data);
 };
+
+export const getUtilityByStudentId = (studentId) => {
+  return request.get(`api/utility-usages/student/${studentId}`);
+};
