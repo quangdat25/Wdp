@@ -11,3 +11,8 @@ export const importStudents = (formData) => {
     },
   });
 };
+
+export const searchStudents = async (q) => {
+  const response = await request.get("/api/students/search", { params: { q } });
+  return response.data;
+};

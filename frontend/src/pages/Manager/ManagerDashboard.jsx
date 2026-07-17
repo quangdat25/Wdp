@@ -1,4 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
+import gsap from "gsap";
+import { createNews, getAllNews } from "../../api/newsService";
+import getAdminDashboard from "../../api/dashboardService";
+import { showSuccess, showError } from "../../components/Alert";
+import { formatDateTime } from "../../utils/date";
 import {
   FaBell,
   FaBed,
@@ -15,17 +21,20 @@ import {
   FaTools,
   FaUserCheck,
   FaUsersCog,
+  FaSpinner,
 } from "react-icons/fa";
 import "./ManagerDashboard.css";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Headers";
-
-
-const buildings = [
-  { name: "Dorm A", manager: "Ngô Quý Quang", floors: 6, rooms: 48, beds: 192, occupancy: 84, gender: "Nam" },
-  { name: "Dorm B", manager: "Ngô Quý Quang", floors: 5, rooms: 40, beds: 160, occupancy: 78, gender: "Nữ" },
-  { name: "Dorm C", manager: "Ngô Quý Quang", floors: 4, rooms: 32, beds: 128, occupancy: 64, gender: "Nam/Nữ" },
-];
+import HeroCard from "./components/Overview/HeroCard";
+import KPISection from "./components/Overview/KPISection";
+import BuildingOverview from "./components/Overview/BuildingOverview";
+import MaintenanceChart from "./components/Overview/MaintenanceChart";
+import RecentRequestsTable from "./components/Overview/RecentRequestsTable";
+import {
+  QuickActions,
+  RecentActivitiesList
+} from "./components/Overview/RightPanelComponents";
 
 const rooms = [
   { room: "A-101", building: "Dorm A", floor: 1, type: "4 beds", gender: "Nam", occupied: 4, price: "1.200.000", status: "FULL" },
@@ -91,15 +100,34 @@ const settings = [
 ];
 
 function ManagerDashboard() {
+  const location = useLocation();
   const [activeModule, setActiveModule] = useState("overview");
-  const [query, setQuery] = useState("");
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const totalBeds = buildings.reduce((sum, building) => sum + building.beds, 0);
-  const occupiedBeds = Math.round(
-    buildings.reduce((sum, building) => sum + (building.beds * building.occupancy) / 100, 0)
-  );
-  const pendingBookings = bookings.filter((item) => item.status === "PENDING").length;
-  const openTickets = tickets.filter((item) => item.status !== "RESOLVED").length;
+  useEffect(() => {
+    if (location.pathname === "/manager/notifications") {
+      setActiveModule("settings");
+    } else {
+      setActiveModule("overview");
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await getAdminDashboard();
+        if (res.success) setDashboardData(res.data);
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const [query, setQuery] = useState("");
 
   const roomMatches = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -109,18 +137,13 @@ function ManagerDashboard() {
 
   return (
     <div className="manager-shell">
-      <Sidebar/>
+      <Sidebar />
 
       <main className="manager-main">
-        <Header/>
+        <Header />
 
         {activeModule === "overview" && (
-          <OverviewScreen
-            totalBeds={totalBeds}
-            occupiedBeds={occupiedBeds}
-            pendingBookings={pendingBookings}
-            openTickets={openTickets}
-          />
+          <OverviewScreen data={dashboardData} loading={loading} setActiveModule={setActiveModule} />
         )}
 
         {activeModule === "infrastructure" && (
@@ -139,43 +162,61 @@ function ManagerDashboard() {
   );
 }
 
-function OverviewScreen({ totalBeds, occupiedBeds, pendingBookings, openTickets }) {
+function OverviewScreen({ data, loading, setActiveModule }) {
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "40vh", color: "#66736d", fontSize: 16, fontWeight: 700, gap: 12 }}>
+        <FaSpinner style={{ animation: "spin 0.8s linear infinite" }} />
+        Đang tải dữ liệu...
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "40vh", color: "#b42318", gap: 12 }}>
+        <FaExclamationTriangle size={28} />
+        <span style={{ fontWeight: 700 }}>Không thể tải dữ liệu dashboard</span>
+      </div>
+    );
+  }
+
+  const { students, occupancy, pendingTickets, alerts, buildings, bookingRequests, recentActivities, maintenanceStats } = data;
+
+  const kpiData = {
+    totalStudents: students?.total || 0,
+    occupiedBeds: buildings ? buildings.reduce((sum, b) => sum + (b.occupied || 0), 0) : 0,
+    pendingRequests: alerts?.pendingBookings || 0,
+    maintenanceRooms: occupancy?.maintenanceRooms || alerts?.maintenanceRooms || 0
+  };
+
   return (
-    <div className="manager-stack">
-      <section className="manager-metrics">
-        <MetricCard icon={<FaBed />} label="Giường đã sử dụng" value={`${occupiedBeds}/${totalBeds}`} note="Theo bảng beds và residencies" tone="green" />
-        <MetricCard icon={<FaClipboardCheck />} label="Đơn chờ duyệt" value={pendingBookings} note="booking_requests PENDING" tone="amber" />
-        <MetricCard icon={<FaTools />} label="Ticket đang xử lý" value={openTickets} note="OPEN và IN_PROGRESS" tone="blue" />
-        <MetricCard icon={<FaUserCheck />} label="CFD trung bình" value="91" note="Theo students.cfd_score" tone="red" />
-      </section>
+    <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+      <HeroCard
+        occupancyRate={occupancy?.rate}
+        pendingRequests={alerts?.pendingBookings || 0}
+        pendingTickets={pendingTickets || 0}
+      />
 
-      <section className="manager-grid manager-grid--wide">
-        <Panel title="Tình trạng tòa nhà" subtitle="Nên có trong main screen tổng quan để manager nhìn occupancy ngay.">
-          <div className="building-list">
-            {buildings.map((building) => (
-              <div className="building-row" key={building.name}>
-                <div>
-                  <strong>{building.name}</strong>
-                  <span>{building.rooms} phòng, {building.beds} giường, khu {building.gender}</span>
-                </div>
-                <div className="building-row__meter" aria-label={`${building.occupancy}%`}>
-                  <span style={{ width: `${building.occupancy}%` }} />
-                </div>
-                <b>{building.occupancy}%</b>
-              </div>
-            ))}
-          </div>
-        </Panel>
+      <KPISection data={kpiData} />
 
-        <Panel title="Việc cần xử lý hôm nay" subtitle="Tập trung vào duyệt đơn, phân công ticket và nhắc thanh toán.">
-          <div className="task-list">
-            <TaskItem label="Duyệt 2 đơn đặt phòng Summer 2026" status="Ưu tiên" />
-            <TaskItem label="Phân công vệ sinh phòng A-203" status="Mở" />
-            <TaskItem label="Kiểm tra chỉ số điện nước Dorm B" status="Hôm nay" />
-            <TaskItem label="Gửi thông báo bảo trì nước Dorm C" status="Nháp" />
+      <div style={{ display: "grid", gridTemplateColumns: "7fr 3fr", gap: 24, marginBottom: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <BuildingOverview buildings={buildings} />
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 24 }}>
+            <MaintenanceChart data={maintenanceStats} />
           </div>
-        </Panel>
-      </section>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <QuickActions />
+          <RecentActivitiesList recentActivities={recentActivities} />
+        </div>
+      </div>
+
+      <RecentRequestsTable bookingRequests={bookingRequests} />
     </div>
   );
 }
@@ -192,28 +233,32 @@ function InfrastructureScreen({ query, setQuery, roomMatches }) {
       </section>
 
       <section className="manager-grid manager-grid--three">
-        {buildings.map((building) => (
-          <article className="building-card" key={building.name}>
-            <div className="building-card__top">
-              <span><FaBuilding /></span>
-              <b>{building.name}</b>
-            </div>
-            <dl>
-              <div><dt>Tầng</dt><dd>{building.floors}</dd></div>
-              <div><dt>Phòng</dt><dd>{building.rooms}</dd></div>
-              <div><dt>Giường</dt><dd>{building.beds}</dd></div>
-            </dl>
-            <div className="building-card__foot">
-              <span>Quản lý: {building.manager}</span>
-              <strong>{building.occupancy}% đầy</strong>
-            </div>
-          </article>
-        ))}
+        {rooms.filter((r, i, arr) => arr.findIndex(x => x.building === r.building) === i).map((b) => {
+          const buildingRooms = rooms.filter((r) => r.building === b.building);
+          const totalBeds = buildingRooms.reduce((s, r) => s + (r.type === "4 beds" ? 4 : r.type === "6 beds" ? 6 : 3), 0);
+          return (
+            <article className="building-card" key={b.building}>
+              <div className="building-card__top">
+                <span><FaBuilding /></span>
+                <b>{b.building}</b>
+              </div>
+              <dl>
+                <div><dt>Tầng</dt><dd>{Math.max(...buildingRooms.map(r => r.floor))}</dd></div>
+                <div><dt>Phòng</dt><dd>{buildingRooms.length}</dd></div>
+                <div><dt>Giường</dt><dd>{totalBeds}</dd></div>
+              </dl>
+              <div className="building-card__foot">
+                <span>Quản lý: --</span>
+                <strong>{Math.round(buildingRooms.filter(r => r.occupied > 0).length / buildingRooms.length * 100)}% đầy</strong>
+              </div>
+            </article>
+          );
+        })}
       </section>
 
       <DataPanel
         title="Danh sách phòng và giường"
-        subtitle="Main screen nên có bộ lọc tòa, tầng, giới tính, loại phòng và status bed."
+        subtitle="Danh sách phòng."
         columns={["Phòng", "Tòa", "Tầng", "Loại", "Giới tính", "Đã ở", "Giá", "Trạng thái"]}
         rows={roomMatches.map((room) => [
           room.room,
@@ -234,7 +279,7 @@ function BookingScreen() {
   return (
     <DataPanel
       title="Yêu cầu đặt phòng"
-      subtitle="Màn này nên có thao tác approve, reject, xem điểm CFD và kiểm tra bed còn trống."
+      subtitle="Danh sách yêu cầu đặt phòng của sinh viên."
       columns={["Mã đơn", "Sinh viên", "Mã SV", "Học kỳ", "Giường", "CFD", "Trạng thái", "Thao tác"]}
       rows={bookings.map((item) => [
         item.id,
@@ -254,7 +299,7 @@ function ResidencyScreen() {
   return (
     <DataPanel
       title="Danh sách lưu trú"
-      subtitle="Main screen nên hỗ trợ check-in, check-out và lọc theo semester/status."
+      subtitle="Danh sách sinh viên đang ở."
       columns={["Sinh viên", "Phòng", "Giường", "Check-in", "Check-out", "Trạng thái"]}
       rows={residencies.map((item) => [
         item.student,
@@ -274,7 +319,7 @@ function BillingScreen() {
       <section className="manager-grid manager-grid--wide">
         <DataPanel
           title="Hóa đơn sinh viên"
-          subtitle="Theo invoices và vnpay_transactions."
+          subtitle="Danh sách hóa đơn."
           columns={["Mã", "Sinh viên", "Loại", "Số tiền", "Hạn trả", "Trạng thái"]}
           rows={invoices.map((item) => [
             item.id,
@@ -287,7 +332,7 @@ function BillingScreen() {
         />
         <DataPanel
           title="Chỉ số điện nước"
-          subtitle="Theo utility_readings, dùng để sinh hóa đơn tiện ích."
+          subtitle="Dùng để sinh hóa đơn tiện ích."
           columns={["Phòng", "Tháng", "Điện", "Nước", "Tạm tính"]}
           rows={utilities.map((item) => [
             item.room,
@@ -306,7 +351,7 @@ function OperationsScreen() {
   return (
     <DataPanel
       title="Ticket vận hành"
-      subtitle="Màn này nên có kanban OPEN, IN_PROGRESS, RESOLVED và form ghi ticket_notes."
+      subtitle="Danh sách ticket."
       columns={["Mã", "Phòng", "Loại", "Phân công", "Trạng thái", "Ngày tạo", "Thao tác"]}
       rows={tickets.map((item) => [
         item.id,
@@ -325,7 +370,7 @@ function ViolationsScreen() {
   return (
     <DataPanel
       title="Ghi nhận vi phạm"
-      subtitle="Manager cần nhìn điểm CFD bị trừ, fine_amount và người báo cáo."
+      subtitle="Danh sách vi phạm."
       columns={["Sinh viên", "Phòng", "Mô tả", "Trừ CFD", "Phạt", "Ngày tạo"]}
       rows={violations.map((item) => [
         item.student,
@@ -343,7 +388,7 @@ function StaffScreen() {
   return (
     <DataPanel
       title="Nhân sự vận hành"
-      subtitle="Nên có phân ca, khu phụ trách, task đang mở và loại staff."
+      subtitle="Danh sách nhân sự."
       columns={["Nhân sự", "Loại", "Khu phụ trách", "Task mở", "Trạng thái"]}
       rows={staffs.map((item) => [
         item.name,
@@ -357,18 +402,123 @@ function StaffScreen() {
 }
 
 function SettingsScreen() {
+  const [newsList, setNewsList] = useState([]);
+  const [loadingNews, setLoadingNews] = useState(true);
+  const [newsForm, setNewsForm] = useState({ title: "", content: "", isPinned: false });
+  const [sending, setSending] = useState(false);
+
+  const fetchNews = async () => {
+    try {
+      setLoadingNews(true);
+      const res = await getAllNews();
+      if (res.success) {
+        setNewsList(res.data || []);
+      }
+    } catch (err) {
+      console.error(err);
+      showError("Không thể tải danh sách bản tin");
+    } finally {
+      setLoadingNews(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNews();
+  }, []);
+
+  const handlePostNews = async (e) => {
+    e.preventDefault();
+    if (!newsForm.title.trim() || !newsForm.content.trim()) {
+      showError("Vui lòng điền đầy đủ tiêu đề và nội dung.");
+      return;
+    }
+
+    try {
+      setSending(true);
+      const res = await createNews({
+        title: newsForm.title.trim(),
+        content: newsForm.content.trim(),
+        status: "published",
+        isPinned: newsForm.isPinned,
+      });
+      if (res.success) {
+        showSuccess("Đăng bản tin thành công!");
+        setNewsForm({ title: "", content: "", isPinned: false });
+        fetchNews();
+      } else {
+        showError(res.message || "Lỗi khi đăng bản tin");
+      }
+    } catch (err) {
+      console.error(err);
+      showError(err.response?.data?.message || "Lỗi kết nối server");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="manager-stack">
       <section className="manager-grid manager-grid--wide">
+        <div className="manager-panel">
+          <div className="manager-panel__header">
+            <h3>Đăng bản tin mới</h3>
+            <p>Đăng tin tức/thông báo cho toàn bộ Sinh viên KTX</p>
+          </div>
+          <form onSubmit={handlePostNews} style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#64748B", marginBottom: 6 }}>Tiêu đề bản tin</label>
+              <input
+                type="text"
+                placeholder="Nhập tiêu đề thông báo..."
+                value={newsForm.title}
+                onChange={(e) => setNewsForm(prev => ({ ...prev, title: e.target.value }))}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid #CBD5E1", fontSize: 14, boxSizing: "border-box" }}
+                disabled={sending}
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#64748B", marginBottom: 6 }}>Nội dung chi tiết</label>
+              <textarea
+                placeholder="Nhập nội dung chi tiết bản tin..."
+                rows={5}
+                value={newsForm.content}
+                onChange={(e) => setNewsForm(prev => ({ ...prev, content: e.target.value }))}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid #CBD5E1", fontSize: 14, boxSizing: "border-box", fontFamily: "inherit", resize: "vertical" }}
+                disabled={sending}
+              />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0" }}>
+              <input type="checkbox" id="isPinned" checked={newsForm.isPinned} onChange={(e) => setNewsForm(prev => ({ ...prev, isPinned: e.target.checked }))} style={{ width: 16, height: 16, cursor: "pointer" }} disabled={sending} />
+              <label htmlFor="isPinned" style={{ fontSize: 13, fontWeight: 700, color: "#64748B", cursor: "pointer", userSelect: "none" }}>Ghim bài viết này lên đầu bảng tin 📌</label>
+            </div>
+            <div>
+              <button type="submit" disabled={sending} style={{ padding: "10px 24px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, fontWeight: 600, cursor: "pointer", fontSize: 14 }}>
+                {sending ? "Đang gửi..." : "Đăng tin"}
+              </button>
+            </div>
+          </form>
+        </div>
+
         <DataPanel
-          title="Thông báo"
-          subtitle="Gửi theo user role: STUDENT, PARENT, STAFF."
-          columns={["Tiêu đề", "Đối tượng", "Ngày", "Trạng thái"]}
-          rows={notifications.map((item) => [item.title, item.target, item.date, item.status])}
+          title="Bản tin đã đăng"
+          subtitle="Danh sách các thông báo đã gửi cho Sinh viên"
+          columns={["Tiêu đề", "Người đăng", "Ngày", "Trạng thái"]}
+          rows={
+            loadingNews
+              ? [[<span key="loading" style={{ color: "#64748B" }}>Đang tải bản tin...</span>, "", "", ""]]
+              : newsList.length === 0
+                ? [[<span key="empty" style={{ color: "#64748B" }}>Chưa có bản tin nào được đăng.</span>, "", "", ""]]
+                : newsList.map((item) => [
+                  item.title,
+                  item.authorId?.fullName || "Quản trị viên",
+                  formatDateTime(item.createdAt),
+                  <StatusBadge key={item._id} status={item.status === "published" ? "Đã gửi" : "Nháp"} />,
+                ])
+          }
         />
         <DataPanel
           title="Cài đặt hệ thống"
-          subtitle="Các setting nên nằm trong system_settings và semesters."
+          subtitle="Các setting."
           columns={["Key", "Value"]}
           rows={settings.map((item) => [item.key, item.value])}
         />
@@ -429,15 +579,6 @@ function DataPanel({ title, subtitle, columns, rows }) {
 
 function StatusBadge({ status }) {
   return <span className={`status-badge status-badge--${status.toLowerCase()}`}>{status}</span>;
-}
-
-function TaskItem({ label, status }) {
-  return (
-    <div className="task-item">
-      <span>{label}</span>
-      <b>{status}</b>
-    </div>
-  );
 }
 
 function ActionGroup({ primary, secondary }) {

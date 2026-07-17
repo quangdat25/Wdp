@@ -9,7 +9,7 @@ const CleaningStaff = require("./cleaningStaff.model");
 const MaintenanceStaff = require("./maintenanceStaff.model");
 const Room = require("./room.models");
 const Building = require("./building.model");
-
+const Semester = require("./semester.model");
 module.exports = {
   User,
   Student,
@@ -21,4 +21,5 @@ module.exports = {
   MaintenanceStaff,
   Room,
   Building,
+  Semester,
 };

@@ -29,6 +29,7 @@ class TicketRepository {
       .populate("approvedBy", "fullName username role")
       .populate("assignedTo", "fullName username role staffType")
       .populate("assignedBy", "fullName username role")
+      .populate("damageReported.reportedBy", "fullName username role")
       .sort({ createdAt: -1 });
   }
 

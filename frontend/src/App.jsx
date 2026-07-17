@@ -26,6 +26,7 @@ import BookingRoom from "./pages/Student/BookingRoom";
 import BookingResult from "./pages/Student/BookingResult";
 import ParentDashboard from "./pages/Parent/ParentDashboard";
 import ParentStudentInfo from "./pages/Parent/ParentStudentInfo";
+import ParentPayment from "./pages/Parent/ParentPayment";
 
 import CleanerDashboard from "./pages/Staff/CleanerDashboard";
 import MaintenanceDashboard from "./pages/Staff/MaintenanceDashboard";
@@ -33,6 +34,13 @@ import SecurityDashboard from "./pages/Staff/SecurityDashboard";
 import MyTickets from "./pages/Student/MyTickets";
 import TicketManagement from "./pages/Manager/TicketManagement";
 import ViolationManagement from "./pages/Manager/ViolationManagement";
+import UtilityUsageManagement from "./pages/Staff/UtilityUsageManagement";
+import UtilityInvoiceManagement from "./pages/Manager/UtilityInvoiceManagement";
+import MyInvoices from "./pages/Student/MyInvoices";
+import PaymentResult from "./pages/Student/PaymentResult";
+import BookingManagement from "./pages/Manager/BookingManagement";
+import MyUtilities from "./pages/Student/MyUtilities";
+import MyRoom from "./pages/Student/MyRoom";
 
 function App() {
   const location = useLocation();
@@ -66,7 +74,6 @@ function App() {
               />
               <Route path="/admin/buildings" element={<RoomManagement />} />
               <Route path="/admin/rooms" element={<RoomManagement />} />
-              <Route path="/admin/orders" element={<OrderManagement />} />
               <Route path="/admin/semesters" element={<SemesterManagement />} />
             </Route>
 
@@ -74,36 +81,84 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
               <Route path="/student/dashboard" element={<StudentDashboard />} />
               <Route path="/student/booking" element={<BookingRoom />} />
-              <Route path="/student/booking-result" element={<BookingResult />} />
+              <Route
+                path="/student/booking-result"
+                element={<BookingResult />}
+              />
               <Route path="/student/tickets" element={<MyTickets />} />
+              <Route path="/student/invoices" element={<MyInvoices />} />
+              <Route
+                path="/student/payment-result"
+                element={<PaymentResult />}
+              />
+              <Route path="/student/my-utilities" element={<MyUtilities />} />
+              <Route path="/student/room" element={<MyRoom />} />
             </Route>
 
             {/* Parent Routes */}
             <Route element={<ProtectedRoute allowedRoles={["parent"]} />}>
               <Route path="/parent/dashboard" element={<ParentDashboard />} />
               <Route path="/parent/student" element={<ParentStudentInfo />} />
+              <Route path="/parent/payments" element={<ParentPayment />} />
             </Route>
 
             {/* Manager Routes */}
             <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
               <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+              <Route
+                path="/manager/notifications"
+                element={<ManagerDashboard />}
+              />
               <Route path="/manager/tickets" element={<TicketManagement />} />
-              <Route path="/manager/violations" element={<ViolationManagement />} />
+              <Route
+                path="/manager/violations"
+                element={<ViolationManagement />}
+              />
+              <Route
+                path="/manager/utility-invoices"
+                element={<UtilityInvoiceManagement />}
+              />
+              <Route path="/manager/bookings" element={<BookingManagement />} />
             </Route>
 
             {/* Staff Routes */}
             <Route element={<ProtectedRoute allowedRoles={["staff"]} />}>
               <Route
                 path="/staff/dashboard/cleaner/*"
-                element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["cleaner"]}><CleanerDashboard /></ProtectedRoute>}
+                element={
+                  <ProtectedRoute
+                    allowedRoles={["staff"]}
+                    allowedStaffTypes={["cleaner"]}
+                  >
+                    <CleanerDashboard />
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/staff/dashboard/maintenance/*"
-                element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["maintenance"]}><MaintenanceDashboard /></ProtectedRoute>}
+                element={
+                  <ProtectedRoute
+                    allowedRoles={["staff"]}
+                    allowedStaffTypes={["maintenance"]}
+                  >
+                    <MaintenanceDashboard />
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/staff/dashboard/security/*"
-                element={<ProtectedRoute allowedRoles={["staff"]} allowedStaffTypes={["security"]}><SecurityDashboard /></ProtectedRoute>}
+                element={
+                  <ProtectedRoute
+                    allowedRoles={["staff"]}
+                    allowedStaffTypes={["security"]}
+                  >
+                    <SecurityDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff/utility-usages"
+                element={<UtilityUsageManagement />}
               />
             </Route>
           </Routes>

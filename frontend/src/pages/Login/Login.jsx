@@ -47,22 +47,10 @@ function Login() {
     setLoading(true);
 
     try {
-      const result = await authService.login(username, password);
+      const result = await authService.login(username, password, activeRole);
 
       if (result.success) {
         const user = result.data;
-
-        const userRole = user?.role;
-
-        const isValidRole =
-          activeRole === "staff"
-            ? ["staff", "admin", "manager"].includes(userRole)
-            : userRole === activeRole;
-
-        if (!isValidRole) {
-          setError("Tài khoản không có quyền truy cập vào mục này.");
-          return;
-        }
 
         // lưu user
         localStorage.setItem("user", JSON.stringify(user));
@@ -156,11 +144,10 @@ function Login() {
             <button
               type="button"
               onClick={() => setActiveRole("student")}
-              className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${
-                activeRole === "student"
-                  ? "bg-white text-[#0A3663] shadow-md"
-                  : "text-[#5C5F62] hover:bg-white/50"
-              }`}
+              className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${activeRole === "student"
+                ? "bg-white text-[#0A3663] shadow-md"
+                : "text-[#5C5F62] hover:bg-white/50"
+                }`}
             >
               <span className="material-symbols-outlined text-[20px]">
                 person
@@ -171,11 +158,10 @@ function Login() {
             <button
               type="button"
               onClick={() => setActiveRole("parent")}
-              className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${
-                activeRole === "parent"
-                  ? "bg-white text-[#0A3663] shadow-md"
-                  : "text-[#5C5F62] hover:bg-white/50"
-              }`}
+              className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${activeRole === "parent"
+                ? "bg-white text-[#0A3663] shadow-md"
+                : "text-[#5C5F62] hover:bg-white/50"
+                }`}
             >
               <span className="material-symbols-outlined text-[20px]">
                 group
@@ -186,11 +172,10 @@ function Login() {
             <button
               type="button"
               onClick={() => setActiveRole("staff")} // Bạn có thể sửa thành 'admin' tùy cấu trúc backend
-              className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${
-                activeRole === "staff" || activeRole === "admin"
-                  ? "bg-white text-[#0A3663] shadow-md"
-                  : "text-[#5C5F62] hover:bg-white/50"
-              }`}
+              className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${activeRole === "staff" || activeRole === "admin"
+                ? "bg-white text-[#0A3663] shadow-md"
+                : "text-[#5C5F62] hover:bg-white/50"
+                }`}
             >
               <span className="material-symbols-outlined text-[20px]">
                 shield

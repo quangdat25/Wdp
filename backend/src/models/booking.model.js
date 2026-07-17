@@ -1,16 +1,19 @@
 const mongoose = require("mongoose");
+
 const bookingSchema = new mongoose.Schema(
   {
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Student",
+      ref: "User",
       required: true,
+      index: true,
     },
 
     roomId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Room", 
+      ref: "Room",
       required: true,
+      index: true,
     },
 
     bedNumber: {
@@ -23,16 +26,43 @@ const bookingSchema = new mongoose.Schema(
     semester: {
       type: String,
       required: true,
+      trim: true,
+      index: true,
     },
 
-    startDate: Date,
+    startDate: {
+      type: Date,
+      required: true,
+    },
 
-    endDate: Date,
+    endDate: {
+      type: Date,
+      required: true,
+    },
 
     status: {
       type: String,
-      enum: ["pending", "confirmed", "checked_in", "checked_out", "cancelled"],
+      enum: [
+        "pending",
+        "confirmed",
+        "checked_in",
+        "checked_out",
+        "cancelled",
+      ],
       default: "pending",
+      index: true,
+    },
+
+    isBedReserved: {
+      type: Boolean,
+      default: true,
+      required: true,
+      index: true,
+    },
+
+    paymentExpiresAt: {
+      type: Date,
+      default: null,
     },
 
     renewedFrom: {
@@ -40,13 +70,39 @@ const bookingSchema = new mongoose.Schema(
       ref: "Booking",
       default: null,
     },
-
-    checkInDate: Date,
-
-    checkOutDate: Date,
   },
   {
     timestamps: true,
   },
 );
+
+bookingSchema.index(
+  {
+    roomId: 1,
+    semester: 1,
+    bedNumber: 1,
+  },
+  {
+    unique: true,
+    partialFilterExpression: {
+      isBedReserved: true,
+    },
+    name: "unique_reserved_bed_per_semester",
+  },
+);
+
+bookingSchema.index(
+  {
+    studentId: 1,
+    semester: 1,
+  },
+  {
+    unique: true,
+    partialFilterExpression: {
+      isBedReserved: true,
+    },
+    name: "unique_student_booking_per_semester",
+  },
+);
+
 module.exports = mongoose.model("Booking", bookingSchema);

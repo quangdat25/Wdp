@@ -11,6 +11,11 @@ const semesterSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    code: {
+      type: String,
+      required: true,
+      unique: true,
+    },
     startDate: {
       type: Date,
       required: true,
@@ -19,7 +24,7 @@ const semesterSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
-    isActive: {
+    isDeleted: {
       type: Boolean,
       default: false,
     },
@@ -29,4 +34,12 @@ const semesterSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Semester", semesterSchema);
+//check duplicate semester (name and year)
+semesterSchema.index(
+  { name: 1, year: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false } }
+);
+
+const Semester = mongoose.model("Semester", semesterSchema);
+
+module.exports = Semester;

@@ -1,10 +1,11 @@
 import request from "../config/axiosConfig";
 
 const authService = {
-  login: async (username, password) => {
+  login: async (username, password, requestedRole) => {
     const response = await request.post("/api/users/login", {
       username,
       password,
+      requestedRole,
     });
     return response.data;
   },

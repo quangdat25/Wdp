@@ -81,7 +81,8 @@ const authorize = (...allowedRoles) => {
       return res.status(401).json({ success: false, message: "Chưa xác thực" });
     }
 
-    const { role, staffType } = req.user;
+    const { staffType } = req.user;
+    const role = req.auth?.role || req.user.role;
 
     // Kiểm tra nếu role hoặc staffType nằm trong danh sách được phép
     const isAllowed =

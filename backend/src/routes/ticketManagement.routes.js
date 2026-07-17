@@ -7,6 +7,7 @@ const {
   rejectTicket,
   assignTicket,
   getStaffList,
+  approveStaffDamageReport,
 } = require("../controllers/ticketManagement.controller");
 
 const { authenticate, authorize } = require("../middleware/authUser");
@@ -44,6 +45,13 @@ router.patch(
   authenticate,
   authorize("admin", "manager"),
   assignTicket
+);
+
+router.patch(
+  "/:ticketId/approve-damage",
+  authenticate,
+  authorize("admin", "manager"),
+  approveStaffDamageReport
 );
 
 module.exports = router;

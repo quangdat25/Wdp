@@ -159,8 +159,7 @@ function Header({
           padding: "14px 24px",
           marginBottom: 24,
           borderRadius: 20,
-          position: "sticky",
-          top: 0,
+          position: "relative",
           zIndex: 1000,
           background:
             bgGradient ||

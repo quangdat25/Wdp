@@ -23,3 +23,7 @@ export const assignTicket = (ticketId, staffId) => {
     staffId,
   });
 };
+
+export const approveStaffDamageReport = (ticketId) => {
+  return request.patch(`api/ticket-management/${ticketId}/approve-damage`);
+};

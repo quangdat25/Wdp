@@ -4,7 +4,7 @@ const ticketSchema = new mongoose.Schema(
   {
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "student",
+      ref: "Student",
       required: true,
     },
 
@@ -36,6 +36,8 @@ const ticketSchema = new mongoose.Schema(
         "Vệ sinh",
         "An ninh",
         "Khác",
+        "Cleaning",
+        "cleaning",
       ],
       required: true,
     },
@@ -113,6 +115,31 @@ const ticketSchema = new mongoose.Schema(
       type: String,
       default: null,
       trim: true,
+    },
+
+    damageReported: {
+      ticketId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Ticket",
+        default: null,
+      },
+      reportedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+      description: {
+        type: String,
+        trim: true,
+      },
+      date: {
+        type: String,
+      },
+      severity: {
+        type: String,
+        enum: ["LOW", "MEDIUM", "HIGH"],
+        default: "MEDIUM",
+      },
     },
   },
   {
