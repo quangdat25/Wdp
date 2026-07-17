@@ -17,7 +17,7 @@ function Header() {
 
   return (
     <header className={`header ${scrolled ? 'header--scrolled' : ''}`} id="site-header">
-      <div className="header__inner container">
+      <div className="header__inner header__container">
         {/* Logo */}
         <Link to="/" className="header__logo" id="logo-link">
           <div className="header__logo-icon">

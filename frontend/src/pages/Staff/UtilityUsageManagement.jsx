@@ -570,12 +570,12 @@ function FileRequirementCard() {
     "Tòa",
     "Tầng",
     "Phòng",
-    "Tiền điện",
+    "Số điện",
     "Tiền nước",
     "Tháng",
     "Năm",
     "Kỳ",
-    "Tổng tiền",
+
   ];
 
   return (

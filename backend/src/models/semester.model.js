@@ -1,32 +1,65 @@
 const mongoose = require("mongoose");
 
-const semesterSchema = new mongoose.Schema(
+const semesterPeriodSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      enum: ["Spring", "Summer", "Fall"],
-      required: true,
-    },
-    year: {
-      type: Number,
-      required: true,
-    },
-    code: {
-      type: String,
-      required: true,
-      unique: true,
-    },
     startDate: {
       type: Date,
       required: true,
     },
+
     endDate: {
       type: Date,
       required: true,
     },
-    isDeleted: {
-      type: Boolean,
-      default: false,
+
+    renewalStartDate: {
+      type: Date,
+      required: true,
+    },
+
+    renewalEndDate: {
+      type: Date,
+      required: true,
+    },
+
+    bookingStartDate: {
+      type: Date,
+      required: true,
+    },
+
+    bookingEndDate: {
+      type: Date,
+      required: true,
+    },
+  },
+  {
+    _id: false,
+  }
+);
+
+const semesterSchema = new mongoose.Schema(
+  {
+    year: {
+      type: Number,
+      required: true,
+      unique: true,
+      min: 2020,
+      max: 2100,
+    },
+
+    spring: {
+      type: semesterPeriodSchema,
+      required: true,
+    },
+
+    summer: {
+      type: semesterPeriodSchema,
+      required: true,
+    },
+
+    fall: {
+      type: semesterPeriodSchema,
+      required: true,
     },
   },
   {
@@ -34,12 +67,4 @@ const semesterSchema = new mongoose.Schema(
   }
 );
 
-//check duplicate semester (name and year)
-semesterSchema.index(
-  { name: 1, year: 1 },
-  { unique: true, partialFilterExpression: { isDeleted: false } }
-);
-
-const Semester = mongoose.model("Semester", semesterSchema);
-
-module.exports = Semester;
+module.exports = mongoose.model("Semester", semesterSchema);

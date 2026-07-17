@@ -42,24 +42,10 @@ const bookingSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: [
-        "pending",
-        "confirmed",
-        "checked_in",
-        "checked_out",
-        "cancelled",
-      ],
+      enum: ["pending", "confirmed", "checked_in", "checked_out", "cancelled"],
       default: "pending",
       index: true,
     },
-
-    isBedReserved: {
-      type: Boolean,
-      default: true,
-      required: true,
-      index: true,
-    },
-
     paymentExpiresAt: {
       type: Date,
       default: null,
@@ -69,6 +55,11 @@ const bookingSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Booking",
       default: null,
+    },
+    configId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SystemConfig",
+      required: true,
     },
   },
   {

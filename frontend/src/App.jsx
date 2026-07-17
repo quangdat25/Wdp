@@ -40,6 +40,7 @@ import SemesterManagement from "./pages/Admin/SemesterManagement";
 import BookingManagement from "./pages/Manager/BookingManagement";
 import MyUtilities from "./pages/Student/MyUtilities";
 import MyRoom from "./pages/Student/MyRoom";
+import SystemConfigManagement from "./pages/Admin/SystemConfigManagement";
 
 function App() {
   const location = useLocation();
@@ -74,6 +75,10 @@ function App() {
               <Route path="/admin/buildings" element={<RoomManagement />} />
               <Route path="/admin/rooms" element={<RoomManagement />} />
               <Route path="/admin/semesters" element={<SemesterManagement />} />
+              <Route
+                path="/admin/system-configs"
+                element={<SystemConfigManagement />}
+              />
             </Route>
 
             {/* Student Routes */}
@@ -104,7 +109,10 @@ function App() {
             {/* Manager Routes */}
             <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
               <Route path="/manager/dashboard" element={<ManagerDashboard />} />
-              <Route path="/manager/notifications" element={<ManagerDashboard />} />
+              <Route
+                path="/manager/notifications"
+                element={<ManagerDashboard />}
+              />
               <Route path="/manager/tickets" element={<TicketManagement />} />
               <Route
                 path="/manager/violations"

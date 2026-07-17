@@ -4,6 +4,29 @@ const Booking = require("../models/booking.model");
 const User = require("../models/user.model");
 const Invoice = require("../models/invoice.model");
 
+/**
+ * Điều kiện xác định booking đang giữ giường:
+ *
+ * 1. pending và chưa hết 15 phút thanh toán
+ * 2. confirmed: đã thanh toán
+ * 3. checked_in: đang ở trong phòng
+ */
+const getReservedBookingCondition = () => ({
+  $or: [
+    {
+      status: "pending",
+      paymentExpiresAt: {
+        $gt: new Date(),
+      },
+    },
+    {
+      status: {
+        $in: ["confirmed", "checked_in"],
+      },
+    },
+  ],
+});
+
 class BookingRepository {
   async findStudentById(studentId) {
     return User.findById(studentId).lean();
@@ -12,7 +35,10 @@ class BookingRepository {
   async findStudentsByStudentCode(studentCode) {
     return User.find({
       role: "student",
-      studentCode: { $regex: studentCode, $options: "i" },
+      studentCode: {
+        $regex: studentCode,
+        $options: "i",
+      },
     })
       .select("_id")
       .lean();
@@ -23,7 +49,9 @@ class BookingRepository {
   }
 
   async findCurrentRoomByStudent(studentId) {
-    return Room.findOne({ "students.student": studentId });
+    return Room.findOne({
+      "students.student": studentId,
+    });
   }
 
   async findRoomById(roomId) {
@@ -32,7 +60,10 @@ class BookingRepository {
 
   async findAvailableRooms(query) {
     return Room.find(query)
-      .sort({ floor: 1, roomNumber: 1 })
+      .sort({
+        floor: 1,
+        roomNumber: 1,
+      })
       .populate("building", "name")
       .lean();
   }
@@ -46,111 +77,220 @@ class BookingRepository {
       );
   }
 
-  async findActiveBookingByStudentAndSemester(studentId, semester) {
+  /**
+   * Kiểm tra sinh viên đã có booking đang hoạt động
+   * trong kỳ hay chưa.
+   *
+   * Pending hết hạn không được tính là booking hoạt động.
+   */
+  async findActiveBookingByStudentAndSemester(
+    studentId,
+    semester,
+  ) {
     return Booking.findOne({
       studentId,
       semester,
-      isBedReserved: true,
-    });
+      ...getReservedBookingCondition(),
+    })
+      .sort({
+        createdAt: -1,
+      })
+      .lean();
   }
 
+  /**
+   * Kiểm tra một giường cụ thể có đang bị giữ không.
+   */
   async findReservedBed(roomId, semester, bedNumber) {
     return Booking.findOne({
       roomId,
       semester,
       bedNumber,
-      isBedReserved: true,
+      ...getReservedBookingCondition(),
     }).lean();
   }
 
-  async findReservedBedsByRoomAndSemester(roomId, semester) {
+  /**
+   * Lấy tất cả giường đang bị giữ trong một phòng.
+   */
+  async findReservedBedsByRoomAndSemester(
+    roomId,
+    semester,
+  ) {
     return Booking.find({
       roomId,
       semester,
-      isBedReserved: true,
+      ...getReservedBookingCondition(),
     })
-      .select("bedNumber status studentId")
+      .select(
+        "bedNumber status studentId paymentExpiresAt",
+      )
       .lean();
   }
 
-  async findReservedBedsByRoomsAndSemester(roomIds, semester) {
+  /**
+   * Lấy các giường đang bị giữ trong nhiều phòng.
+   */
+  async findReservedBedsByRoomsAndSemester(
+    roomIds,
+    semester,
+  ) {
     return Booking.find({
-      roomId: { $in: roomIds },
+      roomId: {
+        $in: roomIds,
+      },
       semester,
-      isBedReserved: true,
+      ...getReservedBookingCondition(),
     })
-      .select("roomId bedNumber status")
+      .select(
+        "roomId bedNumber status studentId paymentExpiresAt",
+      )
       .lean();
   }
 
-  async countReservedBedsByRoomAndSemester(roomId, semester) {
+  /**
+   * Đếm số giường đang bị giữ trong phòng.
+   */
+  async countReservedBedsByRoomAndSemester(
+    roomId,
+    semester,
+  ) {
     return Booking.countDocuments({
       roomId,
       semester,
-      isBedReserved: true,
+      ...getReservedBookingCondition(),
     });
   }
 
+  /**
+   * Khi sinh viên chọn một giường mới:
+   * xóa booking pending cũ trong cùng kỳ.
+   */
   async releasePendingBookingsByStudentAndSemester(
     studentId,
     semester,
   ) {
-    return Booking.updateMany(
-      {
-        studentId,
-        semester,
-        status: "pending",
-        isBedReserved: true,
+    return Booking.deleteMany({
+      studentId,
+      semester,
+      status: "pending",
+    });
+  }
+
+  /**
+   * Xóa booking pending đã hết thời gian thanh toán.
+   * Hàm này dùng cho cron job.
+   */
+  async deleteExpiredPendingBookings() {
+    return Booking.deleteMany({
+      status: "pending",
+      paymentExpiresAt: {
+        $lte: new Date(),
       },
-      {
-        $set: {
-          status: "cancelled",
-          isBedReserved: false,
-          paymentExpiresAt: null,
-        },
-      },
-    );
+    });
+  }
+
+  /**
+   * Xóa một booking pending cụ thể.
+   * Dùng khi người dùng hủy hoặc thanh toán VNPay thất bại.
+   */
+  async deletePendingBookingById(bookingId) {
+    return Booking.findOneAndDelete({
+      _id: bookingId,
+      status: "pending",
+    });
+  }
+
+  /**
+   * Xóa booking pending theo mã giao dịch.
+   * Chỉ dùng khi model Booking có trường paymentId hoặc txnRef.
+   */
+  async deletePendingBookingByTxnRef(txnRef) {
+    return Booking.findOneAndDelete({
+      txnRef,
+      status: "pending",
+    });
   }
 
   async createBooking(data) {
     return Booking.create(data);
   }
 
+  /**
+   * Lấy booking hiện tại của sinh viên.
+   *
+   * Pending chỉ được lấy nếu chưa hết hạn.
+   * Confirmed và checked_in luôn được lấy.
+   * Checked_out được giữ để hiển thị trạng thái gần nhất.
+   */
   async findCurrentBookingByStudent(studentId) {
     return Booking.findOne({
       studentId,
-      status: {
-        $in: ["pending", "confirmed", "checked_in", "checked_out"],
-      },
+      $or: [
+        {
+          status: "pending",
+          paymentExpiresAt: {
+            $gt: new Date(),
+          },
+        },
+        {
+          status: {
+            $in: [
+              "confirmed",
+              "checked_in",
+              "checked_out",
+            ],
+          },
+        },
+      ],
     })
       .populate({
         path: "roomId",
         populate: [
-          { path: "building", select: "name" },
+          {
+            path: "building",
+            select: "name",
+          },
           {
             path: "students.student",
             select: "fullName studentCode gender",
           },
         ],
       })
-      .sort({ createdAt: -1 });
+      .sort({
+        createdAt: -1,
+      });
   }
 
+  /**
+   * Lịch sử phòng chỉ lấy các booking hợp lệ,
+   * không lấy pending hoặc cancelled.
+   */
   async findRoomBookingHistory(roomId) {
     return Booking.find({
       roomId,
-      status: { $in: ["confirmed", "checked_in", "checked_out"] },
+      status: {
+        $in: [
+          "confirmed",
+          "checked_in",
+          "checked_out",
+        ],
+      },
     })
       .populate({
         path: "studentId",
         model: "User",
-        select: "fullName studentCode email phone gender",
+        select:
+          "fullName studentCode email phone gender",
       })
-      .sort({ startDate: 1, createdAt: 1 })
+      .sort({
+        startDate: 1,
+        createdAt: 1,
+      })
       .lean();
   }
 
-  async findAllBookings(query) {
+  async findAllBookings(query = {}) {
     return Booking.find(query)
       .populate(
         "studentId",
@@ -160,16 +300,23 @@ class BookingRepository {
         path: "roomId",
         select:
           "roomNumber displayName floor price capacity status building",
-        populate: { path: "building", select: "name" },
+        populate: {
+          path: "building",
+          select: "name",
+        },
       })
-      .sort({ createdAt: -1 })
+      .sort({
+        createdAt: -1,
+      })
       .lean();
   }
 
   async findUnpaidInvoicesByStudent(studentId) {
     return Invoice.find({
       studentId,
-      status: { $in: ["unpaid", "overdue"] },
+      status: {
+        $in: ["unpaid", "overdue"],
+      },
     }).lean();
   }
 }

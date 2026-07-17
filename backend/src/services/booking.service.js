@@ -1,9 +1,10 @@
 const mongoose = require("mongoose");
 
 const bookingRepository = require("../repositories/booking.repository");
+const systemConfigRepository = require("../repositories/systemConfig.repository");
 const semesterService = require("./semester.service");
 
-const BOOKING_HOLD_MINUTES = 15;
+const BOOKING_HOLD_MINUTES = 1;
 
 const getUTCDateString = (date) => {
   return new Intl.DateTimeFormat("en-CA", {
@@ -609,6 +610,32 @@ class BookingService {
       };
     }
 
+    // Lấy cấu hình đang active
+    const activeConfig = await systemConfigRepository.findActive();
+
+    if (!activeConfig) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message:
+            "Hệ thống chưa có cấu hình giá đang hoạt động. Vui lòng liên hệ quản trị viên.",
+        },
+      };
+    }
+
+    const roomPrice = Number(activeConfig.roomPrice);
+
+    if (!Number.isFinite(roomPrice) || roomPrice < 0) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: "Giá phòng trong cấu hình hệ thống không hợp lệ",
+        },
+      };
+    }
+
     try {
       const paymentExpiresAt = new Date(
         Date.now() + BOOKING_HOLD_MINUTES * 60 * 1000,
@@ -621,8 +648,11 @@ class BookingService {
         semester,
         startDate: nextSemester.startDate,
         endDate: nextSemester.endDate,
+
+        // Lưu ID của cấu hình đã áp dụng
+        configId: activeConfig._id,
+
         status: "pending",
-        isBedReserved: true,
         paymentExpiresAt,
       });
 
@@ -640,7 +670,15 @@ class BookingService {
             bedNumber: parsedBedNumber,
             semester,
             paymentExpiresAt,
-            price: room.price || 2000000,
+
+            // Không lấy room.price nữa
+            price: roomPrice,
+
+            config: {
+              id: activeConfig._id,
+              name: activeConfig.name,
+              roomPrice,
+            },
           },
         },
       };
@@ -684,7 +722,6 @@ class BookingService {
       throw error;
     }
   }
-
   async getMyBooking(studentId) {
     const booking =
       await bookingRepository.findCurrentBookingByStudent(studentId);
