@@ -21,6 +21,12 @@ export const createUtilityInvoices = (data) => {
   return request.post("api/utility-usages/create-invoices", data);
 };
 
-export const getUtilityByStudentId = (studentId) => {
-  return request.get(`api/utility-usages/student/${studentId}`);
+export const getMyUtilities = async () => {
+  const res = await request.get("/api/utility-usages/my-utilities");
+  return res.data;
+};
+
+export const getUtilityByStudentId = async (studentId) => {
+  const res = await request.get(`/api/utility-usages/student/${studentId}`);
+  return res.data;
 };
