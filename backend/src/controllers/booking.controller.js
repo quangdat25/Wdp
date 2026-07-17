@@ -24,9 +24,10 @@ const handleService = async (res, action, fallbackMessage) => {
 };
 
 const checkBookingEligibility = async (req, res) => {
+  const isRenew = req.query.isRenew === "true";
   return handleService(
     res,
-    () => bookingService.checkBookingEligibility(req.user?._id),
+    () => bookingService.checkBookingEligibility(req.user?._id, isRenew),
     "Lỗi khi kiểm tra điều kiện đặt phòng",
   );
 };
@@ -52,7 +53,7 @@ const getRoomBedAvailability = async (req, res) => {
 };
 
 const createBooking = async (req, res) => {
-  const { roomId, bedNumber } = req.body;
+  const { roomId, bedNumber, renewedFrom } = req.body;
 
   return handleService(
     res,
@@ -61,6 +62,7 @@ const createBooking = async (req, res) => {
         req.user?._id,
         roomId,
         bedNumber,
+        renewedFrom
       ),
     "Lỗi khi đặt phòng",
   );
@@ -71,6 +73,14 @@ const getMyBooking = async (req, res) => {
     res,
     () => bookingService.getMyBooking(req.user?._id),
     "Lỗi khi lấy thông tin đặt phòng",
+  );
+};
+
+const getMyHistory = async (req, res) => {
+  return handleService(
+    res,
+    () => bookingService.getMyHistory(req.user?._id),
+    "Lỗi khi lấy lịch sử đặt phòng",
   );
 };
 
@@ -96,6 +106,7 @@ module.exports = {
   getRoomBedAvailability,
   createBooking,
   getMyBooking,
+  getMyHistory,
   getRoomHistory,
   getAllBookings,
 };

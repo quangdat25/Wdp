@@ -8,6 +8,7 @@ const semesterController = {
 
   getCurrentSemester: async (req, res) => {
     const currentSemester = await semesterService.getCurrentSemester();
+    console.log("DEBUG currentSemester:", currentSemester);
     res.status(200).json(currentSemester);
   },
 
