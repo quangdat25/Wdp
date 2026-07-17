@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import AdminSidebar from "./AdminSidebar";
+import Sidebar from "../../components/Sidebar";
 import {
   getAllBuildings,
   createBuilding,
@@ -53,7 +53,7 @@ const statusConfig = {
   },
 };
 
-function RoomManagement() {
+function RoomManagement({ role = "admin" }) {
   const [buildings, setBuildings] = useState([]);
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [selectedFloor, setSelectedFloor] = useState(1);
@@ -79,7 +79,7 @@ function RoomManagement() {
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [removing, setRemoving] = useState(false);
-const { confirm } = Modal;
+  const { confirm } = Modal;
   // Fetch buildings
   const fetchBuildings = useCallback(async () => {
     try {
@@ -269,30 +269,30 @@ const { confirm } = Modal;
   };
 
   // Remove student from room
-const handleRemoveStudent = (studentId) => {
-  if (!selectedRoom) return;
+  const handleRemoveStudent = (studentId) => {
+    if (!selectedRoom) return;
 
-  confirm({
-    title: "Xác nhận",
-    content: "Bạn có chắc chắn muốn xóa sinh viên khỏi phòng này không?",
-    okText: "Xóa",
-    cancelText: "Hủy",
-    okType: "danger",
-    async onOk() {
-      try {
-        setRemoving(true);
-        const res = await removeStudentFromRoom(selectedRoom._id, studentId);
-        setSelectedRoom(res.data);
-        await fetchRooms();
-        await fetchBuildings();
-      } catch (error) {
-        alert(error.response?.data?.message || "Lỗi xóa sinh viên");
-      } finally {
-        setRemoving(false);
-      }
-    },
-  });
-};
+    confirm({
+      title: "Xác nhận",
+      content: "Bạn có chắc chắn muốn xóa sinh viên khỏi phòng này không?",
+      okText: "Xóa",
+      cancelText: "Hủy",
+      okType: "danger",
+      async onOk() {
+        try {
+          setRemoving(true);
+          const res = await removeStudentFromRoom(selectedRoom._id, studentId);
+          setSelectedRoom(res.data);
+          await fetchRooms();
+          await fetchBuildings();
+        } catch (error) {
+          alert(error.response?.data?.message || "Lỗi xóa sinh viên");
+        } finally {
+          setRemoving(false);
+        }
+      },
+    });
+  };
 
   // Select building
   const selectBuilding = (building) => {
@@ -307,7 +307,7 @@ const handleRemoveStudent = (studentId) => {
         background: "linear-gradient(180deg, #f8fbff 0%, #f3f8f6 100%)",
       }}
     >
-      <AdminSidebar />
+      <Sidebar />
 
       <main
         style={{
@@ -338,14 +338,14 @@ const handleRemoveStudent = (studentId) => {
               <FaBuilding
                 style={{ marginRight: 12, verticalAlign: "middle" }}
               />
-              Quản lý phòng ở
+              {role === "admin" ? "Quản lý phòng ở" : "Tòa nhà"}
             </h1>
             <p style={{ color: "#64748b", marginBottom: 0, marginTop: 6 }}>
               Quản lý tòa nhà, tầng và phòng trong ký túc xá.
             </p>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            {buildings.length === 0 && (
+            {role === "admin" && buildings.length === 0 && (
               <button
                 onClick={handleSeed}
                 disabled={seeding}
@@ -371,28 +371,30 @@ const handleRemoveStudent = (studentId) => {
                 {seeding ? "Đang khởi tạo..." : "Khởi tạo A, B, C, D"}
               </button>
             )}
-            <button
-              onClick={() => setShowCreateModal(true)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                background:
-                  "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 14,
-                padding: "12px 20px",
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: "pointer",
-                boxShadow: "0 8px 20px rgba(22, 163, 74, 0.22)",
-                transition: "all 0.3s ease",
-              }}
-            >
-              <FaPlus />
-              Tạo tòa mới
-            </button>
+            {role === "admin" && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  background:
+                    "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 14,
+                  padding: "12px 20px",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: "pointer",
+                  boxShadow: "0 8px 20px rgba(22, 163, 74, 0.22)",
+                  transition: "all 0.3s ease",
+                }}
+              >
+                <FaPlus />
+                Tạo tòa mới
+              </button>
+            )}
           </div>
         </div>
 
@@ -536,33 +538,35 @@ const handleRemoveStudent = (studentId) => {
                             {b.totalRooms || 0}
                           </span>
                         </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowDeleteConfirm(b);
-                          }}
-                          title={`Xóa tòa ${b.name}`}
-                          style={{
-                            position: "absolute",
-                            top: -6,
-                            right: -6,
-                            width: 22,
-                            height: 22,
-                            borderRadius: 999,
-                            border: "none",
-                            background: "#ef4444",
-                            color: "#fff",
-                            fontSize: 10,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            boxShadow: "0 2px 6px rgba(239, 68, 68, 0.4)",
-                            transition: "all 0.2s ease",
-                          }}
-                        >
-                          <FaTimes />
-                        </button>
+                        {role === "admin" && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowDeleteConfirm(b);
+                            }}
+                            title={`Xóa tòa ${b.name}`}
+                            style={{
+                              position: "absolute",
+                              top: -6,
+                              right: -6,
+                              width: 22,
+                              height: 22,
+                              borderRadius: 999,
+                              border: "none",
+                              background: "#ef4444",
+                              color: "#fff",
+                              fontSize: 10,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              boxShadow: "0 2px 6px rgba(239, 68, 68, 0.4)",
+                              transition: "all 0.2s ease",
+                            }}
+                          >
+                            <FaTimes />
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -1051,36 +1055,36 @@ const handleRemoveStudent = (studentId) => {
                 </h3>
                 {(selectedRoom.students || []).length <
                   selectedRoom.capacity && (
-                  <button
-                    onClick={toggleAddStudent}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "8px 14px",
-                      borderRadius: 10,
-                      border: "none",
-                      background: showAddStudent
-                        ? "#f1f5f9"
-                        : "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-                      color: showAddStudent ? "#475569" : "#fff",
-                      fontWeight: 700,
-                      fontSize: 12,
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                    }}
-                  >
-                    {showAddStudent ? (
-                      <>
-                        <FaTimes /> Đóng
-                      </>
-                    ) : (
-                      <>
-                        <FaUserPlus /> Thêm SV
-                      </>
-                    )}
-                  </button>
-                )}
+                    <button
+                      onClick={toggleAddStudent}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "8px 14px",
+                        borderRadius: 10,
+                        border: "none",
+                        background: showAddStudent
+                          ? "#f1f5f9"
+                          : "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                        color: showAddStudent ? "#475569" : "#fff",
+                        fontWeight: 700,
+                        fontSize: 12,
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {showAddStudent ? (
+                        <>
+                          <FaTimes /> Đóng
+                        </>
+                      ) : (
+                        <>
+                          <FaUserPlus /> Thêm SV
+                        </>
+                      )}
+                    </button>
+                  )}
               </div>
 
               {/* Current Students List */}

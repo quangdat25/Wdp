@@ -26,16 +26,6 @@ const invoiceSchema = new mongoose.Schema(
       required: true,
     },
 
-    semester: {
-      type: String, // e.g. 'SP26', 'SU26'
-      required: true,
-    },
-
-    billingMonth: {
-      type: Number, // 1, 2, 3, 4, or actual month 1-12. Null for room_fee
-      default: null,
-    },
-
     amount: {
       type: Number,
       required: true,
@@ -51,16 +41,6 @@ const invoiceSchema = new mongoose.Schema(
         amount: {
           type: Number,
           required: true,
-        },
-        
-        oldIndex: {
-          type: Number,
-          default: null,
-        },
-
-        newIndex: {
-          type: Number,
-          default: null,
         },
       },
     ],

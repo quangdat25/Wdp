@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pagination } from "antd";
+import { Pagination, Modal } from "antd";
 import {
   FaBolt,
   FaCalendarAlt,
   FaCheckCircle,
+  FaChevronDown,
+  FaChevronUp,
   FaClock,
   FaCreditCard,
   FaExclamationTriangle,
   FaFileInvoiceDollar,
   FaFilter,
   FaHome,
-  FaMoneyBillWave,
   FaReceipt,
   FaSpinner,
   FaTimesCircle,
@@ -20,23 +21,22 @@ import {
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Headers";
 import { showError } from "../../components/alert";
-import { getMyInvoices } from "../../api/invoiceService";
-import { createInvoicePayment } from "../../api/paymentService";
+import { getStudentInvoices } from "../../api/parentService";
 
-function MyInvoices() {
+function ParentPayment() {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [payingId, setPayingId] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-
-      const response = await getMyInvoices();
-      setInvoices(response?.data?.data || []);
+      const response = await getStudentInvoices();
+      // response is already res.data because parentService does `return res.data`
+      setInvoices(response?.data || []);
     } catch (error) {
       showError(error.response?.data?.message || "Lỗi khi tải hóa đơn");
     } finally {
@@ -47,28 +47,6 @@ function MyInvoices() {
   useEffect(() => {
     fetchInvoices();
   }, []);
-
-  const handlePayInvoice = async (invoiceId) => {
-    try {
-      setPayingId(invoiceId);
-
-      const response = await createInvoicePayment(invoiceId);
-      const paymentUrl = response?.data?.data?.paymentUrl;
-
-      if (!paymentUrl) {
-        showError("Không tạo được liên kết thanh toán VNPay");
-        return;
-      }
-
-      window.location.href = paymentUrl;
-    } catch (error) {
-      showError(
-        error.response?.data?.message || "Lỗi khi tạo thanh toán VNPay",
-      );
-    } finally {
-      setPayingId(null);
-    }
-  };
 
   const invoiceStats = useMemo(() => {
     const unpaid = invoices.filter((invoice) => invoice.status === "unpaid");
@@ -155,7 +133,7 @@ function MyInvoices() {
               <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
                 <div>
                   <h2 className="text-lg font-black text-slate-900">
-                    Danh sách hóa đơn
+                    Thanh toán hóa đơn của con
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
@@ -204,14 +182,11 @@ function MyInvoices() {
                           <tr className="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
                             <TableHead>Mã hóa đơn</TableHead>
                             <TableHead>Loại</TableHead>
-                            <TableHead>Chi tiết</TableHead>
                             <TableHead>Số tiền</TableHead>
                             <TableHead>Hạn thanh toán</TableHead>
                             <TableHead>Đã thanh toán lúc</TableHead>
                             <TableHead>Trạng thái</TableHead>
-                            <TableHead className="text-right">
-                              Thao tác
-                            </TableHead>
+                            <TableHead className="text-right">Thao tác</TableHead>
                           </tr>
                         </thead>
 
@@ -220,8 +195,7 @@ function MyInvoices() {
                             <InvoiceTableRow
                               key={invoice._id}
                               invoice={invoice}
-                              payingId={payingId}
-                              onPay={handlePayInvoice}
+                              onViewDetails={() => setSelectedInvoice(invoice)}
                             />
                           ))}
                         </tbody>
@@ -234,8 +208,7 @@ function MyInvoices() {
                       <InvoiceMobileCard
                         key={invoice._id}
                         invoice={invoice}
-                        payingId={payingId}
-                        onPay={handlePayInvoice}
+                        onViewDetails={() => setSelectedInvoice(invoice)}
                       />
                     ))}
                   </div>
@@ -259,14 +232,68 @@ function MyInvoices() {
             </div>
           </section>
         </div>
+        
+        <Modal
+          title={<span className="text-lg font-black text-slate-800">Chi tiết hóa đơn</span>}
+          open={!!selectedInvoice}
+          onCancel={() => setSelectedInvoice(null)}
+          footer={null}
+          centered
+        >
+          {selectedInvoice && (
+            <div className="mt-4">
+              <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-wide text-slate-400">Mã hóa đơn</div>
+                  <div className="mt-1 font-black text-slate-900">{selectedInvoice.invoiceCode || "-"}</div>
+                </div>
+                <div>
+                  <StatusBadge status={selectedInvoice.status} />
+                </div>
+              </div>
+
+              <div className="mb-5 grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-wide text-slate-400 mb-2">Loại hóa đơn</div>
+                  <InvoiceTypeBadge type={selectedInvoice.type} />
+                </div>
+              </div>
+
+              <div className="mb-5 grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-wide text-slate-400 mb-2">Hạn thanh toán</div>
+                  {selectedInvoice.type === "room_fee" ? (
+                    <span className="font-bold text-slate-400">—</span>
+                  ) : (
+                    <DateDisplay date={selectedInvoice.dueDate} overdue={selectedInvoice.status === "overdue"} />
+                  )}
+                </div>
+                <div>
+                  <div className="text-xs font-black uppercase tracking-wide text-slate-400 mb-2">Ngày thanh toán</div>
+                  {selectedInvoice.paidAt ? (
+                    <DateDisplay date={selectedInvoice.paidAt} />
+                  ) : (
+                    <span className="font-bold text-slate-400">—</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="mb-4 rounded-xl bg-slate-50 p-4 border border-slate-100">
+                <div className="text-xs font-black uppercase tracking-wide text-slate-400">Tổng thanh toán</div>
+                <div className="mt-1 text-2xl font-black text-blue-700">{formatMoney(selectedInvoice.amount)}</div>
+              </div>
+              <h4 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-500">Các khoản phí</h4>
+              <InvoiceItems items={selectedInvoice.items} />
+            </div>
+          )}
+        </Modal>
+
       </main>
     </div>
   );
 }
 
-function InvoiceTableRow({ invoice, payingId, onPay }) {
-  const canPay = invoice.status === "unpaid" || invoice.status === "overdue";
-
+function InvoiceTableRow({ invoice, onViewDetails }) {
   return (
     <tr className="transition hover:bg-slate-50/80">
       <TableCell>
@@ -280,10 +307,6 @@ function InvoiceTableRow({ invoice, payingId, onPay }) {
 
       <TableCell>
         <InvoiceTypeBadge type={invoice.type} />
-      </TableCell>
-
-      <TableCell>
-        <InvoiceItems items={invoice.items} />
       </TableCell>
 
       <TableCell>
@@ -314,23 +337,20 @@ function InvoiceTableRow({ invoice, payingId, onPay }) {
       <TableCell>
         <StatusBadge status={invoice.status} />
       </TableCell>
-
+      
       <TableCell className="text-right">
-        {canPay && (
-          <PayButton
-            invoiceId={invoice._id}
-            loading={payingId === invoice._id}
-            onPay={onPay}
-          />
-        )}
+        <button
+          onClick={onViewDetails}
+          className="rounded-md px-3 py-1.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 hover:text-blue-800"
+        >
+          Xem chi tiết
+        </button>
       </TableCell>
     </tr>
   );
 }
 
-function InvoiceMobileCard({ invoice, payingId, onPay }) {
-  const canPay = invoice.status === "unpaid" || invoice.status === "overdue";
-
+function InvoiceMobileCard({ invoice, onViewDetails }) {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
@@ -354,16 +374,6 @@ function InvoiceMobileCard({ invoice, payingId, onPay }) {
 
         <div className="mt-1 text-2xl font-black text-blue-700">
           {formatMoney(invoice.amount)}
-        </div>
-      </div>
-
-      <div className="mt-5">
-        <div className="text-xs font-black uppercase tracking-wide text-slate-400">
-          Chi tiết
-        </div>
-
-        <div className="mt-2">
-          <InvoiceItems items={invoice.items} />
         </div>
       </div>
 
@@ -396,16 +406,14 @@ function InvoiceMobileCard({ invoice, payingId, onPay }) {
         </div>
       </div>
 
-      {canPay && (
-        <div className="mt-5">
-          <PayButton
-            invoiceId={invoice._id}
-            loading={payingId === invoice._id}
-            onPay={onPay}
-            fullWidth
-          />
-        </div>
-      )}
+      <div className="mt-5">
+        <button
+          onClick={onViewDetails}
+          className="flex w-full items-center justify-center rounded-xl bg-slate-50 p-3 text-sm font-black text-blue-600 hover:bg-blue-50 transition"
+        >
+          Xem chi tiết hóa đơn
+        </button>
+      </div>
     </article>
   );
 }
@@ -475,30 +483,6 @@ function DateDisplay({ date, overdue = false }) {
   );
 }
 
-function PayButton({ invoiceId, loading, onPay, fullWidth = false }) {
-  return (
-    <button
-      type="button"
-      disabled={loading}
-      onClick={() => onPay(invoiceId)}
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-400 ${
-        fullWidth ? "w-full" : ""
-      }`}
-    >
-      {loading ? (
-        <>
-          <FaSpinner className="animate-spin" />
-          Đang xử lý...
-        </>
-      ) : (
-        <>
-          <FaCreditCard />
-          Thanh toán
-        </>
-      )}
-    </button>
-  );
-}
 
 function LoadingState() {
   return (
@@ -523,13 +507,13 @@ function EmptyState({ statusFilter }) {
 
       <div className="mt-4 font-black text-slate-800">
         {statusFilter === "all"
-          ? "Bạn chưa có hóa đơn"
+          ? "Chưa có hóa đơn nào"
           : "Không có hóa đơn phù hợp"}
       </div>
 
       <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
         {statusFilter === "all"
-          ? "Các hóa đơn tiền phòng và điện nước sẽ xuất hiện tại đây."
+          ? "Các hóa đơn tiền phòng và điện nước của học sinh sẽ xuất hiện tại đây."
           : "Hãy chọn trạng thái khác để xem các hóa đơn còn lại."}
       </p>
     </div>
@@ -702,4 +686,4 @@ function getItemIcon(name) {
   return map[name] || <FaReceipt className={iconClassName} />;
 }
 
-export default MyInvoices;
+export default ParentPayment;

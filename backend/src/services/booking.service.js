@@ -1,117 +1,240 @@
-const userRepository = require("../repositories/user.repository");
-const roomRepository = require("../repositories/room.repository");
+const mongoose = require("mongoose");
+
 const bookingRepository = require("../repositories/booking.repository");
-const invoiceRepository = require("../repositories/invoice.repository");
-const buildingRepository = require("../repositories/building.repository");
+const systemConfigRepository = require("../repositories/systemConfig.repository");
 const semesterService = require("./semester.service");
 
+const BOOKING_HOLD_MINUTES = 1;
+
+const getUTCDateString = (date) => {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(date));
+};
+
+const formatDateUTC = (date) => {
+  return new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "UTC",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(date));
+};
+
 class BookingService {
-  async checkEligibility(studentId) {
-    const student = await userRepository.findByIdLean(studentId);
+  async getNextSemesterInfo() {
+    const nextSemester = await semesterService.getNextSemester();
+
+    if (!nextSemester) return null;
+
+    return {
+      data: nextSemester,
+      text: `${nextSemester.name} ${nextSemester.year}`,
+    };
+  }
+
+  async checkBookingEligibility(studentId) {
+    if (!studentId) {
+      return {
+        statusCode: 401,
+        response: {
+          success: false,
+          eligible: false,
+          message: "Không xác định được sinh viên",
+        },
+      };
+    }
+
+    const student = await bookingRepository.findStudentById(studentId);
 
     if (!student || student.role !== "student") {
       return {
-        eligible: false,
         statusCode: 404,
-        message: "Không tìm thấy thông tin sinh viên",
+        response: {
+          success: false,
+          eligible: false,
+          message: "Không tìm thấy thông tin sinh viên",
+        },
       };
     }
 
-    const targetSemester = await semesterService.getTargetBookingSemester();
+    const currentSemester = await semesterService.getCurrentSemester();
+    const nextSemesterInfo = await this.getNextSemesterInfo();
 
-    if (!targetSemester) {
+    if (!nextSemesterInfo) {
       return {
-        eligible: false,
-        statusCode: 400,
-        reason: "booking_closed",
-        message: "Hiện tại không nằm trong đợt mở cổng đặt phòng.",
+        statusCode: 404,
+        response: {
+          success: false,
+          eligible: false,
+          reason: "next_semester_not_found",
+          message: "Không tìm thấy kỳ tiếp theo",
+        },
       };
     }
 
-    const existingRoom = await roomRepository.findOne({ "students.student": studentId });
+    if (
+      !currentSemester?.bookingStartDate ||
+      !currentSemester?.bookingEndDate
+    ) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          eligible: false,
+          reason: "booking_time_not_configured",
+          message: "Kỳ hiện tại chưa được cấu hình thời gian đăng ký phòng",
+        },
+      };
+    }
+
+    const today = getUTCDateString(new Date());
+    const bookingStart = getUTCDateString(currentSemester.bookingStartDate);
+    const bookingEnd = getUTCDateString(currentSemester.bookingEndDate);
+
+    if (today < bookingStart || today > bookingEnd) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          eligible: false,
+          reason: "booking_closed",
+          message: `Hiện không nằm trong thời gian đăng ký phòng. Thời gian đăng ký từ ${formatDateUTC(
+            currentSemester.bookingStartDate,
+          )} đến ${formatDateUTC(currentSemester.bookingEndDate)}.`,
+        },
+      };
+    }
+
+    const existingRoom =
+      await bookingRepository.findCurrentRoomByStudent(studentId);
 
     if (existingRoom) {
       const studentEntry = existingRoom.students.find(
-        (s) => s.student.toString() === studentId.toString()
+        (item) => item.student.toString() === studentId.toString(),
       );
-      const bedInfo = studentEntry ? ` - Giường ${studentEntry.bedNumber}` : "";
 
       return {
-        eligible: false,
         statusCode: 400,
-        reason: "already_booked",
-        message: `Bạn đang ở phòng ${existingRoom.displayName}${bedInfo}. Không thể đặt phòng mới.`,
-        data: {
-          CFDScore: student.CFDScore,
-          currentRoom: existingRoom.displayName,
-          bedNumber: studentEntry ? studentEntry.bedNumber : null,
+        response: {
+          success: false,
+          eligible: false,
+          reason: "already_in_room",
+          message: `Bạn đang ở phòng ${existingRoom.displayName}${
+            studentEntry ? ` - Giường ${studentEntry.bedNumber}` : ""
+          }. Không thể đặt phòng mới.`,
         },
       };
     }
 
-    const existingBooking = await bookingRepository.findActiveBookingByStudentId(studentId);
+    const existingBooking =
+      await bookingRepository.findActiveBookingByStudentAndSemester(
+        studentId,
+        nextSemesterInfo.text,
+      );
 
     if (existingBooking) {
       return {
-        eligible: false,
-        statusCode: 400,
-        reason: "has_active_booking",
-        message: "Bạn đã có đơn đặt phòng đang xử lý. Không thể đặt thêm.",
-        data: {
-          CFDScore: student.CFDScore,
-          bookingStatus: existingBooking.status,
+        statusCode: 409,
+        response: {
+          success: false,
+          eligible: false,
+          reason: "has_active_booking",
+          message: "Bạn đã có booking trong kỳ tiếp theo",
+          data: {
+            bookingStatus: existingBooking.status,
+            semester: existingBooking.semester,
+          },
         },
       };
     }
 
-    const cfdScore = student.CFDScore || 0;
+    const cfdScore = Number(student.CFDScore || 0);
+
     if (cfdScore < 80) {
       return {
-        eligible: false,
         statusCode: 400,
-        reason: "low_cfd",
-        message: `Điểm CFD của bạn hiện tại là ${cfdScore}. Cần tối thiểu 80 điểm để đặt phòng.`,
-        data: {
-          CFDScore: cfdScore,
-          requiredScore: 80,
+        response: {
+          success: false,
+          eligible: false,
+          reason: "low_cfd",
+          message: `Điểm CFD hiện tại là ${cfdScore}. Cần tối thiểu 80 điểm để đặt phòng.`,
         },
       };
     }
 
-    const unpaidInvoices = await invoiceRepository.findUnpaidInvoicesByStudentId(studentId);
-    const totalUnpaid = unpaidInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+    const unpaidInvoices =
+      await bookingRepository.findUnpaidInvoicesByStudent(studentId);
+
+    const totalUnpaid = unpaidInvoices.reduce(
+      (sum, invoice) => sum + Number(invoice.amount || 0),
+      0,
+    );
 
     if (totalUnpaid > 0) {
       return {
-        eligible: false,
         statusCode: 400,
-        reason: "unpaid_invoice",
-        message: `Bạn còn nợ ${totalUnpaid.toLocaleString("vi-VN")}đ hóa đơn chưa thanh toán. Vui lòng thanh toán trước khi đặt phòng.`,
-        data: {
-          CFDScore: cfdScore,
-          totalUnpaid,
-          unpaidCount: unpaidInvoices.length,
+        response: {
+          success: false,
+          eligible: false,
+          reason: "unpaid_invoice",
+          message: `Bạn còn nợ ${totalUnpaid.toLocaleString(
+            "vi-VN",
+          )}đ. Vui lòng thanh toán trước khi đặt phòng.`,
         },
       };
     }
 
     return {
-      eligible: true,
       statusCode: 200,
-      message: "Bạn đủ điều kiện đặt phòng!",
-      data: {
-        CFDScore: cfdScore,
-        totalUnpaid: 0,
-        currentSemester: targetSemester.name,
-        semesterCode: targetSemester.code,
+      response: {
+        success: true,
+        eligible: true,
+        message: "Bạn đủ điều kiện đặt phòng",
+        data: {
+          CFDScore: cfdScore,
+          nextSemester: nextSemesterInfo.text,
+        },
       },
     };
   }
 
-  async getAvailableRoomsByBuilding(buildingId, floor) {
-    const building = await buildingRepository.findById(buildingId);
+  async getAvailableRooms(buildingId, floor) {
+    if (!mongoose.Types.ObjectId.isValid(buildingId)) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: "buildingId không hợp lệ",
+        },
+      };
+    }
+
+    const building = await bookingRepository.findBuildingById(buildingId);
+
     if (!building) {
-      throw new Error("Không tìm thấy tòa nhà");
+      return {
+        statusCode: 404,
+        response: {
+          success: false,
+          message: "Không tìm thấy tòa nhà",
+        },
+      };
+    }
+
+    const nextSemesterInfo = await this.getNextSemesterInfo();
+
+    if (!nextSemesterInfo) {
+      return {
+        statusCode: 404,
+        response: {
+          success: false,
+          message: "Không tìm thấy kỳ tiếp theo",
+        },
+      };
     }
 
     const query = {
@@ -119,106 +242,675 @@ class BookingService {
       status: { $ne: "maintenance" },
     };
 
-    if (floor) {
-      query.floor = parseInt(floor);
-    }
+    if (floor !== undefined && floor !== "") {
+      const parsedFloor = Number(floor);
 
-    const rooms = await roomRepository.findAvailableRooms(query);
-
-    const formattedRooms = rooms.map((room) => {
-      const roomObj = room.toObject();
-      const occupiedBeds = roomObj.students.map((s) => s.bedNumber);
-      const availableBeds = [];
-
-      for (let i = 1; i <= roomObj.capacity; i++) {
-        if (!occupiedBeds.includes(i)) {
-          availableBeds.push(i);
-        }
+      if (!Number.isInteger(parsedFloor) || parsedFloor < 1) {
+        return {
+          statusCode: 400,
+          response: {
+            success: false,
+            message: "Tầng không hợp lệ",
+          },
+        };
       }
 
-      roomObj.students = roomObj.students.map((s) => ({
-        ...s.student,
-        bedNumber: s.bedNumber,
-      }));
+      query.floor = parsedFloor;
+    }
+
+    const rooms = await bookingRepository.findAvailableRooms(query);
+    const roomIds = rooms.map((room) => room._id);
+
+    const reservedBookings = roomIds.length
+      ? await bookingRepository.findReservedBedsByRoomsAndSemester(
+          roomIds,
+          nextSemesterInfo.text,
+        )
+      : [];
+
+    const reservedByRoom = new Map();
+
+    reservedBookings.forEach((booking) => {
+      const roomKey = booking.roomId.toString();
+
+      if (!reservedByRoom.has(roomKey)) {
+        reservedByRoom.set(roomKey, new Set());
+      }
+
+      reservedByRoom.get(roomKey).add(Number(booking.bedNumber));
+    });
+
+    const formattedRooms = rooms
+      .map((room) => {
+        const reservedBeds =
+          reservedByRoom.get(room._id.toString()) || new Set();
+
+        const beds = Array.from(
+          { length: Number(room.capacity || 0) },
+          (_, index) => {
+            const bedNumber = index + 1;
+            const available = !reservedBeds.has(bedNumber);
+
+            return {
+              bedNumber,
+              available,
+              status: available ? "available" : "reserved",
+            };
+          },
+        );
+
+        return {
+          ...room,
+          semester: nextSemesterInfo.text,
+          beds,
+          availableBeds: beds
+            .filter((bed) => bed.available)
+            .map((bed) => bed.bedNumber),
+          reservedBeds: beds
+            .filter((bed) => !bed.available)
+            .map((bed) => bed.bedNumber),
+          availableCount: beds.filter((bed) => bed.available).length,
+          isAvailable: beds.some((bed) => bed.available),
+        };
+      })
+      .filter((room) => room.isAvailable);
+
+    return {
+      statusCode: 200,
+      response: {
+        success: true,
+        data: formattedRooms,
+        building,
+        semester: nextSemesterInfo.text,
+        totalAvailable: formattedRooms.length,
+      },
+    };
+  }
+
+  async getRoomBedAvailability(roomId) {
+    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: "roomId không hợp lệ",
+        },
+      };
+    }
+
+    const nextSemesterInfo = await this.getNextSemesterInfo();
+    const room = await bookingRepository.findRoomById(roomId);
+
+    if (!nextSemesterInfo) {
+      return {
+        statusCode: 404,
+        response: {
+          success: false,
+          message: "Không tìm thấy kỳ tiếp theo",
+        },
+      };
+    }
+
+    if (!room) {
+      return {
+        statusCode: 404,
+        response: {
+          success: false,
+          message: "Không tìm thấy phòng",
+        },
+      };
+    }
+
+    const reservedBookings =
+      await bookingRepository.findReservedBedsByRoomAndSemester(
+        roomId,
+        nextSemesterInfo.text,
+      );
+
+    const reservedMap = new Map(
+      reservedBookings.map((booking) => [
+        Number(booking.bedNumber),
+        booking.status,
+      ]),
+    );
+
+    const beds = Array.from(
+      { length: Number(room.capacity || 0) },
+      (_, index) => {
+        const bedNumber = index + 1;
+        const bookingStatus = reservedMap.get(bedNumber);
+
+        return {
+          bedNumber,
+          available: !bookingStatus,
+          status: bookingStatus ? "reserved" : "available",
+          bookingStatus: bookingStatus || null,
+        };
+      },
+    );
+
+    return {
+      statusCode: 200,
+      response: {
+        success: true,
+        message: "Lấy tình trạng giường thành công",
+        data: {
+          roomId: room._id,
+          roomNumber: room.roomNumber,
+          semester: nextSemesterInfo.text,
+          capacity: room.capacity,
+          availableCount: beds.filter((bed) => bed.available).length,
+          reservedCount: beds.filter((bed) => !bed.available).length,
+          beds,
+        },
+      },
+    };
+  }
+
+  async createBooking(studentId, roomId, bedNumber) {
+    if (!studentId) {
+      return {
+        statusCode: 401,
+        response: {
+          success: false,
+          message: "Không xác định được sinh viên",
+        },
+      };
+    }
+
+    if (
+      !roomId ||
+      bedNumber === undefined ||
+      bedNumber === null ||
+      bedNumber === ""
+    ) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: "Thiếu thông tin phòng hoặc giường",
+        },
+      };
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: "roomId không hợp lệ",
+        },
+      };
+    }
+
+    const parsedBedNumber = Number(bedNumber);
+
+    if (!Number.isInteger(parsedBedNumber)) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: "Số giường không hợp lệ",
+        },
+      };
+    }
+
+    const nextSemesterInfo = await this.getNextSemesterInfo();
+
+    if (!nextSemesterInfo) {
+      return {
+        statusCode: 404,
+        response: {
+          success: false,
+          message: "Không tìm thấy kỳ tiếp theo",
+        },
+      };
+    }
+
+    const semester = nextSemesterInfo.text;
+    const nextSemester = nextSemesterInfo.data;
+
+    const student = await bookingRepository.findStudentById(studentId);
+
+    if (!student || student.role !== "student") {
+      return {
+        statusCode: 404,
+        response: {
+          success: false,
+          message: "Không tìm thấy thông tin sinh viên",
+        },
+      };
+    }
+
+    const existingRoom =
+      await bookingRepository.findCurrentRoomByStudent(studentId);
+
+    if (existingRoom) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: `Bạn đang ở phòng ${existingRoom.displayName}. Không thể đặt thêm.`,
+        },
+      };
+    }
+
+    const existingBooking =
+      await bookingRepository.findActiveBookingByStudentAndSemester(
+        studentId,
+        semester,
+      );
+
+    if (existingBooking) {
+      if (existingBooking.status !== "pending") {
+        return {
+          statusCode: 409,
+          response: {
+            success: false,
+            message: "Bạn đã có booking trong kỳ này",
+          },
+        };
+      }
+
+      await bookingRepository.releasePendingBookingsByStudentAndSemester(
+        studentId,
+        semester,
+      );
+    }
+
+    if (Number(student.CFDScore || 0) < 80) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: "Điểm CFD không đủ để đặt phòng (yêu cầu từ 80)",
+        },
+      };
+    }
+
+    const unpaidInvoices =
+      await bookingRepository.findUnpaidInvoicesByStudent(studentId);
+
+    const totalUnpaid = unpaidInvoices.reduce(
+      (sum, invoice) => sum + Number(invoice.amount || 0),
+      0,
+    );
+
+    if (totalUnpaid > 0) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: "Bạn còn hóa đơn chưa thanh toán",
+        },
+      };
+    }
+
+    const room = await bookingRepository.findRoomById(roomId);
+
+    if (!room) {
+      return {
+        statusCode: 404,
+        response: {
+          success: false,
+          message: "Không tìm thấy phòng",
+        },
+      };
+    }
+
+    if (room.status === "maintenance") {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: "Phòng đang bảo trì, không thể đặt",
+        },
+      };
+    }
+
+    if (parsedBedNumber < 1 || parsedBedNumber > Number(room.capacity)) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: `Số giường không hợp lệ (1-${room.capacity})`,
+        },
+      };
+    }
+
+    const reservedCount =
+      await bookingRepository.countReservedBedsByRoomAndSemester(
+        roomId,
+        semester,
+      );
+
+    if (reservedCount >= Number(room.capacity)) {
+      return {
+        statusCode: 409,
+        response: {
+          success: false,
+          message: "Phòng đã đủ người trong kỳ này",
+        },
+      };
+    }
+
+    const reservedBed = await bookingRepository.findReservedBed(
+      roomId,
+      semester,
+      parsedBedNumber,
+    );
+
+    if (reservedBed) {
+      return {
+        statusCode: 409,
+        response: {
+          success: false,
+          message: `Giường số ${parsedBedNumber} đã có sinh viên đặt`,
+        },
+      };
+    }
+
+    // Lấy cấu hình đang active
+    const activeConfig = await systemConfigRepository.findActive();
+
+    if (!activeConfig) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message:
+            "Hệ thống chưa có cấu hình giá đang hoạt động. Vui lòng liên hệ quản trị viên.",
+        },
+      };
+    }
+
+    const roomPrice = Number(activeConfig.roomPrice);
+
+    if (!Number.isFinite(roomPrice) || roomPrice < 0) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: "Giá phòng trong cấu hình hệ thống không hợp lệ",
+        },
+      };
+    }
+
+    try {
+      const paymentExpiresAt = new Date(
+        Date.now() + BOOKING_HOLD_MINUTES * 60 * 1000,
+      );
+
+      const booking = await bookingRepository.createBooking({
+        studentId,
+        roomId,
+        bedNumber: parsedBedNumber,
+        semester,
+        startDate: nextSemester.startDate,
+        endDate: nextSemester.endDate,
+
+        // Lưu ID của cấu hình đã áp dụng
+        configId: activeConfig._id,
+
+        status: "pending",
+        paymentExpiresAt,
+      });
+
+      const populatedRoom =
+        await bookingRepository.findPopulatedRoomById(roomId);
 
       return {
-        ...roomObj,
-        availableBeds,
-        availableCount: availableBeds.length,
-        isAvailable: availableBeds.length > 0,
+        statusCode: 201,
+        response: {
+          success: true,
+          message: `Đặt phòng thành công. Giường được giữ trong ${BOOKING_HOLD_MINUTES} phút, vui lòng thanh toán để xác nhận.`,
+          data: {
+            booking,
+            room: populatedRoom,
+            bedNumber: parsedBedNumber,
+            semester,
+            paymentExpiresAt,
+
+            // Không lấy room.price nữa
+            price: roomPrice,
+
+            config: {
+              id: activeConfig._id,
+              name: activeConfig.name,
+              roomPrice,
+            },
+          },
+        },
       };
-    });
+    } catch (error) {
+      if (error?.code === 11000) {
+        const duplicatedFields = error.keyPattern || {};
 
-    const availableRooms = formattedRooms.filter((r) => r.isAvailable);
+        if (
+          duplicatedFields.roomId &&
+          duplicatedFields.semester &&
+          duplicatedFields.bedNumber
+        ) {
+          return {
+            statusCode: 409,
+            response: {
+              success: false,
+              message: `Giường số ${parsedBedNumber} vừa được sinh viên khác đặt. Vui lòng chọn giường khác.`,
+            },
+          };
+        }
 
-    return {
-      data: availableRooms,
-      building: building,
-      totalAvailable: availableRooms.length,
-    };
+        if (duplicatedFields.studentId && duplicatedFields.semester) {
+          return {
+            statusCode: 409,
+            response: {
+              success: false,
+              message: "Bạn đã có booking trong kỳ này",
+            },
+          };
+        }
+
+        return {
+          statusCode: 409,
+          response: {
+            success: false,
+            message: "Dữ liệu booking bị trùng. Vui lòng thử lại",
+          },
+        };
+      }
+
+      throw error;
+    }
   }
+  async getMyBooking(studentId) {
+    const booking =
+      await bookingRepository.findCurrentBookingByStudent(studentId);
 
-  async createNewBooking(studentId, roomId, bedNumber) {
-    if (!roomId || !bedNumber) {
-      throw new Error("Thiếu thông tin phòng hoặc giường");
+    if (!booking) {
+      return {
+        statusCode: 200,
+        response: {
+          success: true,
+          data: null,
+          message: "Chưa có đơn đặt phòng",
+        },
+      };
     }
 
-    const eligibilityCheck = await this.checkEligibility(studentId);
-    if (!eligibilityCheck.eligible) {
-      throw new Error(eligibilityCheck.message);
-    }
+    let myBedNumber = booking.bedNumber || null;
 
-    const room = await roomRepository.findById(roomId);
-    if (!room) throw new Error("Không tìm thấy phòng");
-    if (room.status === "maintenance") throw new Error("Phòng đang bảo trì, không thể đặt.");
-    if (room.students.length >= room.capacity) throw new Error("Phòng đã đầy, vui lòng chọn phòng khác.");
+    if (booking.roomId && Array.isArray(booking.roomId.students)) {
+      const myEntry = booking.roomId.students.find((entry) => {
+        const populatedStudent = entry.student;
+        if (!populatedStudent) return false;
 
-    const bedTaken = room.students.some((s) => s.bedNumber === bedNumber);
-    if (bedTaken) throw new Error(`Giường số ${bedNumber} đã có người, vui lòng chọn giường khác.`);
-    if (bedNumber < 1 || bedNumber > room.capacity) throw new Error(`Số giường không hợp lệ (1-${room.capacity}).`);
+        const populatedStudentId = populatedStudent._id || populatedStudent;
 
-    const targetSemester = await semesterService.getTargetBookingSemester();
-    const bookingSemesterCode = targetSemester.code || "Summer 2026";
+        return populatedStudentId.toString() === studentId.toString();
+      });
 
-    // Xóa các booking pending
-    await bookingRepository.deleteMany({ studentId, status: "pending" });
-
-    const booking = await bookingRepository.create({
-      studentId: studentId,
-      roomId: roomId,
-      bedNumber: bedNumber,
-      semester: bookingSemesterCode,
-      startDate: targetSemester.startDate,
-      endDate: targetSemester.endDate,
-      status: "pending",
-    });
-
-    const populatedRoom = await roomRepository.findByIdWithPopulation(roomId);
-
-    return {
-      booking: booking,
-      room: populatedRoom,
-      bedNumber: bedNumber,
-      price: room.price || 2000000,
-    };
-  }
-
-  async getStudentCurrentBooking(studentId) {
-    const booking = await bookingRepository.findActiveBookingByStudentId(studentId);
-
-    if (!booking) return null;
-
-    let myBedNumber = null;
-    if (booking.roomId && booking.roomId.students) {
-      const myEntry = booking.roomId.students.find(
-        (s) => s.student._id.toString() === studentId.toString()
-      );
       if (myEntry) myBedNumber = myEntry.bedNumber;
     }
 
     return {
-      ...booking.toObject(),
-      myBedNumber,
+      statusCode: 200,
+      response: {
+        success: true,
+        data: {
+          ...booking.toObject(),
+          myBedNumber,
+        },
+      },
+    };
+  }
+
+  async getRoomHistory(roomId) {
+    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: "roomId không hợp lệ",
+        },
+      };
+    }
+
+    const currentSemester = await semesterService.getCurrentSemester();
+
+    const nextSemester = await semesterService.getNextSemester();
+
+    const currentSemesterText = `${currentSemester.name} ${currentSemester.year}`;
+
+    const nextSemesterText = `${nextSemester.name} ${nextSemester.year}`;
+
+    const semesterOrder = {
+      Spring: 1,
+      Summer: 2,
+      Fall: 3,
+    };
+
+    const parseSemester = (semester) => {
+      if (!semester) {
+        return {
+          name: "",
+          year: 0,
+          order: 0,
+        };
+      }
+
+      const [name, year] = semester.split(" ");
+
+      return {
+        name,
+        year: Number(year),
+        order: semesterOrder[name] || 0,
+      };
+    };
+
+    const current = parseSemester(currentSemesterText);
+
+    const isHistorySemester = (semester) => {
+      const parsed = parseSemester(semester);
+
+      if (parsed.year < current.year) return true;
+      if (parsed.year > current.year) return false;
+
+      return parsed.order < current.order;
+    };
+
+    const bookings = await bookingRepository.findRoomBookingHistory(roomId);
+
+    const history = {};
+    const nextSemesterBookings = [];
+
+    bookings.forEach((booking) => {
+      const student = {
+        _id: booking.studentId?._id,
+        fullName: booking.studentId?.fullName || "N/A",
+        studentCode: booking.studentId?.studentCode || "N/A",
+        email: booking.studentId?.email || "",
+        phone: booking.studentId?.phone || "",
+        gender: booking.studentId?.gender || "",
+        bedNumber: booking.bedNumber,
+        status: booking.status,
+        semester: booking.semester,
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+        checkInDate: booking.checkInDate,
+        checkOutDate: booking.checkOutDate,
+      };
+
+      // ======= Kỳ trước =======
+      if (isHistorySemester(booking.semester)) {
+        if (!history[booking.semester]) {
+          history[booking.semester] = {
+            semester: booking.semester,
+            students: [],
+          };
+        }
+
+        history[booking.semester].students.push(student);
+      }
+
+      // ======= Kỳ tiếp theo =======
+      else if (booking.semester === nextSemesterText) {
+        nextSemesterBookings.push(student);
+      }
+    });
+
+    return {
+      statusCode: 200,
+      response: {
+        success: true,
+        currentSemester: currentSemesterText,
+        nextSemester: nextSemesterText,
+
+        history: Object.values(history),
+
+        upcoming: nextSemesterBookings,
+      },
+    };
+  }
+
+  async getAllBookings(filters = {}) {
+    const { status, semester, studentCode, roomId } = filters;
+    const query = {};
+
+    if (status) query.status = status;
+    if (semester) query.semester = semester;
+
+    if (roomId) {
+      if (!mongoose.Types.ObjectId.isValid(roomId)) {
+        return {
+          statusCode: 400,
+          response: {
+            success: false,
+            message: "roomId không hợp lệ",
+          },
+        };
+      }
+
+      query.roomId = roomId;
+    }
+
+    if (studentCode) {
+      const students =
+        await bookingRepository.findStudentsByStudentCode(studentCode);
+
+      query.studentId = {
+        $in: students.map((student) => student._id),
+      };
+    }
+
+    const bookings = await bookingRepository.findAllBookings(query);
+
+    return {
+      statusCode: 200,
+      response: {
+        success: true,
+        total: bookings.length,
+        data: bookings,
+      },
     };
   }
 }

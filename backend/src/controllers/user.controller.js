@@ -28,7 +28,7 @@ function setCookie(res, accessToken, refreshToken) {
 class UserController {
   async login(req, res) {
     try {
-      const { username, email, password } = req.body;
+      const { username, email, password, requestedRole } = req.body;
       const loginId = username || email || req.query.username;
 
       if (!loginId || !password) {
@@ -82,6 +82,20 @@ class UserController {
         return res
           .status(401)
           .json({ success: false, message: "Mật khẩu không đúng" });
+      }
+
+      if (requestedRole) {
+        const isValidRole =
+          requestedRole === "staff"
+            ? ["staff", "admin", "manager"].includes(actualRole)
+            : actualRole === requestedRole;
+
+        if (!isValidRole) {
+          return res.status(403).json({
+            success: false,
+            message: "Tài khoản không có quyền truy cập vào mục này.",
+          });
+        }
       }
 
       const tokenPayload = {
