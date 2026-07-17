@@ -10,41 +10,49 @@ function PaymentResult() {
 
   const isSuccess = status === "success";
 
+  const handleBackToInvoices = () => {
+    navigate("/student/invoices", {
+      replace: true,
+    });
+  };
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      navigate("/student/invoices");
+    const timer = window.setTimeout(() => {
+      handleBackToInvoices();
     }, 3000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [navigate]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-xl">
+    <div className="fixed inset-0 z-[9999] flex min-h-screen items-center justify-center overflow-y-auto bg-slate-100 px-4 py-8">
+      <div className="w-full max-w-[460px] rounded-[24px] border border-slate-200 bg-white px-6 py-8 text-center shadow-[0_20px_60px_rgba(15,23,42,0.15)] sm:px-10 sm:py-10">
         <div
-          className={`mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full text-4xl ${
+          className={`mx-auto flex h-[88px] w-[88px] items-center justify-center rounded-full text-[48px] font-bold leading-none ${
             isSuccess
-              ? "bg-green-100 text-green-600"
+              ? "bg-emerald-100 text-emerald-600"
               : "bg-red-100 text-red-600"
           }`}
         >
-          {isSuccess ? "✓" : "×"}
+          <span className="-mt-1">{isSuccess ? "✓" : "×"}</span>
         </div>
 
-        <h1 className="text-2xl font-extrabold text-slate-800">
+        <h1 className="mt-6 text-[26px] font-extrabold leading-tight text-slate-900">
           {isSuccess ? "Thanh toán thành công" : "Thanh toán thất bại"}
         </h1>
 
-        <p className="mt-3 text-slate-500">
+        <p className="mx-auto mt-3 max-w-[360px] text-[15px] leading-6 text-slate-500">
           {isSuccess
-            ? "Hóa đơn của bạn đã được cập nhật trạng thái đã thanh toán."
+            ? "Hóa đơn của bạn đã được cập nhật sang trạng thái đã thanh toán."
             : getErrorMessage(message)}
         </p>
 
         <button
           type="button"
-          onClick={() => navigate("/student/invoices")}
-          className="mt-6 rounded-xl bg-blue-600 px-6 py-3 font-bold text-white hover:bg-blue-700"
+          onClick={handleBackToInvoices}
+          className="mt-7 inline-flex h-[48px] w-full items-center justify-center rounded-xl bg-blue-600 px-6 text-[15px] font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-[0.98]"
         >
           Quay về hóa đơn
         </button>
@@ -58,14 +66,14 @@ function PaymentResult() {
 }
 
 function getErrorMessage(message) {
-  const map = {
+  const messages = {
     InvalidSignature: "Chữ ký thanh toán không hợp lệ.",
     PaymentFailed: "Giao dịch chưa hoàn tất hoặc đã bị hủy.",
     InvoiceNotFound: "Không tìm thấy hóa đơn.",
     InvalidPaymentType: "Loại thanh toán không hợp lệ.",
   };
 
-  return map[message] || "Có lỗi xảy ra trong quá trình thanh toán.";
+  return messages[message] || "Có lỗi xảy ra trong quá trình thanh toán.";
 }
 
 export default PaymentResult;

@@ -83,20 +83,20 @@ function BookingManagement() {
 
       const matchKeyword = keyword
         ? [
-            student.studentCode,
-            student.fullName,
-            student.email,
-            student.phone,
-            room.displayName,
-            room.roomNumber,
-            building.name,
-            booking.semester,
-            booking.status,
-            booking.bedNumber,
-          ]
-            .join(" ")
-            .toLowerCase()
-            .includes(keyword)
+          student.studentCode,
+          student.fullName,
+          student.email,
+          student.phone,
+          room.displayName,
+          room.roomNumber,
+          building.name,
+          booking.semester,
+          booking.status,
+          booking.bedNumber,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(keyword)
         : true;
 
       return matchStatus && matchKeyword;

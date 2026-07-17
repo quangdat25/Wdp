@@ -171,6 +171,7 @@ function MyUtilities() {
                             <TableHead>Phòng</TableHead>
                             <TableHead>Học kỳ</TableHead>
                             <TableHead>Tổng tiền phòng</TableHead>
+                            <TableHead>Số điện</TableHead>
                             <TableHead>Tiền điện</TableHead>
                             <TableHead>Tiền nước</TableHead>
                             <TableHead>Tổng tiền</TableHead>
@@ -265,6 +266,11 @@ function UtilityTableRow({ record }) {
         </div>
       </TableCell>
 
+      <TableCell>
+        <span className="whitespace-nowrap font-medium text-slate-700">
+          {record.studentElectricityUsage}
+        </span>
+      </TableCell>
       <TableCell>
         <span className="whitespace-nowrap font-medium text-slate-700">
           {formatMoney(record.studentElectricity)}
@@ -418,9 +424,11 @@ function normalizeUtilityRecord(record) {
   const room = record.room || record.roomId || {};
 
   const roomElectricity = Number(
-    record.roomAmount?.electricity ?? record.electricityAmount ?? 0,
+    record.electricityAmount ?? 0,
   );
-
+  const studentElectricityUsage = Number(
+    record.electricityUsage ?? 0,
+  );
   const roomWater = Number(record.roomAmount?.water ?? record.waterAmount ?? 0);
 
   const roomTotal = Number(
@@ -476,6 +484,7 @@ function normalizeUtilityRecord(record) {
     studentElectricity,
     studentWater,
     studentTotal,
+    studentElectricityUsage,
   };
 }
 

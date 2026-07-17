@@ -11,7 +11,6 @@ import {
   assignStudentToRoom,
   removeStudentFromRoom,
   getAvailableStudents,
-  getRoomHistory,
 } from "../../api/roomService";
 import {
   FaBuilding,
@@ -54,7 +53,7 @@ const statusConfig = {
   },
 };
 
-function RoomManagement() {
+function RoomManagement({ role = "admin" }) {
   const [buildings, setBuildings] = useState([]);
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [selectedFloor, setSelectedFloor] = useState(1);
@@ -72,12 +71,7 @@ function RoomManagement() {
   const [updatingRoom, setUpdatingRoom] = useState(false);
   const [editStatus, setEditStatus] = useState("");
   const [editCapacity, setEditCapacity] = useState(4);
-  const [showOccupancyModal, setShowOccupancyModal] = useState(false);
-  const [roomHistory, setRoomHistory] = useState([]);
-  const [upcomingStudents, setUpcomingStudents] = useState([]);
-  const [currentSemesterName, setCurrentSemesterName] = useState("");
-  const [nextSemesterName, setNextSemesterName] = useState("");
-  const [loadingOccupancy, setLoadingOccupancy] = useState(false);
+
   // Student assignment states
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [availableStudents, setAvailableStudents] = useState([]);
@@ -86,110 +80,6 @@ function RoomManagement() {
   const [assigning, setAssigning] = useState(false);
   const [removing, setRemoving] = useState(false);
   const { confirm } = Modal;
-
-  const openRoomOccupancy = async () => {
-    if (!selectedRoom?._id) return;
-
-    try {
-      setLoadingOccupancy(true);
-      setShowOccupancyModal(true);
-
-      const response = await getRoomHistory(selectedRoom._id);
-
-      // Hỗ trợ cả hai kiểu service:
-      // 1. return res.data
-      // 2. return nguyên Axios response
-      const payload =
-        response?.success !== undefined
-          ? response
-          : response?.data?.success !== undefined
-            ? response.data
-            : response?.data || {};
-
-      const rawHistory = Array.isArray(payload.history)
-        ? payload.history
-        : Array.isArray(payload.data)
-          ? payload.data
-          : [];
-
-      const rawUpcoming = Array.isArray(payload.upcoming) ? payload.upcoming : [];
-
-      // Thu thập tất cả sinh viên từ cả history và upcoming
-      const allStudents = [];
-      rawUpcoming.forEach((student) => {
-        if (student) allStudents.push(student);
-      });
-      rawHistory.forEach((group) => {
-        if (group && Array.isArray(group.students)) {
-          group.students.forEach((student) => {
-            if (student) {
-              const studentSemester = student.semester || group.semester;
-              allStudents.push({ ...student, semester: studentSemester });
-            }
-          });
-        }
-      });
-
-      // Loại bỏ trùng lặp dựa trên _id hoặc mã SV + kỳ học
-      const seenKeys = new Set();
-      const uniqueStudents = [];
-      allStudents.forEach((student) => {
-        const key = student._id || `${student.studentCode}-${student.semester}`;
-        if (!seenKeys.has(key)) {
-          seenKeys.add(key);
-          uniqueStudents.push(student);
-        }
-      });
-
-      const currentVal = parseSemester(payload.currentSemester);
-      const nextVal = parseSemester(payload.nextSemester);
-
-      const upcomingList = [];
-      const historyMap = {};
-
-      uniqueStudents.forEach((student) => {
-        const semVal = parseSemester(student.semester);
-        if (semVal === nextVal && nextVal !== 0) {
-          upcomingList.push(student);
-        } else if (semVal < currentVal && semVal !== 0) {
-          const formattedSem = formatSemesterName(student.semester);
-          if (!historyMap[formattedSem]) {
-            historyMap[formattedSem] = {
-              semester: student.semester,
-              semVal: semVal,
-              students: [],
-            };
-          }
-          historyMap[formattedSem].students.push(student);
-        }
-      });
-
-      // Chuyển historyMap thành mảng và sắp xếp giảm dần theo semVal
-      const sortedHistory = Object.values(historyMap)
-        .sort((a, b) => b.semVal - a.semVal)
-        .map((group) => ({
-          semester: group.semester,
-          students: group.students,
-        }));
-
-      setRoomHistory(sortedHistory);
-      setUpcomingStudents(upcomingList);
-
-      setCurrentSemesterName(payload.currentSemester || "");
-      setNextSemesterName(payload.nextSemester || "");
-    } catch (error) {
-      console.error("GET ROOM OCCUPANCY ERROR:", error);
-      alert(
-        error.response?.data?.message ||
-        "Lỗi khi tải thông tin cư trú của phòng",
-      );
-
-      setRoomHistory([]);
-      setUpcomingStudents([]);
-    } finally {
-      setLoadingOccupancy(false);
-    }
-  };
   // Fetch buildings
   const fetchBuildings = useCallback(async () => {
     try {
@@ -234,15 +124,15 @@ function RoomManagement() {
     const total = buildings.reduce((sum, b) => sum + (b.totalRooms || 0), 0);
     const available = buildings.reduce(
       (sum, b) => sum + (b.availableRooms || 0),
-      0,
+      0
     );
     const occupied = buildings.reduce(
       (sum, b) => sum + (b.occupiedRooms || 0),
-      0,
+      0
     );
     const maintenance = buildings.reduce(
       (sum, b) => sum + (b.maintenanceRooms || 0),
-      0,
+      0
     );
     return { total, available, occupied, maintenance };
   }, [buildings]);
@@ -448,14 +338,14 @@ function RoomManagement() {
               <FaBuilding
                 style={{ marginRight: 12, verticalAlign: "middle" }}
               />
-              Quản lý phòng ở
+              {role === "admin" ? "Quản lý phòng ở" : "Tòa nhà"}
             </h1>
             <p style={{ color: "#64748b", marginBottom: 0, marginTop: 6 }}>
               Quản lý tòa nhà, tầng và phòng trong ký túc xá.
             </p>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            {buildings.length === 0 && (
+            {role === "admin" && buildings.length === 0 && (
               <button
                 onClick={handleSeed}
                 disabled={seeding}
@@ -481,27 +371,30 @@ function RoomManagement() {
                 {seeding ? "Đang khởi tạo..." : "Khởi tạo A, B, C, D"}
               </button>
             )}
-            <button
-              onClick={() => setShowCreateModal(true)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 14,
-                padding: "12px 20px",
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: "pointer",
-                boxShadow: "0 8px 20px rgba(22, 163, 74, 0.22)",
-                transition: "all 0.3s ease",
-              }}
-            >
-              <FaPlus />
-              Tạo tòa mới
-            </button>
+            {role === "admin" && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  background:
+                    "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 14,
+                  padding: "12px 20px",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: "pointer",
+                  boxShadow: "0 8px 20px rgba(22, 163, 74, 0.22)",
+                  transition: "all 0.3s ease",
+                }}
+              >
+                <FaPlus />
+                Tạo tòa mới
+              </button>
+            )}
           </div>
         </div>
 
@@ -552,7 +445,9 @@ function RoomManagement() {
           }}
         >
           {loading ? (
-            <div style={{ padding: 40, textAlign: "center", color: "#64748b" }}>
+            <div
+              style={{ padding: 40, textAlign: "center", color: "#64748b" }}
+            >
               Đang tải dữ liệu...
             </div>
           ) : buildings.length === 0 ? (
@@ -570,8 +465,8 @@ function RoomManagement() {
                 Chưa có tòa nhà nào
               </div>
               <div style={{ marginTop: 8, fontSize: 14 }}>
-                Bấm &quot;Khởi tạo A, B, C, D&quot; hoặc &quot;Tạo tòa mới&quot;
-                để bắt đầu.
+                Bấm &quot;Khởi tạo A, B, C, D&quot; hoặc &quot;Tạo tòa
+                mới&quot; để bắt đầu.
               </div>
             </div>
           ) : (
@@ -643,33 +538,35 @@ function RoomManagement() {
                             {b.totalRooms || 0}
                           </span>
                         </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowDeleteConfirm(b);
-                          }}
-                          title={`Xóa tòa ${b.name}`}
-                          style={{
-                            position: "absolute",
-                            top: -6,
-                            right: -6,
-                            width: 22,
-                            height: 22,
-                            borderRadius: 999,
-                            border: "none",
-                            background: "#ef4444",
-                            color: "#fff",
-                            fontSize: 10,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            boxShadow: "0 2px 6px rgba(239, 68, 68, 0.4)",
-                            transition: "all 0.2s ease",
-                          }}
-                        >
-                          <FaTimes />
-                        </button>
+                        {role === "admin" && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowDeleteConfirm(b);
+                            }}
+                            title={`Xóa tòa ${b.name}`}
+                            style={{
+                              position: "absolute",
+                              top: -6,
+                              right: -6,
+                              width: 22,
+                              height: 22,
+                              borderRadius: 999,
+                              border: "none",
+                              background: "#ef4444",
+                              color: "#fff",
+                              fontSize: 10,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              boxShadow: "0 2px 6px rgba(239, 68, 68, 0.4)",
+                              transition: "all 0.2s ease",
+                            }}
+                          >
+                            <FaTimes />
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -747,7 +644,8 @@ function RoomManagement() {
                         fontWeight: 700,
                       }}
                     >
-                      Phòng — Tòa {selectedBuilding.name} — Tầng {selectedFloor}
+                      Phòng — Tòa {selectedBuilding.name} — Tầng{" "}
+                      {selectedFloor}
                     </h3>
                     <div style={{ display: "flex", gap: 16 }}>
                       {Object.entries(statusConfig).map(([key, cfg]) => (
@@ -812,7 +710,8 @@ function RoomManagement() {
                               padding: "16px 10px 14px",
                               background: cfg.cardBg,
                               cursor: "pointer",
-                              transition: "all 0.3s cubic-bezier(.4,0,.2,1)",
+                              transition:
+                                "all 0.3s cubic-bezier(.4,0,.2,1)",
                               display: "flex",
                               flexDirection: "column",
                               alignItems: "center",
@@ -885,9 +784,7 @@ function RoomManagement() {
                                   verticalAlign: "middle",
                                 }}
                               />
-                              {room.currentOccupants ||
-                                (room.students || []).length}
-                              /{room.capacity}
+                              {room.currentOccupants || (room.students || []).length}/{room.capacity}
                             </div>
                             {/* Student names preview */}
                             {studentNames.length > 0 && (
@@ -1011,7 +908,9 @@ function RoomManagement() {
 
       {/* Delete Confirm Modal */}
       {showDeleteConfirm && (
-        <ModalOverlay onClose={() => !deleting && setShowDeleteConfirm(null)}>
+        <ModalOverlay
+          onClose={() => !deleting && setShowDeleteConfirm(null)}
+        >
           <ModalCard style={{ maxWidth: 440 }}>
             <h2
               style={{
@@ -1071,7 +970,9 @@ function RoomManagement() {
 
       {/* Room Detail Modal with Students */}
       {selectedRoom && (
-        <ModalOverlay onClose={() => !updatingRoom && setSelectedRoom(null)}>
+        <ModalOverlay
+          onClose={() => !updatingRoom && setSelectedRoom(null)}
+        >
           <ModalCard style={{ maxWidth: 600 }}>
             <div
               style={{
@@ -1264,10 +1165,14 @@ function RoomManagement() {
                               {student.email || ""}
                             </div>
                           </td>
-                          <td style={tdStyle}>{student.phone || "Chưa có"}</td>
+                          <td style={tdStyle}>
+                            {student.phone || "Chưa có"}
+                          </td>
                           <td style={{ ...tdStyle, textAlign: "center" }}>
                             <button
-                              onClick={() => handleRemoveStudent(student._id)}
+                              onClick={() =>
+                                handleRemoveStudent(student._id)
+                              }
                               disabled={removing}
                               title="Xóa khỏi phòng"
                               style={{
@@ -1277,7 +1182,9 @@ function RoomManagement() {
                                 border: "none",
                                 background: "rgba(239, 68, 68, 0.1)",
                                 color: "#ef4444",
-                                cursor: removing ? "not-allowed" : "pointer",
+                                cursor: removing
+                                  ? "not-allowed"
+                                  : "pointer",
                                 display: "inline-flex",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -1418,11 +1325,14 @@ function RoomManagement() {
                                 marginTop: 2,
                               }}
                             >
-                              {student.studentCode} • {student.email}
+                              {student.studentCode} •{" "}
+                              {student.email}
                             </div>
                           </div>
                           <button
-                            onClick={() => handleAssignStudent(student._id)}
+                            onClick={() =>
+                              handleAssignStudent(student._id)
+                            }
                             disabled={assigning}
                             style={{
                               padding: "6px 12px",
@@ -1433,7 +1343,9 @@ function RoomManagement() {
                               color: "#fff",
                               fontWeight: 700,
                               fontSize: 11,
-                              cursor: assigning ? "not-allowed" : "pointer",
+                              cursor: assigning
+                                ? "not-allowed"
+                                : "pointer",
                               display: "flex",
                               alignItems: "center",
                               gap: 4,
@@ -1453,18 +1365,11 @@ function RoomManagement() {
 
             {/* Edit Fields */}
             <div style={{ marginTop: 20 }}>
-              <label style={labelStyle}>
-                Trạng thái
-              </label>
+              <label style={labelStyle}>Trạng thái (Hệ thống tự nhận diện Trống/Đang ở)</label>
               <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
                 {Object.entries(statusConfig).map(([key, cfg]) => {
                   const hasStudents = (selectedRoom.students || []).length > 0;
-                  const isDisabled =
-                    key === "maintenance"
-                      ? hasStudents
-                      : editStatus === "maintenance"
-                        ? false
-                        : key !== editStatus;
+                  const isDisabled = key === "maintenance" ? hasStudents : (editStatus === "maintenance" ? false : key !== editStatus);
                   const isSelected = editStatus === key;
 
                   return (
@@ -1472,28 +1377,14 @@ function RoomManagement() {
                       key={key}
                       onClick={() => setEditStatus(key)}
                       disabled={isDisabled}
-                      title={
-                        key === "maintenance" && hasStudents
-                          ? "Phòng đang có người, không thể bảo trì"
-                          : ""
-                      }
+                      title={key === "maintenance" && hasStudents ? "Phòng đang có người, không thể bảo trì" : ""}
                       style={{
                         flex: 1,
                         padding: "10px 12px",
                         borderRadius: 12,
-                        border: isSelected
-                          ? `2px solid ${cfg.dot}`
-                          : "2px solid #e2e8f0",
-                        background: isSelected
-                          ? cfg.cardBg
-                          : isDisabled
-                            ? "#f1f5f9"
-                            : "#fff",
-                        color: isSelected
-                          ? cfg.dot
-                          : isDisabled
-                            ? "#cbd5e1"
-                            : "#64748b",
+                        border: isSelected ? `2px solid ${cfg.dot}` : "2px solid #e2e8f0",
+                        background: isSelected ? cfg.cardBg : isDisabled ? "#f1f5f9" : "#fff",
+                        color: isSelected ? cfg.dot : isDisabled ? "#cbd5e1" : "#64748b",
                         fontWeight: 700,
                         fontSize: 13,
                         cursor: isDisabled ? "not-allowed" : "pointer",
@@ -1509,8 +1400,7 @@ function RoomManagement() {
                           width: 8,
                           height: 8,
                           borderRadius: 999,
-                          background:
-                            isDisabled && !isSelected ? "#cbd5e1" : cfg.dot,
+                          background: isDisabled && !isSelected ? "#cbd5e1" : cfg.dot,
                         }}
                       />
                       {cfg.label}
@@ -1529,14 +1419,6 @@ function RoomManagement() {
               }}
             >
               <ActionButton
-                onClick={openRoomOccupancy}
-                disabled={loadingOccupancy}
-                variant="secondary"
-              >
-                <FaUserGraduate style={{ marginRight: 6 }} />
-                Thông tin cư trú
-              </ActionButton>
-              <ActionButton
                 onClick={() => setSelectedRoom(null)}
                 disabled={updatingRoom}
                 variant="secondary"
@@ -1554,407 +1436,11 @@ function RoomManagement() {
           </ModalCard>
         </ModalOverlay>
       )}
-
-      {showOccupancyModal && (
-        <RoomOccupancyModal
-          selectedRoom={selectedRoom}
-          roomHistory={roomHistory}
-          upcomingStudents={upcomingStudents}
-          currentSemesterName={currentSemesterName}
-          nextSemesterName={nextSemesterName}
-          loading={loadingOccupancy}
-          onClose={() => {
-            setShowOccupancyModal(false);
-            setRoomHistory([]);
-            setUpcomingStudents([]);
-            setCurrentSemesterName("");
-            setNextSemesterName("");
-          }}
-        />
-      )}
     </div>
   );
 }
 
 /* ===== SHARED COMPONENTS ===== */
-
-function RoomOccupancyModal({
-  selectedRoom,
-  roomHistory,
-  upcomingStudents,
-  currentSemesterName,
-  nextSemesterName,
-  loading,
-  onClose,
-}) {
-  return (
-    <ModalOverlay onClose={onClose} variant="soft">
-      <ModalCard
-        style={{
-          width: "1120px",
-          maxWidth: "calc(100vw - 48px)",
-          height: "82vh",
-          maxHeight: "800px",
-          display: "flex",
-          flexDirection: "column",
-          padding: 0,
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            padding: "22px 28px 18px",
-            borderBottom: "1px solid #e2e8f0",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            flexShrink: 0,
-            background: "#fff",
-          }}
-        >
-          <div>
-            <h2 style={{ margin: 0, fontSize: 24, color: "#0f172a" }}>
-              <FaUserGraduate
-                style={{
-                  marginRight: 10,
-                  color: "#2563eb",
-                  fontSize: 19,
-                  verticalAlign: "middle",
-                }}
-              />
-              Thông tin cư trú phòng {selectedRoom?.roomNumber}
-            </h2>
-            <p style={{ margin: "8px 0 0", color: "#64748b", fontSize: 14 }}>
-              Theo dõi sinh viên đã đặt chỗ cho kỳ tiếp theo và dữ liệu cư trú các kỳ trước.
-            </p>
-          </div>
-
-          <CloseButton onClick={onClose} />
-        </div>
-
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: "22px 28px 28px",
-            background: "#f8fafc",
-          }}
-        >
-          {loading ? (
-            <EmptyState text="Đang tải thông tin cư trú..." />
-          ) : (
-            <>
-              <section style={{ marginBottom: 26 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: 12,
-                    gap: 12,
-                  }}
-                >
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: 18, color: "#0f172a" }}>
-                      Sinh viên đã đặt chỗ cho kì tới
-                    </h3>
-                    <p
-                      style={{
-                        margin: "4px 0 0",
-                        color: "#64748b",
-                        fontSize: 13,
-                      }}
-                    >
-                      Danh sách booking cho kỳ tiếp theo.
-                    </p>
-                  </div>
-
-                  <span
-                    style={{
-                      background: "#dbeafe",
-                      color: "#1d4ed8",
-                      padding: "7px 12px",
-                      borderRadius: 999,
-                      fontSize: 13,
-                      fontWeight: 800,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {nextSemesterName || "Kỳ tiếp theo"}
-                  </span>
-                </div>
-
-                {upcomingStudents.length === 0 ? (
-                  <div
-                    style={{
-                      padding: "26px 20px",
-                      textAlign: "center",
-                      color: "#64748b",
-                      background: "#fff",
-                      borderRadius: 14,
-                      border: "1px dashed #cbd5e1",
-                      fontSize: 14,
-                      fontWeight: 600,
-                    }}
-                  >
-                    Chưa có sinh viên đặt chỗ cho {nextSemesterName || "kỳ tiếp theo"}.
-                  </div>
-                ) : (
-                  <OccupancyTable
-                    students={upcomingStudents}
-                    headerBackground="#eff6ff"
-                    borderColor="#bfdbfe"
-                  />
-                )}
-              </section>
-
-              <section>
-                <div style={{ marginBottom: 12 }}>
-                  <h3 style={{ margin: 0, fontSize: 18, color: "#0f172a" }}>
-                    Dữ liệu cư trú các kỳ trước
-                  </h3>
-                  <p
-                    style={{
-                      margin: "4px 0 0",
-                      color: "#64748b",
-                      fontSize: 13,
-                    }}
-                  >
-                    Chỉ hiển thị các kỳ trước {currentSemesterName || "kỳ hiện tại"}.
-                  </p>
-                </div>
-
-                {roomHistory.length === 0 ? (
-                  <EmptyState text="Phòng chưa có dữ liệu cư trú của các kỳ trước" />
-                ) : (
-                  roomHistory.map((semesterGroup, index) => (
-                    <div
-                      key={semesterGroup.semester || index}
-                      style={{
-                        marginBottom: 16,
-                        border: "1px solid #e2e8f0",
-                        borderRadius: 14,
-                        overflow: "hidden",
-                        background: "#fff",
-                      }}
-                    >
-                      <div
-                        style={{
-                          padding: "13px 18px",
-                          background: "#f1f5f9",
-                          fontWeight: 800,
-                          color: "#1e293b",
-                          borderBottom: "1px solid #e2e8f0",
-                          fontSize: 16,
-                        }}
-                      >
-                        {formatSemesterName(semesterGroup.semester)}
-                      </div>
-
-                      <OccupancyTable
-                        students={semesterGroup.students || []}
-                        headerBackground="#fff"
-                        borderColor="#e2e8f0"
-                        withoutOuterBorder
-                      />
-                    </div>
-                  ))
-                )}
-              </section>
-            </>
-          )}
-        </div>
-      </ModalCard>
-    </ModalOverlay>
-  );
-}
-
-function OccupancyTable({
-  students,
-  headerBackground,
-  borderColor,
-  withoutOuterBorder = false,
-}) {
-  return (
-    <div
-      style={{
-        overflow: "hidden",
-        borderRadius: withoutOuterBorder ? 0 : 14,
-        border: withoutOuterBorder ? "none" : `1px solid ${borderColor}`,
-        background: "#fff",
-      }}
-    >
-      <table
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          tableLayout: "fixed",
-        }}
-      >
-        <thead>
-          <tr style={{ background: headerBackground }}>
-            <th style={{ ...thStyle, width: "11%" }}>Giường</th>
-            <th style={{ ...thStyle, width: "15%" }}>Mã SV</th>
-            <th style={{ ...thStyle, width: "22%" }}>Họ tên</th>
-            <th style={{ ...thStyle, width: "30%" }}>Email</th>
-            <th style={{ ...thStyle, width: "22%" }}>Trạng thái</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {students.map((student, index) => (
-            <tr
-              key={
-                student._id ||
-                `${student.studentCode}-${student.bedNumber}-${index}`
-              }
-              style={{
-                borderBottom:
-                  index < students.length - 1 ? "1px solid #f1f5f9" : "none",
-              }}
-            >
-              <td style={tdStyle}>
-                <span
-                  style={{
-                    display: "inline-flex",
-                    background: "#eff6ff",
-                    color: "#2563eb",
-                    padding: "4px 9px",
-                    borderRadius: 7,
-                    fontWeight: 800,
-                    fontSize: 12,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Giường {student.bedNumber || "-"}
-                </span>
-              </td>
-
-              <td style={tdStyle}>{student.studentCode || "N/A"}</td>
-
-              <td style={tdStyle}>
-                <strong>{student.fullName || "N/A"}</strong>
-              </td>
-
-              <td
-                style={{
-                  ...tdStyle,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-                title={student.email || "-"}
-              >
-                {student.email || "-"}
-              </td>
-
-              <td style={tdStyle}>
-                <BookingStatusBadge status={student.status} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function BookingStatusBadge({ status }) {
-  const statusMap = {
-    pending: {
-      label: "Chờ thanh toán",
-      background: "#fef3c7",
-      color: "#b45309",
-    },
-    confirmed: {
-      label: "Đã xác nhận",
-      background: "#dcfce7",
-      color: "#15803d",
-    },
-    checked_in: {
-      label: "Đang ở",
-      background: "#dbeafe",
-      color: "#1d4ed8",
-    },
-    checked_out: {
-      label: "Đã rời phòng",
-      background: "#f1f5f9",
-      color: "#64748b",
-    },
-    cancelled: {
-      label: "Đã hủy",
-      background: "#fee2e2",
-      color: "#dc2626",
-    },
-  };
-
-  const config = statusMap[status] || {
-    label: status || "Không xác định",
-    background: "#f1f5f9",
-    color: "#64748b",
-  };
-
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        borderRadius: 999,
-        padding: "5px 10px",
-        background: config.background,
-        color: config.color,
-        fontSize: 12,
-        fontWeight: 800,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {config.label}
-    </span>
-  );
-}
-
-function formatSemesterName(semester) {
-  if (!semester) return "Không xác định";
-
-  return String(semester)
-    .trim()
-    .replace(/^(Spring|Summer|Fall)\s*(\d{4})$/i, (_, name, year) => {
-      const normalizedName =
-        name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-
-      return `${normalizedName} ${year}`;
-    });
-}
-
-function parseSemester(semStr) {
-  if (!semStr) return 0;
-  const cleanStr = String(semStr).replace(/\s+/g, "").toLowerCase();
-  const match = cleanStr.match(/^(spring|summer|fall)(\d{4})$/);
-  if (!match) return 0;
-  const season = match[1];
-  const year = parseInt(match[2], 10);
-  const seasonVal = season === "spring" ? 1 : season === "summer" ? 2 : 3;
-  return year * 10 + seasonVal;
-}
-
-
-function EmptyState({ text }) {
-  return (
-    <div
-      style={{
-        padding: 36,
-        textAlign: "center",
-        color: "#94a3b8",
-        background: "#f8fafc",
-        borderRadius: 16,
-        border: "1px dashed #e2e8f0",
-        fontWeight: 600,
-      }}
-    >
-      {text}
-    </div>
-  );
-}
 
 function SummaryCard({ title, value, icon, gradient }) {
   return (
@@ -2007,39 +1493,23 @@ function SummaryCard({ title, value, icon, gradient }) {
   );
 }
 
-function ModalOverlay({ children, onClose, variant = "default" }) {
+function ModalOverlay({ children, onClose }) {
   return (
     <div
       onClick={onClose}
       style={{
         position: "fixed",
         inset: 0,
-        background:
-          variant === "soft"
-            ? "rgba(15, 23, 42, 0.12)"
-            : "rgba(15, 23, 42, 0.35)",
-        backdropFilter: variant === "soft" ? "none" : "blur(3px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 9999,
-        padding: 24,
-        boxSizing: "border-box",
-        overflow: "hidden",
+        background: "rgba(15, 23, 42, 0.55)",
+        backdropFilter: "blur(4px)",
+        display: "grid",
+        placeItems: "center",
+        zIndex: 1000,
+        padding: 20,
+        overflowY: "auto",
       }}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          maxWidth: "100%",
-          maxHeight: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {children}
-      </div>
+      <div onClick={(e) => e.stopPropagation()}>{children}</div>
     </div>
   );
 }

@@ -11,8 +11,9 @@
   const routes = require("./routes/index.routes");
 
   const port = process.env.PORT || 3000;
-  const autoCheckInBookings = require("./jobs/checkIn.job");
-  const autoCheckOutBookings = require("./jobs/checkOut.job");
+  const autoCheckInBookings = require("./config/checkIn.job");
+  const autoCheckOutBookings = require("./config/checkOut.job");
+  const autoDeleteExpiredBookings = require("./config/bookingExpiration.job");
 
   app.use(bodyParser.json());
   app.use(
@@ -58,3 +59,4 @@
   initSocket(server);
   autoCheckInBookings();
   autoCheckOutBookings();
+  autoDeleteExpiredBookings();

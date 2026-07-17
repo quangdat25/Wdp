@@ -47,22 +47,10 @@ function Login() {
     setLoading(true);
 
     try {
-      const result = await authService.login(username, password);
+      const result = await authService.login(username, password, activeRole);
 
       if (result.success) {
         const user = result.data;
-
-        const userRole = user?.role;
-
-        const isValidRole =
-          activeRole === "staff"
-            ? ["staff", "admin", "manager"].includes(userRole)
-            : userRole === activeRole;
-
-        if (!isValidRole) {
-          setError("Tài khoản không có quyền truy cập vào mục này.");
-          return;
-        }
 
         // lưu user
         localStorage.setItem("user", JSON.stringify(user));

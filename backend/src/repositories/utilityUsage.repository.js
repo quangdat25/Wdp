@@ -5,8 +5,15 @@ const Room = require("../models/room.models");
 const Booking = require("../models/booking.model");
 const Invoice = require("../models/invoice.model");
 const User = require("../models/user.model");
+const SystemConfig = require("../models/systemConfig.model");
 
 class UtilityUsageRepository {
+  async findActiveSystemConfig() {
+    return SystemConfig.findOne({
+      status: "active",
+    }).lean();
+  }
+
   async findRoomByImportInfo({ floor, roomNumber }) {
     return Room.findOne({
       floor: Number(floor),
