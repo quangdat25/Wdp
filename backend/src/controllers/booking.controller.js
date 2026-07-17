@@ -401,9 +401,47 @@ const getMyBooking = async (req, res) => {
   }
 };
 
+// Lấy tất cả các booking (cho Admin)
+const getAllBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find()
+      .populate({
+        path: "studentId",
+        select: "fullName studentCode phone gender roomId",
+        model: "student",
+        strictPopulate: false,
+        populate: {
+          path: "roomId",
+          select: "displayName roomNumber",
+          model: "Room",
+          strictPopulate: false,
+          populate: { path: "building", select: "name", model: "Building", strictPopulate: false }
+        }
+      })
+      .populate({
+        path: "roomId",
+        select: "displayName roomNumber",
+        populate: { path: "building", select: "name" }
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: bookings,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy danh sách booking",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   checkBookingEligibility,
   getAvailableRooms,
   createBooking,
   getMyBooking,
+  getAllBookings,
 };

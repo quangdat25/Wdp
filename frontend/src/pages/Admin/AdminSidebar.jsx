@@ -9,6 +9,7 @@ import {
   FaUsers,
   FaBell,
   FaBuilding,
+  FaClipboardList,
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -98,11 +99,12 @@ function AdminSidebar() {
           <button style={menuStyle("/admin/rooms")} onClick={() => navigate("/admin/rooms")}>
             <FaBed /> Quản lý phòng ở
           </button>
-          <button style={menuStyle("/admin/buildings")} onClick={() => navigate("/admin/buildings")}>
-            <FaBuilding /> Quản lý tòa nhà
-          </button>
+         
           <button style={menuStyle("/admin/students")} onClick={() => navigate("/admin/students")}>
             <FaUserGraduate /> Quản lý sinh viên
+          </button>
+          <button style={menuStyle("/admin/orders")} onClick={() => navigate("/admin/orders")}>
+            <FaClipboardList /> Quản lý đơn hàng  
           </button>
           <button style={menuStyle("/admin/personnel")} onClick={() => navigate("/admin/personnel")}>
             <FaUsers /> Quản lý nhân sự

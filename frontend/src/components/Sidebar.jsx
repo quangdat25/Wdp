@@ -15,6 +15,7 @@ import {
   FaPlusCircle,
   FaSearch,
   FaDoorOpen,
+  FaCalendarAlt,
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -65,9 +66,19 @@ function Sidebar() {
         icon: <FaBed />,
       },
       {
+        path: "/admin/semesters",
+        label: "Quản lý kỳ học",
+        icon: <FaCalendarAlt />,
+      },
+      {
         path: "/admin/students",
         label: "Quản lý sinh viên",
         icon: <FaUserGraduate />,
+      },
+      {
+        path: "/admin/orders",
+        label: "Quản lý đơn đặt phòng",
+        icon: <FaClipboardList />,
       },
       {
         path: "/admin/personnel",

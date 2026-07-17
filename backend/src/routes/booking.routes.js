@@ -34,4 +34,12 @@ router.get(
   bookingController.getMyBooking
 );
 
+// Lấy tất cả các booking (cho Admin)
+router.get(
+  "/all",
+  authenticate,
+  authorize("admin", "manager"),
+  bookingController.getAllBookings
+);
+
 module.exports = router;

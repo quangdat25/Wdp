@@ -24,6 +24,7 @@ function routes(app) {
   app.use("/api/ticket-management", ticketManagementRoutes);
   app.use("/api/tickets", ticketRoutes);
   app.use("/api/upload-image", uploadRoutes);
+  app.use("/api/semesters", require("./semester.routes"));
 }
 
 module.exports = routes;

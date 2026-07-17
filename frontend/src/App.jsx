@@ -17,6 +17,8 @@ import PersonnelManagement from "./pages/Admin/PersonnelManagement";
 import NotificationManagement from "./pages/Admin/NotificationManagement";
 import RoomManagement from "./pages/Admin/RoomManagement";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
+import OrderManagement from "./pages/Admin/OrderManagement";
+import SemesterManagement from "./pages/Admin/SemesterManagement";
 
 import ManagerDashboard from "./pages/Manager/ManagerDashboard";
 import StudentDashboard from "./pages/Student/StudentDashboard";
@@ -64,6 +66,8 @@ function App() {
               />
               <Route path="/admin/buildings" element={<RoomManagement />} />
               <Route path="/admin/rooms" element={<RoomManagement />} />
+              <Route path="/admin/orders" element={<OrderManagement />} />
+              <Route path="/admin/semesters" element={<SemesterManagement />} />
             </Route>
 
             {/* Student Routes */}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import AdminSidebar from "./AdminSidebar";
+import Sidebar from "../../components/Sidebar";
 import {
   getAllBuildings,
   createBuilding,
@@ -307,7 +307,7 @@ const handleRemoveStudent = (studentId) => {
         background: "linear-gradient(180deg, #f8fbff 0%, #f3f8f6 100%)",
       }}
     >
-      <AdminSidebar />
+      <Sidebar />
 
       <main
         style={{
@@ -340,9 +340,7 @@ const handleRemoveStudent = (studentId) => {
               />
               Quản lý phòng ở
             </h1>
-            <p style={{ color: "#64748b", marginBottom: 0, marginTop: 6 }}>
-              Quản lý tòa nhà, tầng và phòng trong ký túc xá.
-            </p>
+           
           </div>
           <div style={{ display: "flex", gap: 10 }}>
             {buildings.length === 0 && (

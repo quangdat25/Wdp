@@ -32,10 +32,17 @@ export const createBookingPayment = async (bookingId) => {
   return res.data;
 };
 
+// Lấy tất cả booking (Admin)
+export const getAllBookings = async () => {
+  const res = await request.get("/api/booking/all");
+  return res.data;
+};
+
 export default {
   checkEligibility,
   getAvailableRooms,
   createBooking,
   getMyBooking,
   createBookingPayment,
+  getAllBookings,
 };
