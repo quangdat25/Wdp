@@ -24,6 +24,7 @@ import BookingRoom from "./pages/Student/BookingRoom";
 import BookingResult from "./pages/Student/BookingResult";
 import ParentDashboard from "./pages/Parent/ParentDashboard";
 import ParentStudentInfo from "./pages/Parent/ParentStudentInfo";
+import ParentPayment from "./pages/Parent/ParentPayment";
 
 import CleanerDashboard from "./pages/Staff/CleanerDashboard";
 import MaintenanceDashboard from "./pages/Staff/MaintenanceDashboard";
@@ -97,6 +98,7 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={["parent"]} />}>
               <Route path="/parent/dashboard" element={<ParentDashboard />} />
               <Route path="/parent/student" element={<ParentStudentInfo />} />
+              <Route path="/parent/payments" element={<ParentPayment />} />
             </Route>
 
             {/* Manager Routes */}

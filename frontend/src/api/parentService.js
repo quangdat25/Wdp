@@ -10,7 +10,13 @@ export const getStudentInfo = async () => {
   return res.data;
 };
 
+export const getStudentInvoices = async () => {
+  const res = await request.get("/api/parents/invoices");
+  return res.data;
+};
+
 export default {
   getMyChildRoom,
   getStudentInfo,
+  getStudentInvoices,
 };
