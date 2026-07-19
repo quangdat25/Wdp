@@ -54,3 +54,7 @@ sequelize-meta.json
 
 # Package manager
 .pnpm-store/
+
+# Scripts
+/scripts/
+/query.js

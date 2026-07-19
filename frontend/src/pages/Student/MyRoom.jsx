@@ -28,17 +28,20 @@ const MyRoom = () => {
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [currentSemester, setCurrentSemester] = useState(null);
+  const [allSemesters, setAllSemesters] = useState([]);
 
   const [showRoommates, setShowRoommates] = useState(false);
   const [selectedRoommates, setSelectedRoommates] = useState([]);
+  const [loadingRoommates, setLoadingRoommates] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [historyResult, semesterResult] = await Promise.allSettled([
+        const [historyResult, semesterResult, allSemestersResult] = await Promise.allSettled([
           bookingService.getMyBookingHistory(),
           semesterService.getCurrentSemester(),
+          semesterService.getAllSemesters(),
         ]);
 
         if (historyResult.status === "fulfilled" && historyResult.value?.success) {
@@ -49,10 +52,16 @@ const MyRoom = () => {
         }
 
         if (semesterResult.status === "fulfilled" && semesterResult.value) {
-          // semesterResult.value is the semester object itself
           setCurrentSemester(semesterResult.value);
         } else if (semesterResult.status === "rejected") {
           console.error("Không tải được kỳ hiện tại:", semesterResult.reason);
+        }
+
+        if (allSemestersResult.status === "fulfilled" && allSemestersResult.value) {
+          // allSemestersResult.value is an array of Year objects, each having a 'semesters' array
+          // We can flatten it so it's easier to find a semester by code
+          const flatSemesters = allSemestersResult.value.flatMap(year => year.semesters || []);
+          setAllSemesters(flatSemesters);
         }
       } catch (err) {
         showError("Lỗi không mong muốn khi tải dữ liệu.");
@@ -122,16 +131,39 @@ const MyRoom = () => {
     return groups;
   }, [filteredHistory]);
 
-  const handleRenew = (booking) => {
-    console.log("DEBUG handleRenew currentSemester:", currentSemester);
-    if (!currentSemester?.renewalStartDate || !currentSemester?.renewalEndDate) {
+  const handleRenew = (booking, hasRenewed) => {
+    // 1. Kiểm tra xem sinh viên đã gia hạn chưa
+    if (hasRenewed) {
+      const renewedBooking = history.find(b => b.renewedFrom === booking._id);
+      const roomName = renewedBooking?.roomId?.displayName || "N/A";
+      const buildingName = renewedBooking?.roomId?.building?.name || "N/A";
+      const bedNo = renewedBooking?.bedNumber || "N/A";
+      
+      showError(`Bạn đã book phòng cho kì sau: Giường ${bedNo} - Phòng ${roomName} - Tòa ${buildingName}`);
+      return;
+    }
+
+    // 2. Lấy thông tin chi tiết của kỳ học của booking này
+    const bookingSemData = allSemesters.find(s => s.code === booking.semester || `${s.name} ${s.year}` === booking.semester) || currentSemester;
+
+    if (!bookingSemData?.renewalStartDate || !bookingSemData?.renewalEndDate) {
       showError("Hệ thống chưa thiết lập thời gian gia hạn.");
       return;
     }
 
+    const startStr = formatDate(bookingSemData.renewalStartDate);
+    const endStr = formatDate(bookingSemData.renewalEndDate);
+
+    // 3. Nếu là phòng của kỳ tương lai (chưa ở)
+    if (booking.status === "confirmed") {
+      showError(`Chưa đến ngày gia hạn cho kì học này. Thời gian gia hạn: từ ${startStr} đến ${endStr}`);
+      return;
+    }
+
+    // 4. Logic cho kỳ hiện tại
     const now = new Date().getTime();
-    const start = new Date(currentSemester.renewalStartDate).setHours(0, 0, 0, 0);
-    const end = new Date(currentSemester.renewalEndDate).setHours(23, 59, 59, 999);
+    const start = new Date(bookingSemData.renewalStartDate).setHours(0, 0, 0, 0);
+    const end = new Date(bookingSemData.renewalEndDate).setHours(23, 59, 59, 999);
 
     const bookingSemesterMatch = booking.semester === currentSemester.code || booking.semester === `${currentSemester.name} ${currentSemester.year}`;
 
@@ -141,7 +173,7 @@ const MyRoom = () => {
     }
 
     if (now < start || now > end) {
-      showError("Chưa đến thời gian gia hạn phòng hoặc hệ thống chưa mở.");
+      showError(`Chưa đến thời gian gia hạn phòng hoặc hệ thống chưa mở. Thời gian gia hạn: từ ${startStr} đến ${endStr}`);
       return;
     }
 
@@ -156,11 +188,24 @@ const MyRoom = () => {
     });
   };
 
-  const handleShowRoommates = (booking) => {
-    const students = booking.roomId?.students || [];
-    const roommates = students.filter((s) => s.student);
-    setSelectedRoommates(roommates);
-    setShowRoommates(true);
+  const handleShowRoommates = async (booking) => {
+    try {
+      setLoadingRoommates(true);
+      setShowRoommates(true);
+      const res = await bookingService.getRoommates(booking.roomId._id, booking.semester);
+      if (res && res.success) {
+        setSelectedRoommates(res.data);
+      } else {
+        showError("Không thể lấy danh sách bạn cùng phòng");
+        setSelectedRoommates([]);
+      }
+    } catch (error) {
+      console.error(error);
+      showError("Lỗi khi lấy danh sách bạn cùng phòng");
+      setSelectedRoommates([]);
+    } finally {
+      setLoadingRoommates(false);
+    }
   };
 
   const formatDate = (date) => {
@@ -179,15 +224,16 @@ const MyRoom = () => {
     });
   };
 
-  const getCheckoutDisplay = (booking) => {
-    // Check if there is a newer booking that renewed this one
-    const renewedBooking = history.find((b) => b.renewedFrom === booking._id);
-    if (renewedBooking) {
-      // Date the student clicked renew
-      return formatDate(renewedBooking.createdAt);
+  const getCheckinDisplay = (booking) => {
+    if (booking.status === "confirmed" || booking.status === "pending") {
+      return "—";
     }
+    return formatDate(booking.startDate);
+  };
+
+  const getCheckoutDisplay = (booking) => {
     if (booking.status === "checked_out") {
-      return formatDate(booking.updatedAt);
+      return formatDate(booking.checkOutDate || booking.updatedAt);
     }
     return "—";
   };
@@ -281,6 +327,9 @@ const MyRoom = () => {
                           const building = room.building || {};
                           const badge = statusColors[booking.status] || statusColors.pending;
                           const studentCode = JSON.parse(localStorage.getItem("user"))?.studentCode || "N/A";
+                          
+                          // Kiểm tra xem phòng này đã được gia hạn chưa
+                          const hasRenewed = history.some(b => b.renewedFrom === booking._id);
 
                           return (
                             <tr key={booking._id} className="hover:bg-slate-50/80 transition-colors group">
@@ -292,7 +341,7 @@ const MyRoom = () => {
                                 <div className="text-[13px] text-slate-500 mt-1 font-medium">{building.name || "Chưa có tòa"}</div>
                               </td>
                               <td className="px-5 py-4 border-b border-slate-100 align-middle text-slate-700 font-medium">
-                                {formatDate(booking.startDate)}
+                                {getCheckinDisplay(booking)}
                               </td>
                               <td className="px-5 py-4 border-b border-slate-100 align-middle text-slate-700 font-medium">
                                 {getCheckoutDisplay(booking)}
@@ -308,21 +357,23 @@ const MyRoom = () => {
                                   {badge.label}
                                 </span>
                               </td>
-                              <td className="px-5 py-4 border-b border-slate-100 align-middle text-center space-x-2">
-                                <button
-                                  onClick={() => handleShowRoommates(booking)}
-                                  className="bg-[#0056b3] hover:bg-[#004494] text-white font-semibold py-2 px-4 rounded-lg transition-all text-[13px] shadow-sm"
-                                >
-                                  Roommates
-                                </button>
-                                {booking.status === "checked_in" && (
+                              <td className="px-5 py-4 border-b border-slate-100 align-middle text-center">
+                                <div className="flex items-center justify-center gap-3">
                                   <button
-                                    onClick={() => handleRenew(booking)}
-                                    className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-2 px-5 rounded-lg shadow-md shadow-orange-500/20 transition-all text-[13px] border border-orange-600/20"
+                                    onClick={() => handleShowRoommates(booking)}
+                                    className="bg-[#0056b3] hover:bg-[#004494] text-white font-semibold py-2 px-4 rounded-lg transition-all text-[13px] shadow-sm"
                                   >
-                                    Gia hạn
+                                    Roommates
                                   </button>
-                                )}
+                                  {(booking.status === "checked_in" || booking.status === "confirmed") && (
+                                    <button
+                                      onClick={() => handleRenew(booking, hasRenewed)}
+                                      className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-2 px-5 rounded-lg shadow-md shadow-orange-500/20 transition-all text-[13px] border border-orange-600/20"
+                                    >
+                                      Gia hạn
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           );
@@ -349,7 +400,12 @@ const MyRoom = () => {
                 </button>
               </div>
               <div className="p-6 overflow-x-auto">
-                {selectedRoommates.length > 0 ? (
+                {loadingRoommates ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e4f8f]"></div>
+                    <span className="ml-3 text-slate-600 font-medium">Đang tải danh sách...</span>
+                  </div>
+                ) : selectedRoommates.length > 0 ? (
                   <table className="w-full border-collapse text-sm border border-solid border-[#b8daff]">
                     <thead>
                       <tr>
@@ -371,7 +427,7 @@ const MyRoom = () => {
                     </tbody>
                   </table>
                 ) : (
-                  <p className="text-slate-500 text-center py-4">Phòng hiện chưa có sinh viên nào khác.</p>
+                  <p className="text-slate-500 text-center py-4">Phòng hiện chưa có sinh viên nào khác trong kỳ này.</p>
                 )}
               </div>
             </div>

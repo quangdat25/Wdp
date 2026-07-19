@@ -947,6 +947,36 @@ class BookingService {
       },
     };
   }
+
+  async getRoommates(roomId, semester) {
+    if (!roomId || !semester) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: "Thiếu thông tin phòng hoặc kỳ học",
+        },
+      };
+    }
+
+    const roommates = await bookingRepository.findRoommatesByRoomAndSemester(roomId, semester);
+    
+    // Format to match the frontend expectations: array of { bedNumber, student }
+    const formattedRoommates = roommates
+      .filter((booking) => booking.studentId) // Ensure studentId is populated
+      .map((booking) => ({
+        bedNumber: booking.bedNumber,
+        student: booking.studentId,
+      }));
+
+    return {
+      statusCode: 200,
+      response: {
+        success: true,
+        data: formattedRoommates,
+      },
+    };
+  }
 }
 
 module.exports = new BookingService();

@@ -51,11 +51,22 @@ export const createBookingPayment = async (bookingId) => {
   return res.data;
 };
 
+// Lấy danh sách bạn cùng phòng theo phòng và kỳ học
+export const getRoommates = async (roomId, semester) => {
+  const res = await request.get(`/api/booking/room/${roomId}/roommates`, {
+    params: { semester }
+  });
+  return res.data;
+};
+
 export default {
   checkEligibility,
   getAvailableRooms,
+  getRoomBedAvailability,
   createBooking,
   getMyBookingHistory,
   getMyBooking,
+  getAllBookings,
   createBookingPayment,
+  getRoommates,
 };

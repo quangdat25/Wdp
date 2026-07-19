@@ -129,6 +129,20 @@ class BookingRepository {
   }
 
   /**
+   * Lấy danh sách bạn cùng phòng trong một phòng theo kỳ học.
+   */
+  async findRoommatesByRoomAndSemester(roomId, semester) {
+    return Booking.find({
+      roomId,
+      semester,
+      status: { $in: ["confirmed", "checked_in", "checked_out"] },
+    })
+      .populate("studentId", "fullName studentCode phone email gender")
+      .select("bedNumber status studentId")
+      .lean();
+  }
+
+  /**
    * Lấy các giường đang bị giữ trong nhiều phòng.
    */
   async findReservedBedsByRoomsAndSemester(
