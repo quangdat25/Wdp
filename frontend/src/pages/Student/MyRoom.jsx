@@ -111,13 +111,13 @@ const MyRoom = () => {
 
     const prefix = semesterStr.substring(0, 2).toUpperCase();
     const yearSuffix = semesterStr.substring(2);
-    
+
     let season = "";
     if (prefix === "SU") season = "Summer";
     else if (prefix === "FA") season = "Fall";
     else if (prefix === "SP") season = "Spring";
     else return semesterStr;
-    
+
     return `${season} 20${yearSuffix}`;
   };
 
@@ -138,7 +138,7 @@ const MyRoom = () => {
       const roomName = renewedBooking?.roomId?.displayName || "N/A";
       const buildingName = renewedBooking?.roomId?.building?.name || "N/A";
       const bedNo = renewedBooking?.bedNumber || "N/A";
-      
+
       showError(`Bạn đã book phòng cho kì sau: Giường ${bedNo} - Phòng ${roomName} - Tòa ${buildingName}`);
       return;
     }
@@ -327,7 +327,7 @@ const MyRoom = () => {
                           const building = room.building || {};
                           const badge = statusColors[booking.status] || statusColors.pending;
                           const studentCode = JSON.parse(localStorage.getItem("user"))?.studentCode || "N/A";
-                          
+
                           // Kiểm tra xem phòng này đã được gia hạn chưa
                           const hasRenewed = history.some(b => b.renewedFrom === booking._id);
 
