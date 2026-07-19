@@ -11,6 +11,7 @@ const {
   getMyHistory,
   getRoomHistory,
   getAllBookings,
+  getRoommates,
 } = require("../controllers/booking.controller");
 
 const {
@@ -72,6 +73,13 @@ router.get(
   authenticate,
   authorize("manager", "admin"),
   getRoomHistory,
+);
+
+router.get(
+  "/room/:roomId/roommates",
+  authenticate,
+  authorize("student", "manager", "admin"),
+  getRoommates,
 );
 
 module.exports = router;
