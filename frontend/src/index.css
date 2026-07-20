@@ -1,13 +1,130 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+/* =====================================================
+   Tailwind v4 custom theme
+   ===================================================== */
+@theme {
+  /* Colors */
+  --color-secondary-fixed: #ffdbcb;
+  --color-secondary-container: #ff7a2c;
+  --color-tertiary-container: #005915;
+  --color-secondary-fixed-dim: #ffb692;
+  --color-on-tertiary-fixed: #002204;
+  --color-on-error: #ffffff;
+  --color-inverse-on-surface: #eaf1ff;
+  --color-surface-bright: #f8f9ff;
+  --color-inverse-primary: #abc7ff;
+  --color-on-primary-container: #9bbdff;
+  --color-error: #ba1a1a;
+  --color-background: #f8f9ff;
+  --color-on-tertiary: #ffffff;
+  --color-outline: #737783;
+  --color-outline-variant: #c2c6d3;
+  --color-surface-container-high: #dce9ff;
+  --color-primary: #00346f;
+  --color-primary-container: #004a99;
+  --color-on-tertiary-fixed-variant: #005313;
+  --color-on-primary: #ffffff;
+  --color-inverse-surface: #213145;
+  --color-on-surface: #0b1c30;
+  --color-primary-fixed: #d7e2ff;
+  --color-surface-dim: #cbdbf5;
+  --color-on-surface-variant: #424751;
+  --color-surface-container: #e5eeff;
+  --color-tertiary-fixed-dim: #78dc77;
+  --color-surface-tint: #255dad;
+  --color-surface: #f8f9ff;
+  --color-surface-container-highest: #d3e4fe;
+  --color-on-secondary-container: #612500;
+  --color-tertiary: #003f0c;
+  --color-on-secondary-fixed: #341100;
+  --color-on-background: #0b1c30;
+  --color-on-secondary-fixed-variant: #793000;
+  --color-secondary: #9f4200;
+  --color-primary-fixed-dim: #abc7ff;
+  --color-tertiary-fixed: #94f990;
+  --color-error-container: #ffdad6;
+  --color-surface-variant: #d3e4fe;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-primary-fixed: #001b3f;
+  --color-on-primary-fixed-variant: #00458f;
+  --color-on-error-container: #93000a;
+  --color-on-secondary: #ffffff;
+  --color-surface-container-low: #eff4ff;
+  --color-on-tertiary-container: #6ed26e;
 
-/* ========================
-   CSS Variables / Design Tokens
-   ======================== */
+  /* Custom spacing */
+  --spacing-app-base: 4px;
+  --spacing-app-xs: 4px;
+  --spacing-app-sm: 8px;
+  --spacing-app-md: 16px;
+  --spacing-app-lg: 24px;
+  --spacing-app-xl: 40px;
+
+  --spacing-gutter: 24px;
+  --spacing-margin-mobile: 16px;
+  --spacing-margin-desktop: 64px;
+
+  /* Font families */
+  --font-body-md:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --font-label-md:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --font-headline-lg-mobile:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --font-label-sm:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --font-display-lg:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --font-headline-lg:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --font-title-md:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* Font sizes */
+  --text-body-md: 16px;
+  --text-body-md--line-height: 24px;
+  --text-body-md--font-weight: 400;
+
+  --text-label-md: 14px;
+  --text-label-md--line-height: 20px;
+  --text-label-md--font-weight: 500;
+
+  --text-headline-lg-mobile: 24px;
+  --text-headline-lg-mobile--line-height: 32px;
+  --text-headline-lg-mobile--font-weight: 600;
+
+  --text-label-sm: 12px;
+  --text-label-sm--line-height: 16px;
+  --text-label-sm--letter-spacing: 0.05em;
+  --text-label-sm--font-weight: 500;
+
+  --text-display-lg: 48px;
+  --text-display-lg--line-height: 56px;
+  --text-display-lg--letter-spacing: -0.02em;
+  --text-display-lg--font-weight: 700;
+
+  --text-headline-lg: 32px;
+  --text-headline-lg--line-height: 40px;
+  --text-headline-lg--font-weight: 600;
+
+  --text-title-md: 18px;
+  --text-title-md--line-height: 24px;
+  --text-title-md--font-weight: 600;
+}
+
+/* =====================================================
+   Application design tokens
+   ===================================================== */
 :root {
+  color-scheme: light;
+
   --primary: #e8601c;
   --primary-hover: #d14e0f;
   --primary-light: rgba(232, 96, 28, 0.08);
@@ -45,79 +162,290 @@
   --header-height: 70px;
 }
 
-/* ========================
-   Reset & Base
-   ======================== */
+/* =====================================================
+   Global reset and layout safety
+   ===================================================== */
 *,
 *::before,
 *::after {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
 html {
+  min-width: 320px;
+  min-height: 100%;
+  width: 100%;
+  max-width: 100%;
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-width: 320px;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  overflow-x: hidden;
+
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
-  min-height: 100vh;
+
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+#root {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 a {
-  text-decoration: none;
   color: inherit;
+  text-decoration: none;
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
 }
 
 img {
-  max-width: 100%;
   height: auto;
-  display: block;
 }
 
-ul, ol {
+ul,
+ol {
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 
-button {
-  cursor: pointer;
-  border: none;
-  background: none;
-  font-family: inherit;
+/* =====================================================
+   Homepage layout fix
+   HomePage.jsx uses className="container".
+   This overrides Tailwind's container utility only inside .home.
+   ===================================================== */
+.home {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100vh;
+  overflow-x: clip;
 }
 
-/* ========================
-   Utility Classes
-   ======================== */
-.container {
+.home .container {
+  width: min(100%, var(--max-width));
   max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 0 1.5rem;
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+
+/* =====================================================
+   Giữ nguyên utility cũ cho Login.jsx
+   ===================================================== */
+.p-base,
+.p-xs {
+  padding: 4px;
+}
+
+.p-sm {
+  padding: 8px;
+}
+
+.p-md {
+  padding: 16px;
+}
+
+.p-lg {
+  padding: 24px;
+}
+
+.p-xl {
+  padding: 40px;
+}
+
+.px-margin-mobile {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.px-margin-desktop {
+  padding-left: 64px;
+  padding-right: 64px;
+}
+
+.gap-xs {
+  gap: 4px;
+}
+
+.gap-sm {
+  gap: 8px;
+}
+
+.gap-md {
+  gap: 16px;
+}
+
+.gap-lg {
+  gap: 24px;
+}
+
+.gap-xl {
+  gap: 40px;
+}
+
+.mt-xs {
+  margin-top: 4px;
+}
+
+.mt-sm {
+  margin-top: 8px;
+}
+
+.mt-md {
+  margin-top: 16px;
+}
+
+.mt-lg {
+  margin-top: 24px;
+}
+
+.mt-xl {
+  margin-top: 40px;
+}
+
+.pt-xs {
+  padding-top: 4px;
+}
+
+.pt-sm {
+  padding-top: 8px;
+}
+
+.pt-md {
+  padding-top: 16px;
+}
+
+.pt-lg {
+  padding-top: 24px;
+}
+
+.pt-xl {
+  padding-top: 40px;
+}
+
+.pb-xs {
+  padding-bottom: 4px;
+}
+
+.pb-sm {
+  padding-bottom: 8px;
+}
+
+.pb-md {
+  padding-bottom: 16px;
+}
+
+.pb-lg {
+  padding-bottom: 24px;
+}
+
+.pb-xl {
+  padding-bottom: 40px;
+}
+
+.pl-md {
+  padding-left: 16px;
+}
+
+.pr-md {
+  padding-right: 16px;
+}
+
+/* =====================================================
+   Custom utilities
+   ===================================================== */
+.site-container {
+  width: min(100%, var(--max-width));
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding-inline: 24px;
 }
 
 .section-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-heading);
-  text-align: center;
   position: relative;
   padding-bottom: 0.75rem;
+  color: var(--text-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
 }
 
 .section-title::after {
-  content: '';
   position: absolute;
   bottom: 0;
   left: 50%;
-  transform: translateX(-50%);
   width: 60px;
   height: 3px;
-  background: var(--primary);
   border-radius: 2px;
+  background: var(--primary);
+  content: "";
+  transform: translateX(-50%);
+}
+
+/* =====================================================
+   Material Symbols
+   ===================================================== */
+.material-symbols-outlined {
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
+
+  vertical-align: middle;
+}
+
+/* =====================================================
+   Responsive
+   ===================================================== */
+@media (max-width: 768px) {
+  .home .container,
+  .site-container {
+    padding-inline: 16px;
+  }
+
+  .px-margin-desktop {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
 }
