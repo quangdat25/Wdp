@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pagination } from "antd";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Headers";
@@ -7,9 +7,18 @@ import {
   createUtilityInvoices,
   getAllUtilityUsages,
   getUtilityByStudentId,
+  importUtilityExcel,
 } from "../../api/utilityUsageService";
 import { getAllInvoices } from "../../api/invoiceService";
-import { FaSpinner } from "react-icons/fa";
+import {
+  FaCheckCircle,
+  FaCloudUploadAlt,
+  FaExclamationTriangle,
+  FaFileExcel,
+  FaInfoCircle,
+  FaRegTrashAlt,
+  FaSpinner,
+} from "react-icons/fa";
 const EMPTY_FILTERS = {
   buildingName: "",
   floor: "",
@@ -20,6 +29,11 @@ const EMPTY_FILTERS = {
 };
 
 function UtilityInvoiceManagement() {
+  const fileInputRef = useRef(null);
+  const [file, setFile] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [records, setRecords] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [loadingRecords, setLoadingRecords] = useState(false);
@@ -163,10 +177,98 @@ function UtilityInvoiceManagement() {
     };
   }, [invoices]);
 
+  const fileSize = useMemo(() => {
+    if (!file) return "";
+
+    const sizeInKB = file.size / 1024;
+    return sizeInKB >= 1024
+      ? `${(sizeInKB / 1024).toFixed(2)} MB`
+      : `${sizeInKB.toFixed(1)} KB`;
+  }, [file]);
+
   const canCreateInvoice =
     Boolean(formData.semester) &&
     Boolean(formData.dueDate) &&
     selectedSemesterRecords.length > 0;
+
+  const validateAndSetFile = (selectedFile) => {
+    if (!selectedFile) return;
+
+    const fileName = selectedFile.name.toLowerCase();
+    const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
+
+    if (!isExcel) {
+      showError("Chỉ được chọn file Excel có định dạng .xlsx hoặc .xls");
+      return;
+    }
+
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      showError("Dung lượng file không được vượt quá 10 MB");
+      return;
+    }
+
+    setFile(selectedFile);
+    setImportResult(null);
+  };
+
+  const handleFileChange = (event) => {
+    validateAndSetFile(event.target.files?.[0]);
+    event.target.value = "";
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    if (!importLoading) setIsDragging(true);
+  };
+
+  const handleDragLeave = (event) => {
+    event.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    setIsDragging(false);
+    if (!importLoading) validateAndSetFile(event.dataTransfer.files?.[0]);
+  };
+
+  const handleChooseFile = () => {
+    if (!importLoading) fileInputRef.current?.click();
+  };
+
+  const handleRemoveFile = () => {
+    if (importLoading) return;
+    setFile(null);
+    setImportResult(null);
+  };
+
+  const handleImport = async () => {
+    if (!file) {
+      showError("Vui lòng chọn file Excel trước khi import");
+      return;
+    }
+
+    try {
+      setImportLoading(true);
+      setImportResult(null);
+
+      const response = await importUtilityExcel(file);
+      const result = response?.data;
+
+      setImportResult(result);
+      setFile(null);
+      showSuccess(result?.message || "Import dữ liệu tiền điện nước thành công");
+
+      await fetchUtilityUsages();
+      setActiveTab("records");
+    } catch (error) {
+      const data = error.response?.data;
+      setImportResult(data || null);
+      showError(data?.message || "Import tiền điện nước thất bại");
+    } finally {
+      setImportLoading(false);
+    }
+  };
 
   const handleCreateInvoices = async () => {
     if (!formData.semester || !formData.dueDate) {
@@ -228,119 +330,46 @@ function UtilityInvoiceManagement() {
         <Header />
 
         <div className="mx-auto mt-6 max-w-[1500px]">
-          <section className="rounded-2xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
-            <h1 className="text-2xl font-bold text-slate-900">
-              Quản lý hóa đơn điện nước
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Kiểm tra dữ liệu staff import, chốt kỳ và theo dõi công nợ sinh
-              viên.
-            </p>
-          </section>
+          <ManagerPageHeader />
+
+          <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(380px,0.85fr)]">
+            <ManagerImportPanel
+              file={file}
+              fileSize={fileSize}
+              loading={importLoading}
+              isDragging={isDragging}
+              fileInputRef={fileInputRef}
+              onFileChange={handleFileChange}
+              onChooseFile={handleChooseFile}
+              onRemoveFile={handleRemoveFile}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onImport={handleImport}
+            />
+
+            <InvoiceCreationPanel
+              formData={formData}
+              setFormData={setFormData}
+              semesterOptions={semesterOptions}
+              loadingRecords={loadingRecords}
+              selectedSemesterRecords={selectedSemesterRecords}
+              semesterSummary={semesterSummary}
+              creating={creating}
+              canCreateInvoice={canCreateInvoice}
+              onCreate={handleCreateInvoices}
+            />
+          </div>
+
+          {importResult && (
+            <ImportResultPanel
+              result={importResult}
+              onClose={() => setImportResult(null)}
+            />
+          )}
 
           <section className="mt-5 rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-6 py-4">
-              <h2 className="text-lg font-bold text-slate-900">
-                Tạo hóa đơn cuối kỳ
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Chọn kỳ đã đủ dữ liệu, đặt hạn thanh toán rồi tạo hóa đơn.
-              </p>
-            </div>
-
-            <div className="p-6">
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
-                <Field label="Kỳ thanh toán">
-                  <select
-                    name="semester"
-                    value={formData.semester}
-                    onChange={(event) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        semester: event.target.value,
-                      }))
-                    }
-                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  >
-                    {semesterOptions.length === 0 && (
-                      <option value="">Chưa có kỳ được import</option>
-                    )}
-                    {semesterOptions.map((semester) => (
-                      <option key={semester} value={semester}>
-                        {semester}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
-                <Field label="Hạn thanh toán">
-                  <input
-                    name="dueDate"
-                    value={formData.dueDate}
-                    onChange={(event) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        dueDate: event.target.value,
-                      }))
-                    }
-                    type="date"
-                    min={getTodayInputValue()}
-                    className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  />
-                </Field>
-
-                <button
-                  type="button"
-                  onClick={handleCreateInvoices}
-                  disabled={creating || !canCreateInvoice}
-                  className="h-11 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                >
-                  {creating ? "Đang tạo..." : "Tạo hóa đơn"}
-                </button>
-              </div>
-
-              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
-                {loadingRecords ? (
-                  <span className="text-sm text-slate-500">
-                    Đang kiểm tra dữ liệu...
-                  </span>
-                ) : selectedSemesterRecords.length === 0 ? (
-                  <span className="text-sm font-medium text-red-600">
-                    Kỳ đã chọn chưa có dữ liệu điện nước.
-                  </span>
-                ) : (
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-                    <MiniStat label="Bản ghi" value={semesterSummary.records} />
-                    <MiniStat label="Phòng" value={semesterSummary.rooms} />
-                    <MiniStat
-                      label="Tháng đã nhập"
-                      value={`${semesterSummary.months}/4`}
-                    />
-                    <MiniStat
-                      label="Tổng điện nước"
-                      value={formatMoney(semesterSummary.total)}
-                    />
-                    <MiniStat
-                      label="Tình trạng"
-                      value={
-                        semesterSummary.months >= 4
-                          ? "Đủ dữ liệu"
-                          : "Chưa đủ 4 tháng"
-                      }
-                      className={
-                        semesterSummary.months >= 4
-                          ? "text-emerald-700"
-                          : "text-amber-700"
-                      }
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-
-          <section className="mt-5 rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex border-b border-slate-200 px-5">
+            <div className="flex flex-wrap border-b border-slate-200 px-5">
               <TabButton
                 active={activeTab === "invoices"}
                 onClick={() => setActiveTab("invoices")}
@@ -351,7 +380,7 @@ function UtilityInvoiceManagement() {
                 active={activeTab === "records"}
                 onClick={() => setActiveTab("records")}
               >
-                Dữ liệu staff import
+                Dữ liệu điện nước đã import
               </TabButton>
             </div>
 
@@ -390,6 +419,302 @@ function UtilityInvoiceManagement() {
           </section>
         </div>
       </main>
+    </div>
+  );
+
+}
+
+
+function ManagerPageHeader() {
+  return (
+    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="relative px-6 py-7 sm:px-8">
+        <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-blue-100/70 blur-3xl" />
+        <div className="absolute bottom-0 right-24 h-28 w-28 rounded-full bg-emerald-100/70 blur-3xl" />
+
+        <div className="relative flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700">
+              <FaFileExcel />
+              Quản lý dịch vụ ký túc xá
+            </div>
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+              Điện nước và hóa đơn sinh viên
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500 sm:text-base">
+              Import dữ liệu điện nước, kiểm tra theo kỳ, tạo hóa đơn và theo dõi công nợ trên cùng một màn hình.
+            </p>
+          </div>
+
+          <div className="grid min-w-fit grid-cols-2 gap-3">
+            <HeaderMetric label="Bản ghi" value="Theo tháng" />
+            <HeaderMetric label="Quy trình" value="Import → Hóa đơn" />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HeaderMetric({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
+      <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{label}</div>
+      <div className="mt-1 whitespace-nowrap text-sm font-extrabold text-slate-800">{value}</div>
+    </div>
+  );
+}
+
+function ManagerImportPanel({
+  file,
+  fileSize,
+  loading,
+  isDragging,
+  fileInputRef,
+  onFileChange,
+  onChooseFile,
+  onRemoveFile,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onImport,
+}) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 px-6 py-5">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-xl text-emerald-700">
+            <FaCloudUploadAlt />
+          </div>
+          <div>
+            <h2 className="text-lg font-black text-slate-900">1. Import tiền dịch vụ</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              Nhập tiền điện, tiền nước theo phòng và theo tháng từ file Excel.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          onChange={onFileChange}
+          className="hidden"
+        />
+
+        {!file ? (
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={onChooseFile}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") onChooseFile();
+            }}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            className={`cursor-pointer rounded-2xl border-2 border-dashed px-5 py-10 text-center transition ${
+              isDragging
+                ? "border-blue-500 bg-blue-50"
+                : "border-slate-300 bg-slate-50/70 hover:border-blue-400 hover:bg-blue-50/50"
+            }`}
+          >
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-3xl text-blue-600 shadow-sm">
+              <FaCloudUploadAlt />
+            </div>
+            <h3 className="mt-4 text-base font-black text-slate-800">
+              {isDragging ? "Thả file vào đây" : "Kéo thả hoặc chọn file Excel"}
+            </h3>
+            <p className="mt-2 text-sm text-slate-500">Hỗ trợ .xlsx, .xls · tối đa 10 MB</p>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onChooseFile();
+              }}
+              className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-extrabold text-white transition hover:bg-blue-700"
+            >
+              <FaFileExcel />
+              Chọn file Excel
+            </button>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-5">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-xl text-emerald-700">
+                  <FaFileExcel />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold uppercase tracking-wide text-blue-600">File đã chọn</div>
+                  <div className="mt-1 truncate font-black text-slate-900" title={file.name}>{file.name}</div>
+                  <div className="mt-1 text-sm font-medium text-slate-500">{fileSize} · Sẵn sàng import</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onRemoveFile}
+                disabled={loading}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+              >
+                <FaRegTrashAlt />
+                Xóa file
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-5 flex flex-col-reverse justify-between gap-4 border-t border-slate-100 pt-5 sm:flex-row sm:items-center">
+          <div className="flex items-start gap-2 text-sm text-slate-500">
+            <FaInfoCircle className="mt-0.5 shrink-0 text-blue-500" />
+            <span>Toàn bộ dòng bắt buộc phải hợp lệ trước khi hệ thống lưu dữ liệu.</span>
+          </div>
+          <button
+            type="button"
+            onClick={onImport}
+            disabled={!file || loading}
+            className="inline-flex h-11 min-w-[170px] items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-extrabold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {loading ? <><FaSpinner className="animate-spin" />Đang import...</> : <><FaCloudUploadAlt />Import dữ liệu</>}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function InvoiceCreationPanel({
+  formData,
+  setFormData,
+  semesterOptions,
+  loadingRecords,
+  selectedSemesterRecords,
+  semesterSummary,
+  creating,
+  canCreateInvoice,
+  onCreate,
+}) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 px-6 py-5">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-xl font-black text-blue-700">2</div>
+          <div>
+            <h2 className="text-lg font-black text-slate-900">Tạo hóa đơn cuối kỳ</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">Chọn kỳ đã import và hạn thanh toán cho sinh viên.</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Kỳ thanh toán">
+            <select
+              value={formData.semester}
+              onChange={(event) => setFormData((prev) => ({ ...prev, semester: event.target.value }))}
+              className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            >
+              {semesterOptions.length === 0 && <option value="">Chưa có kỳ được import</option>}
+              {semesterOptions.map((semester) => <option key={semester} value={semester}>{semester}</option>)}
+            </select>
+          </Field>
+
+          <Field label="Hạn thanh toán">
+            <input
+              value={formData.dueDate}
+              onChange={(event) => setFormData((prev) => ({ ...prev, dueDate: event.target.value }))}
+              type="date"
+              min={getTodayInputValue()}
+              className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
+          </Field>
+        </div>
+
+        <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          {loadingRecords ? (
+            <div className="flex items-center gap-2 text-sm text-slate-500"><FaSpinner className="animate-spin" />Đang kiểm tra dữ liệu...</div>
+          ) : selectedSemesterRecords.length === 0 ? (
+            <div className="flex items-start gap-2 text-sm font-medium text-amber-700"><FaExclamationTriangle className="mt-0.5" />Kỳ đã chọn chưa có dữ liệu điện nước.</div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <MiniStat label="Bản ghi" value={semesterSummary.records} />
+              <MiniStat label="Phòng" value={semesterSummary.rooms} />
+              <MiniStat label="Tháng đã nhập" value={`${semesterSummary.months}/4`} />
+              <MiniStat label="Tổng điện nước" value={formatMoney(semesterSummary.total)} className="text-blue-700" />
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={onCreate}
+          disabled={creating || !canCreateInvoice}
+          className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-extrabold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          {creating ? <><FaSpinner className="animate-spin" />Đang tạo hóa đơn...</> : <><FaCheckCircle />Tạo hóa đơn điện nước</>}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function ImportResultPanel({ result, onClose }) {
+  const errors = Array.isArray(result?.errors) ? result.errors : [];
+  const existedRows = Array.isArray(result?.existedRows) ? result.existedRows : [];
+  const success = Boolean(result?.success);
+
+  return (
+    <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-col justify-between gap-4 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center">
+        <div className="flex items-start gap-3">
+          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl ${success ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+            {success ? <FaCheckCircle /> : <FaExclamationTriangle />}
+          </div>
+          <div>
+            <h2 className="text-lg font-black text-slate-900">Kết quả import</h2>
+            <p className="mt-1 text-sm text-slate-500">{result?.message || "Hệ thống đã xử lý file Excel."}</p>
+          </div>
+        </div>
+        <button type="button" onClick={onClose} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Đóng</button>
+      </div>
+
+      <div className="p-6">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <ResultMetric label="Tổng dòng" value={result?.totalRows || 0} />
+          <ResultMetric label="Đã import" value={result?.imported || 0} className="text-emerald-700" />
+          <ResultMetric label="Đã tồn tại" value={result?.existed || 0} className="text-amber-700" />
+          <ResultMetric label="Có lỗi" value={result?.failed || 0} className="text-red-700" />
+        </div>
+
+        {errors.length > 0 && (
+          <div className="mt-5 overflow-hidden rounded-xl border border-red-200">
+            <div className="bg-red-50 px-4 py-3 text-sm font-bold text-red-700">Danh sách dữ liệu lỗi</div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] text-left">
+                <thead><tr className="bg-slate-50 text-xs font-bold uppercase text-slate-500"><TableHead>Dòng</TableHead><TableHead>Cột</TableHead><TableHead>Tòa</TableHead><TableHead>Tầng</TableHead><TableHead>Phòng</TableHead><TableHead>Nội dung lỗi</TableHead></tr></thead>
+                <tbody>{errors.map((item, index) => <tr key={`${item.row || "row"}-${index}`}><TableCell>{item.row || "—"}</TableCell><TableCell>{item.column || "—"}</TableCell><TableCell>{item.buildingName || "—"}</TableCell><TableCell>{item.floor || "—"}</TableCell><TableCell>{item.roomNumber || "—"}</TableCell><TableCell className="font-medium text-red-600">{item.reason || "Dữ liệu không hợp lệ"}</TableCell></tr>)}</tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {existedRows.length > 0 && (
+          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm font-medium text-amber-800">
+            Có {existedRows.length} bản ghi đã tồn tại nên hệ thống không tạo lại.
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ResultMetric({ label, value, className = "text-slate-900" }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+      <div className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</div>
+      <div className={`mt-2 text-2xl font-black ${className}`}>{value}</div>
     </div>
   );
 }
