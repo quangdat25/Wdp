@@ -347,7 +347,7 @@ const MyRoom = () => {
                                 {getCheckoutDisplay(booking)}
                               </td>
                               <td className="px-5 py-4 border-b border-slate-100 align-middle text-slate-700 font-medium">
-                                {formatMoney(room.price)}
+                                {formatMoney(booking.configId?.roomPrice)}
                               </td>
                               <td className="px-5 py-4 border-b border-slate-100 align-middle">
                                 <span

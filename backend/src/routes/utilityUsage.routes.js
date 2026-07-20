@@ -19,7 +19,7 @@ const { authenticate, authorize } = require("../middleware/authUser");
 router.post(
   "/import",
   authenticate,
-  authorize("staff"),
+  authorize("manager"),
   upload.single("file"),
   importUtilityExcel,
 );

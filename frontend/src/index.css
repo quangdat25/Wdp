@@ -439,7 +439,6 @@ ol {
    Responsive
    ===================================================== */
 @media (max-width: 768px) {
-
   .home .container,
   .site-container {
     padding-inline: 16px;

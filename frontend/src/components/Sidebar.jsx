@@ -233,11 +233,6 @@ function Sidebar() {
         label: "Danh sách sự cố",
         icon: <FaWrench />,
       },
-      {
-        path: "/staff/utility-usages",
-        label: "Import điện nước",
-        icon: <FaFileInvoiceDollar />,
-      },
     ],
 
     security: [
