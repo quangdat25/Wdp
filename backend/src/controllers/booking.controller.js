@@ -100,6 +100,14 @@ const getAllBookings = async (req, res) => {
   );
 };
 
+const getRoommates = async (req, res) => {
+  return handleService(
+    res,
+    () => bookingService.getRoommates(req.params.roomId, req.query.semester),
+    "Lỗi khi lấy thông tin bạn cùng phòng",
+  );
+};
+
 module.exports = {
   checkBookingEligibility,
   getAvailableRooms,
@@ -109,4 +117,5 @@ module.exports = {
   getMyHistory,
   getRoomHistory,
   getAllBookings,
+  getRoommates,
 };

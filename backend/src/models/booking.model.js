@@ -46,6 +46,14 @@ const bookingSchema = new mongoose.Schema(
       default: "pending",
       index: true,
     },
+    checkInDate: {
+      type: Date,
+      default: null,
+    },
+    checkOutDate: {
+      type: Date,
+      default: null,
+    },
     paymentExpiresAt: {
       type: Date,
       default: null,

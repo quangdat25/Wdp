@@ -32,7 +32,6 @@ import SecurityDashboard from "./pages/Staff/SecurityDashboard";
 import MyTickets from "./pages/Student/MyTickets";
 import TicketManagement from "./pages/Manager/TicketManagement";
 import ViolationManagement from "./pages/Manager/ViolationManagement";
-import UtilityUsageManagement from "./pages/Staff/UtilityUsageManagement";
 import UtilityInvoiceManagement from "./pages/Manager/UtilityInvoiceManagement";
 import MyInvoices from "./pages/Student/MyInvoices";
 import PaymentResult from "./pages/Student/PaymentResult";
@@ -159,10 +158,6 @@ function App() {
                     <SecurityDashboard />
                   </ProtectedRoute>
                 }
-              />
-              <Route
-                path="/staff/utility-usages"
-                element={<UtilityUsageManagement />}
               />
             </Route>
           </Routes>
