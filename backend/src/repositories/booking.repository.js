@@ -71,10 +71,7 @@ class BookingRepository {
   async findPopulatedRoomById(roomId) {
     return Room.findById(roomId)
       .populate("building", "name")
-      .populate(
-        "students.student",
-        "fullName studentCode gender",
-      );
+      .populate("students.student", "fullName studentCode gender");
   }
 
   /**
@@ -83,10 +80,7 @@ class BookingRepository {
    *
    * Pending hết hạn không được tính là booking hoạt động.
    */
-  async findActiveBookingByStudentAndSemester(
-    studentId,
-    semester,
-  ) {
+  async findActiveBookingByStudentAndSemester(studentId, semester) {
     return Booking.findOne({
       studentId,
       semester,
@@ -113,18 +107,13 @@ class BookingRepository {
   /**
    * Lấy tất cả giường đang bị giữ trong một phòng.
    */
-  async findReservedBedsByRoomAndSemester(
-    roomId,
-    semester,
-  ) {
+  async findReservedBedsByRoomAndSemester(roomId, semester) {
     return Booking.find({
       roomId,
       semester,
       ...getReservedBookingCondition(),
     })
-      .select(
-        "bedNumber status studentId paymentExpiresAt",
-      )
+      .select("bedNumber status studentId paymentExpiresAt")
       .lean();
   }
 
@@ -145,10 +134,7 @@ class BookingRepository {
   /**
    * Lấy các giường đang bị giữ trong nhiều phòng.
    */
-  async findReservedBedsByRoomsAndSemester(
-    roomIds,
-    semester,
-  ) {
+  async findReservedBedsByRoomsAndSemester(roomIds, semester) {
     return Booking.find({
       roomId: {
         $in: roomIds,
@@ -156,19 +142,14 @@ class BookingRepository {
       semester,
       ...getReservedBookingCondition(),
     })
-      .select(
-        "roomId bedNumber status studentId paymentExpiresAt",
-      )
+      .select("roomId bedNumber status studentId paymentExpiresAt")
       .lean();
   }
 
   /**
    * Đếm số giường đang bị giữ trong phòng.
    */
-  async countReservedBedsByRoomAndSemester(
-    roomId,
-    semester,
-  ) {
+  async countReservedBedsByRoomAndSemester(roomId, semester) {
     return Booking.countDocuments({
       roomId,
       semester,
@@ -180,10 +161,7 @@ class BookingRepository {
    * Khi sinh viên chọn một giường mới:
    * xóa booking pending cũ trong cùng kỳ.
    */
-  async releasePendingBookingsByStudentAndSemester(
-    studentId,
-    semester,
-  ) {
+  async releasePendingBookingsByStudentAndSemester(studentId, semester) {
     return Booking.deleteMany({
       studentId,
       semester,
@@ -249,11 +227,7 @@ class BookingRepository {
         },
         {
           status: {
-            $in: [
-              "confirmed",
-              "checked_in",
-              "checked_out",
-            ],
+            $in: ["confirmed", "checked_in", "checked_out"],
           },
         },
       ],
@@ -281,9 +255,9 @@ class BookingRepository {
    * không lấy pending hoặc cancelled.
    */
   async findMyBookingHistory(studentId) {
-    return Booking.find({ 
+    return Booking.find({
       studentId,
-      status: { $nin: ["pending", "cancelled"] }
+      status: { $nin: ["pending", "cancelled"] },
     })
       .populate({
         path: "roomId",
@@ -295,6 +269,10 @@ class BookingRepository {
           },
         ],
       })
+      .populate({
+        path: "configId",
+        select: "roomPrice",
+      })
       .sort({ createdAt: -1 })
       .lean();
   }
@@ -302,18 +280,13 @@ class BookingRepository {
     return Booking.find({
       roomId,
       status: {
-        $in: [
-          "confirmed",
-          "checked_in",
-          "checked_out",
-        ],
+        $in: ["confirmed", "checked_in", "checked_out"],
       },
     })
       .populate({
         path: "studentId",
         model: "User",
-        select:
-          "fullName studentCode email phone gender",
+        select: "fullName studentCode email phone gender",
       })
       .sort({
         startDate: 1,
@@ -324,14 +297,10 @@ class BookingRepository {
 
   async findAllBookings(query = {}) {
     return Booking.find(query)
-      .populate(
-        "studentId",
-        "fullName studentCode email phone gender",
-      )
+      .populate("studentId", "fullName studentCode email phone gender")
       .populate({
         path: "roomId",
-        select:
-          "roomNumber displayName floor price capacity status building",
+        select: "roomNumber displayName floor price capacity status building",
         populate: {
           path: "building",
           select: "name",

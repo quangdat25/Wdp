@@ -48,7 +48,6 @@ const roomSchema = new mongoose.Schema(
 
     price: {
       type: Number,
-      default: 2000000, // 2.000.000 VNĐ
     },
 
     students: [
