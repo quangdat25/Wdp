@@ -304,10 +304,25 @@
   font-size: 13px;
 }
 
-.metric-card--green .metric-card__icon { background: #ddf7df; color: #1f6f43; }
-.metric-card--amber .metric-card__icon { background: #fff1c2; color: #8a5b00; }
-.metric-card--blue .metric-card__icon { background: #dcecff; color: #2457a6; }
-.metric-card--red .metric-card__icon { background: #ffe1df; color: #b42318; }
+.metric-card--green .metric-card__icon {
+  background: #ddf7df;
+  color: #1f6f43;
+}
+
+.metric-card--amber .metric-card__icon {
+  background: #fff1c2;
+  color: #8a5b00;
+}
+
+.metric-card--blue .metric-card__icon {
+  background: #dcecff;
+  color: #2457a6;
+}
+
+.metric-card--red .metric-card__icon {
+  background: #ffe1df;
+  color: #b42318;
+}
 
 .manager-panel {
   min-width: 0;
@@ -570,6 +585,7 @@
 }
 
 @media (max-width: 1180px) {
+
   .manager-metrics,
   .manager-grid--three {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -622,6 +638,7 @@
 }
 
 @media (max-width: 620px) {
+
   .manager-nav,
   .manager-metrics,
   .manager-grid--three {

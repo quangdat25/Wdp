@@ -88,6 +88,7 @@ class DashboardService {
         const occupied = stats.occupiedBeds;
 
         return {
+          _id: b._id,
           name: `Khu ${b.name}`,
           occupied,
           total,

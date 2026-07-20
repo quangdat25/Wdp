@@ -77,7 +77,7 @@ function ViolationManagement() {
         const studentName = (v.studentId?.fullName || "").toLowerCase();
         const studentId = (v.studentId?.studentCode || "").toLowerCase();
         const roomName = (v.studentId?.roomId?.roomNumber || "").toLowerCase();
-        
+
         if (!studentName.includes(lowerSearch) && !studentId.includes(lowerSearch) && !roomName.includes(lowerSearch)) {
           return false;
         }

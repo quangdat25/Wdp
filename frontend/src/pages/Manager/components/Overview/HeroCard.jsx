@@ -1,5 +1,4 @@
 import React from 'react';
-import { getCurrentDateFormatted } from '../../../../utils/date';
 import { FaBuilding } from 'react-icons/fa';
 
 export default function HeroCard({ occupancyRate, pendingRequests, pendingTickets, healthStatus = "BÌNH THƯỜNG" }) {

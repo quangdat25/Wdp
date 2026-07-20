@@ -143,4 +143,3 @@ class DashboardRepository {
 }
 
 module.exports = new DashboardRepository();
-

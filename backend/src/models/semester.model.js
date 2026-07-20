@@ -6,6 +6,7 @@ const semesterPeriodSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+
     endDate: {
       type: Date,
       required: true,
@@ -15,6 +16,7 @@ const semesterPeriodSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+
     renewalEndDate: {
       type: Date,
       required: true,
@@ -24,6 +26,7 @@ const semesterPeriodSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+
     bookingEndDate: {
       type: Date,
       required: true,
@@ -39,7 +42,9 @@ const semesterSchema = new mongoose.Schema(
     year: {
       type: Number,
       required: true,
-
+      unique: true,
+      min: 2020,
+      max: 2100,
     },
 
     spring: {
@@ -56,22 +61,9 @@ const semesterSchema = new mongoose.Schema(
       type: semesterPeriodSchema,
       required: true,
     },
-
-    isDeleted: {
-      type: Boolean,
-      default: false,
-    },
   },
   {
     timestamps: true,
-  }
-);
-
-semesterSchema.index(
-  { year: 1 },
-  {
-    unique: true,
-    partialFilterExpression: { isDeleted: false },
   }
 );
 

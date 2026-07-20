@@ -1,17 +1,21 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, StatusBadge } from '../../../../components/DashboardWidgets';
-import { FaEllipsisV, FaFilter } from 'react-icons/fa';
 
 export default function RecentRequestsTable({ bookingRequests }) {
   const requests = bookingRequests || [];
+  const navigate = useNavigate();
 
   return (
     <Card noPadding>
       <div style={{ padding: "24px 24px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: "#111827" }}>Đơn đặt phòng gần đây</h3>
         <div style={{ display: "flex", gap: 12 }}>
-          <button style={{ padding: "8px 16px", background: "#fff", border: "1px solid #D1D5DB", borderRadius: 8, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-            <FaFilter style={{ color: "#6B7280" }} /> Lọc
+          <button 
+            onClick={() => navigate('/manager/bookings')}
+            style={{ padding: "8px 16px", background: "#fff", border: "1px solid #D1D5DB", borderRadius: 8, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
+          >
+            Xem chi tiết
           </button>
         </div>
       </div>
@@ -24,7 +28,6 @@ export default function RecentRequestsTable({ bookingRequests }) {
               <th style={{ padding: "12px 24px", fontSize: 12, fontWeight: 600, color: "#6B7280", textTransform: "uppercase" }}>Phòng</th>
               <th style={{ padding: "12px 24px", fontSize: 12, fontWeight: 600, color: "#6B7280", textTransform: "uppercase" }}>Loại đơn</th>
               <th style={{ padding: "12px 24px", fontSize: 12, fontWeight: 600, color: "#6B7280", textTransform: "uppercase" }}>Trạng thái</th>
-              <th style={{ padding: "12px 24px", fontSize: 12, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", textAlign: "right" }}>Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -49,15 +52,12 @@ export default function RecentRequestsTable({ bookingRequests }) {
                 <td style={{ padding: "16px 24px" }}>
                   <StatusBadge status={req.status} />
                 </td>
-                <td style={{ padding: "16px 24px", textAlign: "right" }}>
-                    <button style={{ background: "none", border: "none", color: "#6B7280", cursor: "pointer" }}><FaEllipsisV /></button>
-                  </td>
                 </tr>
               );
             })}
-            {bookingRequests.length === 0 && (
+            {requests.length === 0 && (
               <tr>
-                <td colSpan="5" style={{ padding: "32px", textAlign: "center", color: "#6B7280" }}>
+                <td colSpan="4" style={{ padding: "32px", textAlign: "center", color: "#6B7280" }}>
                   Không có đơn đặt phòng nào gần đây
                 </td>
               </tr>
@@ -66,7 +66,10 @@ export default function RecentRequestsTable({ bookingRequests }) {
         </table>
       </div>
       <div style={{ padding: "16px 24px", borderTop: "1px solid #E5E7EB", textAlign: "center" }}>
-        <button style={{ color: "#16A34A", background: "none", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+        <button 
+          onClick={() => navigate('/manager/bookings')}
+          style={{ color: "#16A34A", background: "none", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+        >
           Xem tất cả đơn
         </button>
       </div>

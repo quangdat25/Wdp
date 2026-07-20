@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../../../../components/DashboardWidgets';
-import { FaArrowRight } from 'react-icons/fa';
+import { FaArrowRight, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import BuildingDetailAccordion from './BuildingDetailAccordion';
 
 export default function BuildingOverview({ buildings }) {
+  const [expandedId, setExpandedId] = useState(null);
   const navigate = useNavigate();
   if (!buildings || buildings.length === 0) return null;
 
@@ -11,9 +13,9 @@ export default function BuildingOverview({ buildings }) {
     <Card noPadding>
       <div style={{ padding: "24px 24px 0", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: "#111827" }}>Tỷ lệ lấp đầy theo tòa</h3>
-        <button onClick={() => navigate("/manager/buildings")} style={{ color: "#16A34A", background: "none", border: "none", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
-          Xem chi tiết <FaArrowRight size={10} />
-        </button>
+        <div style={{ color: "#16A34A", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+          Chọn một tòa nhà để xem phòng
+        </div>
       </div>
 
       <div style={{ padding: "0 24px 24px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
@@ -25,7 +27,20 @@ export default function BuildingOverview({ buildings }) {
           const textColor = isWarning ? "#D97706" : "#16A34A";
 
           return (
-            <div key={b.name} style={{ padding: 20, borderRadius: 12, border: "1px solid #E7EFEA", background: "#F9FAFB", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "#F3F4F6"} onMouseLeave={e => e.currentTarget.style.background = "#F9FAFB"}>
+            <div 
+              key={b._id || b.name} 
+              onClick={() => setExpandedId(expandedId === b._id ? null : b._id)}
+              style={{ 
+                padding: 20, 
+                borderRadius: 12, 
+                border: expandedId === b._id ? "2px solid #3B82F6" : "1px solid #E7EFEA", 
+                background: expandedId === b._id ? "#EFF6FF" : "#F9FAFB", 
+                cursor: "pointer", 
+                transition: "all 0.2s" 
+              }} 
+              onMouseEnter={e => { if (expandedId !== b._id) e.currentTarget.style.background = "#F3F4F6"; }} 
+              onMouseLeave={e => { if (expandedId !== b._id) e.currentTarget.style.background = "#F9FAFB"; }}
+            >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <span style={{ fontWeight: 700, fontSize: 16 }}>{b.name}</span>
                 <span style={{ fontSize: 12, background: bgColor, color: textColor, padding: "2px 8px", borderRadius: 999, fontWeight: 700 }}>
@@ -42,6 +57,13 @@ export default function BuildingOverview({ buildings }) {
             </div>
           );
         })}
+
+        {expandedId && (
+          <BuildingDetailAccordion 
+            buildingId={expandedId} 
+            buildingName={buildings.find(b => b._id === expandedId)?.name} 
+          />
+        )}
       </div>
     </Card>
   );

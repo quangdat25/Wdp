@@ -31,7 +31,7 @@ import KPISection from "./components/Overview/KPISection";
 import BuildingOverview from "./components/Overview/BuildingOverview";
 import MaintenanceChart from "./components/Overview/MaintenanceChart";
 import RecentRequestsTable from "./components/Overview/RecentRequestsTable";
-import { 
+import {
   QuickActions,
   RecentActivitiesList
 } from "./components/Overview/RightPanelComponents";
@@ -183,7 +183,7 @@ function OverviewScreen({ data, loading, setActiveModule }) {
   }
 
   const { students, occupancy, pendingTickets, alerts, buildings, bookingRequests, recentActivities, maintenanceStats } = data;
-  
+
   const kpiData = {
     totalStudents: students?.total || 0,
     occupiedBeds: buildings ? buildings.reduce((sum, b) => sum + (b.occupied || 0), 0) : 0,
@@ -193,30 +193,30 @@ function OverviewScreen({ data, loading, setActiveModule }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-      <HeroCard 
-        occupancyRate={occupancy?.rate} 
+      <HeroCard
+        occupancyRate={occupancy?.rate}
         pendingRequests={alerts?.pendingBookings || 0}
         pendingTickets={pendingTickets || 0}
       />
-      
+
       <KPISection data={kpiData} />
-      
-      <div style={{ display: "grid", gridTemplateColumns: "7fr 3fr", gap: 24 }}>
+
+      <div style={{ display: "grid", gridTemplateColumns: "7fr 3fr", gap: 24, marginBottom: 24 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <BuildingOverview buildings={buildings} />
-          
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 24 }}>
             <MaintenanceChart data={maintenanceStats} />
           </div>
-          
-          <RecentRequestsTable bookingRequests={bookingRequests} />
         </div>
-        
+
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <QuickActions />
           <RecentActivitiesList recentActivities={recentActivities} />
         </div>
       </div>
+
+      <RecentRequestsTable bookingRequests={bookingRequests} />
     </div>
   );
 }
@@ -507,8 +507,8 @@ function SettingsScreen() {
             loadingNews
               ? [[<span key="loading" style={{ color: "#64748B" }}>Đang tải bản tin...</span>, "", "", ""]]
               : newsList.length === 0
-              ? [[<span key="empty" style={{ color: "#64748B" }}>Chưa có bản tin nào được đăng.</span>, "", "", ""]]
-              : newsList.map((item) => [
+                ? [[<span key="empty" style={{ color: "#64748B" }}>Chưa có bản tin nào được đăng.</span>, "", "", ""]]
+                : newsList.map((item) => [
                   item.title,
                   item.authorId?.fullName || "Quản trị viên",
                   formatDateTime(item.createdAt),

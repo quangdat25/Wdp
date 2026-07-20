@@ -90,268 +90,337 @@ class UtilityUsageService {
       throw createError(400, "Vui lòng chọn file Excel");
     }
 
-    const workbook = xlsx.readFile(file.path);
-    const sheetName = workbook.SheetNames[0];
-
-    const rows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
-      raw: false,
-      defval: "",
-    });
-
-    if (!rows || rows.length === 0) {
-      throw createError(400, "File Excel không có dữ liệu");
-    }
-
-    const validRows = [];
-    const errorRows = [];
-
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const rowNumber = i + 2;
-
-      const buildingName = String(row["Tòa"] || "").trim();
-      const floor = Number(row["Tầng"]);
-      const roomNumber = String(row["Phòng"] || "").trim();
-
-      const electricityAmount = normalizeMoney(row["Tiền điện"]);
-      const waterAmount = normalizeMoney(row["Tiền nước"]);
-      const excelTotalAmount = normalizeMoney(row["Tổng tiền"]);
-
-      const month = Number(row["Tháng"]);
-      const year = Number(row["Năm"]);
-      const semester = String(row["Kỳ"] || "").trim();
-
-      if (!buildingName) {
-        errorRows.push({
-          row: rowNumber,
-          column: "Tòa",
-          reason: "Thiếu tên tòa",
-        });
-        continue;
-      }
-
-      if (!floor || floor < 1) {
-        errorRows.push({
-          row: rowNumber,
-          column: "Tầng",
-          buildingName,
-          reason: "Tầng không hợp lệ",
-        });
-        continue;
-      }
-
-      if (!roomNumber) {
-        errorRows.push({
-          row: rowNumber,
-          column: "Phòng",
-          buildingName,
-          floor,
-          reason: "Thiếu số phòng",
-        });
-        continue;
-      }
-
-      if (electricityAmount < 0 || waterAmount < 0) {
-        errorRows.push({
-          row: rowNumber,
-          column: "Tiền điện / Tiền nước",
-          buildingName,
-          floor,
-          roomNumber,
-          reason: "Tiền điện nước không được âm",
-        });
-        continue;
-      }
-
-      if (!month || month < 1 || month > 12) {
-        errorRows.push({
-          row: rowNumber,
-          column: "Tháng",
-          buildingName,
-          floor,
-          roomNumber,
-          reason: "Tháng không hợp lệ",
-        });
-        continue;
-      }
-
-      if (!year || year < 2000) {
-        errorRows.push({
-          row: rowNumber,
-          column: "Năm",
-          buildingName,
-          floor,
-          roomNumber,
-          reason: "Năm không hợp lệ",
-        });
-        continue;
-      }
-
-      if (!semester) {
-        errorRows.push({
-          row: rowNumber,
-          column: "Kỳ",
-          buildingName,
-          floor,
-          roomNumber,
-          reason: "Thiếu kỳ",
-        });
-        continue;
-      }
-
-      const calculatedTotal = electricityAmount + waterAmount;
-
-      if (excelTotalAmount !== calculatedTotal) {
-        errorRows.push({
-          row: rowNumber,
-          column: "Tổng tiền",
-          buildingName,
-          floor,
-          roomNumber,
-          reason: `Tổng tiền không khớp. Excel: ${excelTotalAmount}, hệ thống tính: ${calculatedTotal}`,
-        });
-        continue;
-      }
-
-      const room = await utilityUsageRepository.findRoomByImportInfo({
-        floor,
-        roomNumber,
-      });
-
-      if (!room) {
-        errorRows.push({
-          row: rowNumber,
-          column: "Tòa / Tầng / Phòng",
-          buildingName,
-          floor,
-          roomNumber,
-          reason: "Không tìm thấy phòng",
-        });
-        continue;
-      }
-
-      if (!room) {
-        errorRows.push({
-          row: rowNumber,
-          column: "Tòa / Tầng / Phòng",
-          buildingName,
-          floor,
-          roomNumber,
-          reason: "Không tìm thấy phòng",
-        });
-        continue;
-      }
-
-      const realBuildingName =
-        room.building?.name ||
-        room.building?.buildingName ||
-        room.building?.displayName ||
-        "";
-
-      if (
-        realBuildingName &&
-        realBuildingName.trim().toLowerCase() !== buildingName.toLowerCase()
-      ) {
-        errorRows.push({
-          row: rowNumber,
-          column: "Tòa",
-          buildingName,
-          floor,
-          roomNumber,
-          reason: `Tên tòa không khớp. Tòa đúng trong hệ thống: ${realBuildingName}`,
-        });
-        continue;
-      }
-
-      validRows.push({
-        room,
-        buildingName,
-        floor,
-        roomNumber,
-        semester,
-        month,
-        year,
-        electricityAmount,
-        waterAmount,
-        totalAmount: calculatedTotal,
-      });
-    }
-
-    if (errorRows.length > 0) {
+    const deleteUploadedFile = () => {
       if (file?.path && fs.existsSync(file.path)) {
         fs.unlinkSync(file.path);
       }
+    };
 
-      return {
-        success: false,
-        message: "File có lỗi. Vui lòng sửa rồi import lại.",
-        totalRows: rows.length,
-        imported: 0,
-        failed: errorRows.length,
-        errors: errorRows,
-      };
-    }
+    try {
+      const systemConfig =
+        await utilityUsageRepository.findActiveSystemConfig();
 
-    const imported = [];
-    const existedRows = [];
-
-    for (const item of validRows) {
-      const result = await utilityUsageRepository.upsertUtilityUsage(
-        {
-          roomId: item.room._id,
-          month: item.month,
-          year: item.year,
-        },
-        {
-          roomId: item.room._id,
-          buildingName: item.buildingName,
-          floor: item.floor,
-          roomNumber: item.roomNumber,
-          semester: item.semester,
-          month: item.month,
-          year: item.year,
-          electricityAmount: item.electricityAmount,
-          waterAmount: item.waterAmount,
-          totalAmount: item.totalAmount,
-          importedBy: userId,
-        },
-      );
-
-      if (result.action === "created") {
-        imported.push(result.record);
+      if (!systemConfig) {
+        throw createError(400, "Chưa có cấu hình hệ thống đang hoạt động");
       }
 
-      if (result.action === "existed") {
-        existedRows.push({
-          buildingName: item.buildingName,
-          floor: item.floor,
-          roomNumber: item.roomNumber,
-          month: item.month,
-          year: item.year,
-          semester: item.semester,
-          reason: "Dữ liệu phòng/tháng/năm đã tồn tại",
+      const electricityUnitPrice = Number(systemConfig.electricityPrice);
+
+      if (!Number.isFinite(electricityUnitPrice) || electricityUnitPrice < 0) {
+        throw createError(400, "Giá điện trong cấu hình hệ thống không hợp lệ");
+      }
+
+      const workbook = xlsx.readFile(file.path);
+      const sheetName = workbook.SheetNames[0];
+
+      if (!sheetName) {
+        throw createError(400, "File Excel không có sheet dữ liệu");
+      }
+
+      const rows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
+        raw: false,
+        defval: "",
+      });
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        throw createError(400, "File Excel không có dữ liệu");
+      }
+
+      const normalizeUsage = (value) => {
+        if (value === "" || value === null || value === undefined) {
+          return 0;
+        }
+
+        const normalized = String(value)
+          .trim()
+          .replace(/\s/g, "")
+          .replace(",", ".");
+
+        const result = Number(normalized);
+
+        return Number.isFinite(result) ? result : NaN;
+      };
+
+      const validRows = [];
+      const errorRows = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rowNumber = i + 2;
+
+        const buildingName = String(row["Tòa"] || "").trim();
+
+        const floor = Number(row["Tầng"]);
+
+        const roomNumber = String(row["Phòng"] || "").trim();
+
+        const electricityUsage = normalizeUsage(row["Số điện"]);
+
+        const waterAmount = normalizeMoney(row["Tiền nước"]);
+
+        const month = Number(row["Tháng"]);
+        const year = Number(row["Năm"]);
+
+        const semester = String(row["Kỳ"] || "").trim();
+
+        if (!buildingName) {
+          errorRows.push({
+            row: rowNumber,
+            column: "Tòa",
+            reason: "Thiếu tên tòa",
+          });
+
+          continue;
+        }
+
+        if (!Number.isInteger(floor) || floor < 1) {
+          errorRows.push({
+            row: rowNumber,
+            column: "Tầng",
+            buildingName,
+            reason: "Tầng không hợp lệ",
+          });
+
+          continue;
+        }
+
+        if (!roomNumber) {
+          errorRows.push({
+            row: rowNumber,
+            column: "Phòng",
+            buildingName,
+            floor,
+            reason: "Thiếu số phòng",
+          });
+
+          continue;
+        }
+
+        if (!Number.isFinite(electricityUsage) || electricityUsage < 0) {
+          errorRows.push({
+            row: rowNumber,
+            column: "Số điện",
+            buildingName,
+            floor,
+            roomNumber,
+            reason: "Số điện phải là số hợp lệ và không được âm",
+          });
+
+          continue;
+        }
+
+        if (!Number.isFinite(waterAmount) || waterAmount < 0) {
+          errorRows.push({
+            row: rowNumber,
+            column: "Tiền nước",
+            buildingName,
+            floor,
+            roomNumber,
+            reason: "Tiền nước phải là số hợp lệ và không được âm",
+          });
+
+          continue;
+        }
+
+        if (!Number.isInteger(month) || month < 1 || month > 12) {
+          errorRows.push({
+            row: rowNumber,
+            column: "Tháng",
+            buildingName,
+            floor,
+            roomNumber,
+            reason: "Tháng không hợp lệ",
+          });
+
+          continue;
+        }
+
+        if (!Number.isInteger(year) || year < 2000) {
+          errorRows.push({
+            row: rowNumber,
+            column: "Năm",
+            buildingName,
+            floor,
+            roomNumber,
+            reason: "Năm không hợp lệ",
+          });
+
+          continue;
+        }
+
+        if (!semester) {
+          errorRows.push({
+            row: rowNumber,
+            column: "Kỳ",
+            buildingName,
+            floor,
+            roomNumber,
+            reason: "Thiếu kỳ",
+          });
+
+          continue;
+        }
+
+        const electricityAmount = Math.round(
+          electricityUsage * electricityUnitPrice,
+        );
+
+        const totalAmount = electricityAmount + waterAmount;
+
+        const room = await utilityUsageRepository.findRoomByImportInfo({
+          floor,
+          roomNumber,
+        });
+
+        if (!room) {
+          errorRows.push({
+            row: rowNumber,
+            column: "Tòa / Tầng / Phòng",
+            buildingName,
+            floor,
+            roomNumber,
+            reason: "Không tìm thấy phòng",
+          });
+
+          continue;
+        }
+
+        const realBuildingName =
+          room.building?.name ||
+          room.building?.buildingName ||
+          room.building?.displayName ||
+          "";
+
+        if (
+          realBuildingName &&
+          realBuildingName.trim().toLowerCase() !== buildingName.toLowerCase()
+        ) {
+          errorRows.push({
+            row: rowNumber,
+            column: "Tòa",
+            buildingName,
+            floor,
+            roomNumber,
+            reason:
+              `Tên tòa không khớp. ` +
+              `Tòa đúng trong hệ thống: ${realBuildingName}`,
+          });
+
+          continue;
+        }
+
+        validRows.push({
+          room,
+          buildingName,
+          floor,
+          roomNumber,
+          semester,
+          month,
+          year,
+
+          electricityUsage,
+          electricityUnitPrice,
+          electricityAmount,
+
+          waterAmount,
+          totalAmount,
         });
       }
-    }
 
-    if (file?.path && fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
-    }
+      if (errorRows.length > 0) {
+        deleteUploadedFile();
 
-    return {
-      success: imported.length > 0,
-      message:
-        imported.length > 0
-          ? "Import tiền điện nước thành công"
-          : "Dữ liệu đã tồn tại",
-      totalRows: rows.length,
-      imported: imported.length,
-      existed: existedRows.length,
-      failed: 0,
-      errors: [],
-      existedRows,
-      data: imported,
-    };
+        return {
+          success: false,
+          message: "File có lỗi. Vui lòng sửa rồi import lại.",
+          totalRows: rows.length,
+          imported: 0,
+          existed: 0,
+          failed: errorRows.length,
+          errors: errorRows,
+          existedRows: [],
+          data: [],
+        };
+      }
+
+      const imported = [];
+      const existedRows = [];
+
+      for (const item of validRows) {
+        const result = await utilityUsageRepository.upsertUtilityUsage(
+          {
+            roomId: item.room._id,
+            month: item.month,
+            year: item.year,
+          },
+          {
+            roomId: item.room._id,
+            buildingName: item.buildingName,
+            floor: item.floor,
+            roomNumber: item.roomNumber,
+            semester: item.semester,
+            month: item.month,
+            year: item.year,
+
+            electricityUsage: item.electricityUsage,
+
+            electricityUnitPrice: item.electricityUnitPrice,
+
+            electricityAmount: item.electricityAmount,
+
+            waterAmount: item.waterAmount,
+
+            totalAmount: item.totalAmount,
+
+            importedBy: userId,
+          },
+        );
+
+        if (result.action === "created") {
+          imported.push(result.record);
+        }
+
+        if (result.action === "existed") {
+          existedRows.push({
+            buildingName: item.buildingName,
+            floor: item.floor,
+            roomNumber: item.roomNumber,
+            month: item.month,
+            year: item.year,
+            semester: item.semester,
+            reason: "Dữ liệu phòng/tháng/năm đã tồn tại",
+          });
+        }
+      }
+
+      deleteUploadedFile();
+
+      return {
+        success: imported.length > 0,
+
+        message:
+          imported.length > 0
+            ? "Import dữ liệu điện nước thành công"
+            : "Dữ liệu đã tồn tại",
+
+        systemConfig: {
+          id: systemConfig._id,
+          name: systemConfig.name,
+          electricityPrice: electricityUnitPrice,
+        },
+
+        totalRows: rows.length,
+        imported: imported.length,
+        existed: existedRows.length,
+        failed: 0,
+        errors: [],
+        existedRows,
+        data: imported,
+      };
+    } catch (error) {
+      deleteUploadedFile();
+      throw error;
+    }
   }
 
   async getAllUtilityUsages(query) {
@@ -367,7 +436,13 @@ class UtilityUsageService {
 
     return utilityUsageRepository.findAll(filter);
   }
+  async getUtilityByStudentId(studentId) {
+    if (!studentId) {
+      throw createError(400, "Thiếu ID sinh viên");
+    }
 
+    return utilityUsageRepository.findByStudentId(studentId);
+  }
   async deleteUtilityUsage(id) {
     const record = await utilityUsageRepository.findById(id);
 

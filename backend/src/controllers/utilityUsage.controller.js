@@ -4,7 +4,7 @@ exports.importUtilityExcel = async (req, res) => {
   try {
     const result = await utilityUsageService.importUtilityExcel(
       req.file,
-      req.user?._id
+      req.user?._id,
     );
 
     return res.status(result.success ? 200 : 400).json(result);
@@ -41,6 +41,68 @@ exports.getAllUtilityUsages = async (req, res) => {
     });
   }
 };
+exports.getMyUtility = async (req, res) => {
+  try {
+    const studentId = req.user?._id;
+
+    if (!studentId) {
+      return res.status(401).json({
+        success: false,
+        message: "Không xác định được sinh viên",
+      });
+    }
+
+    const records = await utilityUsageService.getUtilityByStudentId(studentId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lấy danh sách tiền điện nước của sinh viên thành công",
+      count: records.length,
+      data: records,
+    });
+  } catch (error) {
+    console.log("GET UTILITY BY STUDENT ID ERROR:", error);
+
+    return res.status(error.status || 500).json({
+      success: false,
+      message: error.status
+        ? error.message
+        : "Lỗi khi lấy danh sách tiền điện nước của sinh viên",
+      error: error.message,
+    });
+  }
+};
+exports.getUtilityByStudentId = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    if (!studentId) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu ID sinh viên",
+      });
+    }
+
+    const records = await utilityUsageService.getUtilityByStudentId(studentId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lấy chi tiết điện nước của sinh viên thành công",
+      count: records.length,
+      data: records,
+    });
+  } catch (error) {
+    console.log("GET UTILITY BY STUDENT ID ERROR:", error);
+
+    return res.status(error.status || 500).json({
+      success: false,
+      message: error.status
+        ? error.message
+        : "Lỗi khi lấy chi tiết điện nước của sinh viên",
+      error: error.message,
+    });
+  }
+};
 
 exports.deleteUtilityUsage = async (req, res) => {
   try {
@@ -56,9 +118,7 @@ exports.deleteUtilityUsage = async (req, res) => {
 
     return res.status(error.status || 500).json({
       success: false,
-      message: error.status
-        ? error.message
-        : "Lỗi khi xóa bản ghi điện nước",
+      message: error.status ? error.message : "Lỗi khi xóa bản ghi điện nước",
       error: error.message,
     });
   }
@@ -78,9 +138,7 @@ exports.createUtilityInvoices = async (req, res) => {
 
     return res.status(error.status || 500).json({
       success: false,
-      message: error.status
-        ? error.message
-        : "Lỗi khi tạo hóa đơn điện nước",
+      message: error.status ? error.message : "Lỗi khi tạo hóa đơn điện nước",
       error: error.message,
     });
   }

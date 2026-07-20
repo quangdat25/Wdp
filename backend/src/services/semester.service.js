@@ -6,42 +6,60 @@ const timezone = require("dayjs/plugin/timezone");
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+const VN_TIMEZONE = "Asia/Ho_Chi_Minh";
+
 const SEMESTER_KEYS = ["spring", "summer", "fall"];
 
 const SEMESTER_META = {
-  spring: { name: "Spring", prefix: "SP", order: 1 },
-  summer: { name: "Summer", prefix: "SU", order: 2 },
-  fall: { name: "Fall", prefix: "FA", order: 3 },
+  spring: {
+    name: "Spring",
+    prefix: "SP",
+    order: 1,
+  },
+
+  summer: {
+    name: "Summer",
+    prefix: "SU",
+    order: 2,
+  },
+
+  fall: {
+    name: "Fall",
+    prefix: "FA",
+    order: 3,
+  },
 };
 
 const createError = (status, message) => {
-  const err = new Error(message);
-  err.status = status;
-  return err;
+  const error = new Error(message);
+  error.status = status;
+  return error;
 };
 
-const toVNStartOfDay = (date) =>
-  dayjs.tz(date, "Asia/Ho_Chi_Minh").startOf("day").toDate();
+const toVNStartOfDay = (date) => {
+  return dayjs.tz(date, VN_TIMEZONE).startOf("day").toDate();
+};
 
-const toVNEndOfDay = (date) =>
-  dayjs.tz(date, "Asia/Ho_Chi_Minh").endOf("day").toDate();
+const toVNEndOfDay = (date) => {
+  return dayjs.tz(date, VN_TIMEZONE).endOf("day").toDate();
+};
 
 const getPeriodWindows = (endDate) => {
   const bookingEndDate = toVNEndOfDay(endDate);
 
   const bookingStartDate = dayjs(bookingEndDate)
-    .tz("Asia/Ho_Chi_Minh")
+    .tz(VN_TIMEZONE)
     .subtract(6, "day")
     .startOf("day")
     .toDate();
 
   const renewalEndDate = dayjs(bookingStartDate)
-    .tz("Asia/Ho_Chi_Minh")
+    .tz(VN_TIMEZONE)
     .subtract(1, "millisecond")
     .toDate();
 
   const renewalStartDate = dayjs(renewalEndDate)
-    .tz("Asia/Ho_Chi_Minh")
+    .tz(VN_TIMEZONE)
     .subtract(6, "day")
     .startOf("day")
     .toDate();
@@ -56,14 +74,20 @@ const getPeriodWindows = (endDate) => {
 
 const buildPeriod = ({ startDate, endDate }) => {
   if (!startDate || !endDate) {
-    throw createError(400, "Vui lòng nhập đủ ngày bắt đầu và ngày kết thúc");
+    throw createError(
+      400,
+      "Vui lòng nhập đủ ngày bắt đầu và ngày kết thúc"
+    );
   }
 
   const start = toVNStartOfDay(startDate);
   const end = toVNEndOfDay(endDate);
 
   if (start >= end) {
-    throw createError(400, "Ngày bắt đầu phải nhỏ hơn ngày kết thúc");
+    throw createError(
+      400,
+      "Ngày bắt đầu phải nhỏ hơn ngày kết thúc"
+    );
   }
 
   return {
@@ -74,21 +98,63 @@ const buildPeriod = ({ startDate, endDate }) => {
 };
 
 const getStatus = (period) => {
-  const now = new Date();
+  if (!period?.startDate || !period?.endDate) {
+    return "Upcoming";
+  }
 
-  if (now > new Date(period.endDate)) return "Completed";
-  if (now >= new Date(period.startDate) && now <= new Date(period.endDate)) {
+  const now = new Date();
+  const startDate = new Date(period.startDate);
+  const endDate = new Date(period.endDate);
+
+  if (now > endDate) {
+    return "Completed";
+  }
+
+  if (now >= startDate && now <= endDate) {
     return "Ongoing";
   }
 
   return "Upcoming";
 };
 
-const getYearStatus = (yearDoc) => {
-  const statuses = SEMESTER_KEYS.map((key) => getStatus(yearDoc[key]));
+const isUpcomingSemester = (period) => {
+  if (!period?.startDate) {
+    return false;
+  }
 
-  if (statuses.includes("Ongoing")) return "Ongoing";
-  if (statuses.every((status) => status === "Completed")) return "Completed";
+  return new Date(period.startDate) > new Date();
+};
+
+const ensureUpcomingSemester = (period, semesterName) => {
+  const status = getStatus(period);
+
+  if (status === "Ongoing") {
+    throw createError(
+      400,
+      `Không thể chỉnh sửa kỳ ${semesterName} vì kỳ này đang diễn ra`
+    );
+  }
+
+  if (status === "Completed") {
+    throw createError(
+      400,
+      `Không thể chỉnh sửa kỳ ${semesterName} vì kỳ này đã kết thúc`
+    );
+  }
+};
+
+const getYearStatus = (yearDoc) => {
+  const statuses = SEMESTER_KEYS.map((key) =>
+    getStatus(yearDoc[key])
+  );
+
+  if (statuses.includes("Ongoing")) {
+    return "Ongoing";
+  }
+
+  if (statuses.every((status) => status === "Completed")) {
+    return "Completed";
+  }
 
   return "Upcoming";
 };
@@ -100,151 +166,245 @@ const formatSemester = (yearDoc, key) => {
     academicYearId: yearDoc._id,
     year: yearDoc.year,
     key,
+    semesterKey: key,
     name: meta.name,
     code: `${meta.prefix}${yearDoc.year.toString().slice(-2)}`,
     ...yearDoc[key],
     status: getStatus(yearDoc[key]),
+    canEdit: isUpcomingSemester(yearDoc[key]),
   };
 };
 
 const formatYear = (yearDoc) => {
-  const plain = yearDoc.toObject ? yearDoc.toObject() : yearDoc;
+  const plain = yearDoc.toObject
+    ? yearDoc.toObject()
+    : yearDoc;
+
+  const semesters = SEMESTER_KEYS.map((key) =>
+    formatSemester(plain, key)
+  );
 
   return {
     ...plain,
     status: getYearStatus(plain),
-    semesters: SEMESTER_KEYS.map((key) => formatSemester(plain, key)),
+    semesters,
+    canDelete: semesters.every(
+      (semester) => semester.status === "Upcoming"
+    ),
   };
 };
 
 const getAllSemesterPeriods = (years) => {
   return years.flatMap((yearDoc) =>
-    SEMESTER_KEYS.map((key) => formatSemester(yearDoc, key))
+    SEMESTER_KEYS.map((key) =>
+      formatSemester(yearDoc, key)
+    )
   );
 };
 
 const validateYearOrder = (spring, summer, fall) => {
-  if (spring.endDate >= summer.startDate) {
-    throw createError(400, "Kỳ Summer phải bắt đầu sau khi kỳ Spring kết thúc");
+  if (
+    new Date(spring.endDate) >=
+    new Date(summer.startDate)
+  ) {
+    throw createError(
+      400,
+      "Kỳ Summer phải bắt đầu sau khi kỳ Spring kết thúc"
+    );
   }
 
-  if (summer.endDate >= fall.startDate) {
-    throw createError(400, "Kỳ Fall phải bắt đầu sau khi kỳ Summer kết thúc");
+  if (
+    new Date(summer.endDate) >=
+    new Date(fall.startDate)
+  ) {
+    throw createError(
+      400,
+      "Kỳ Fall phải bắt đầu sau khi kỳ Summer kết thúc"
+    );
   }
 };
 
 const semesterService = {
   getAllSemesters: async () => {
-    const years = await semesterRepository.findAllActive();
+    const years = await semesterRepository.findAll();
+
     return years.map(formatYear);
   },
 
   getCurrentSemester: async () => {
-    const years = await semesterRepository.findAllActiveAsc();
-    const periods = getAllSemesterPeriods(years);
+    const years = await semesterRepository.findAllAsc();
+
+    const periods = getAllSemesterPeriods(years).sort(
+      (a, b) =>
+        new Date(a.startDate) - new Date(b.startDate)
+    );
+
+    const now = new Date();
 
     const currentSemester = periods.find(
       (period) =>
-        new Date() >= new Date(period.startDate) &&
-        new Date() <= new Date(period.endDate)
+        now >= new Date(period.startDate) &&
+        now <= new Date(period.endDate)
     );
 
     if (!currentSemester) {
-      throw createError(404, "Không có kỳ học nào đang diễn ra");
+      throw createError(
+        404,
+        "Không có kỳ học nào đang diễn ra"
+      );
     }
 
     return currentSemester;
   },
 
   getNextSemester: async () => {
-    const years = await semesterRepository.findAllActiveAsc();
+    const years = await semesterRepository.findAllAsc();
+
     const periods = getAllSemesterPeriods(years).sort(
-      (a, b) => new Date(a.startDate) - new Date(b.startDate)
+      (a, b) =>
+        new Date(a.startDate) - new Date(b.startDate)
     );
 
+    const now = new Date();
+
     const nextSemester = periods.find(
-      (period) => new Date(period.startDate) > new Date()
+      (period) => new Date(period.startDate) > now
     );
 
     if (!nextSemester) {
-      throw createError(404, "Chưa có kỳ học tiếp theo");
+      throw createError(
+        404,
+        "Chưa có kỳ học tiếp theo"
+      );
     }
 
     return nextSemester;
-  },
-
-  getTargetBookingSemester: async () => {
-    const years = await semesterRepository.findAllActiveAsc();
-    const periods = getAllSemesterPeriods(years);
-    const now = new Date();
-
-    const targetSemester = periods.find(
-      (period) =>
-        now >= new Date(period.bookingStartDate) &&
-        now <= new Date(period.bookingEndDate)
-    );
-
-    // HACK CHO HỘI ĐỒNG BẢO VỆ: Luôn luôn bypass để cho phép đặt phòng
-    if (!targetSemester) {
-      const currentSemester = periods.find(
-        (period) =>
-          now >= new Date(period.startDate) &&
-          now <= new Date(period.endDate)
-      );
-      return currentSemester || periods[0];
-    }
-
-    return targetSemester;
   },
 
   createSemester: async (data) => {
     const { year, spring, summer, fall } = data;
 
     if (!year || !spring || !summer || !fall) {
-      throw createError(400, "Vui lòng nhập đủ thông tin năm học");
+      throw createError(
+        400,
+        "Vui lòng nhập đủ thông tin năm học"
+      );
     }
 
-    const existing = await semesterRepository.findByYear(year);
+    const numericYear = Number(year);
+
+    if (
+      !Number.isInteger(numericYear) ||
+      numericYear < 2020 ||
+      numericYear > 2100
+    ) {
+      throw createError(
+        400,
+        "Năm học không hợp lệ"
+      );
+    }
+
+    const existing =
+      await semesterRepository.findByYear(numericYear);
+
     if (existing) {
-      throw createError(400, `Năm học ${year} đã tồn tại`);
+      throw createError(
+        400,
+        `Năm học ${numericYear} đã tồn tại`
+      );
     }
 
     const springPeriod = buildPeriod(spring);
     const summerPeriod = buildPeriod(summer);
     const fallPeriod = buildPeriod(fall);
 
-    validateYearOrder(springPeriod, summerPeriod, fallPeriod);
+    validateYearOrder(
+      springPeriod,
+      summerPeriod,
+      fallPeriod
+    );
 
-    const createdYear = await semesterRepository.create({
-      year,
-      spring: springPeriod,
-      summer: summerPeriod,
-      fall: fallPeriod,
-    });
+    /*
+     * Không cho tạo mới một năm học có kỳ đã bắt đầu.
+     * Tránh trường hợp admin tạo dữ liệu quá khứ rồi sửa/xóa sai logic.
+     */
+    if (!isUpcomingSemester(springPeriod)) {
+      throw createError(
+        400,
+        "Ngày bắt đầu kỳ Spring phải lớn hơn thời điểm hiện tại"
+      );
+    }
+
+    const createdYear =
+      await semesterRepository.create({
+        year: numericYear,
+        spring: springPeriod,
+        summer: summerPeriod,
+        fall: fallPeriod,
+      });
 
     return formatYear(createdYear);
   },
 
   updateSemester: async (id, data) => {
-    const { key, name, startDate, endDate } = data;
+    const {
+      key,
+      semesterKey,
+      name,
+      startDate,
+      endDate,
+    } = data;
 
-    const semesterKey = key || name?.toLowerCase();
+    const resolvedKey =
+      key ||
+      semesterKey ||
+      name?.toLowerCase();
 
-    if (!SEMESTER_KEYS.includes(semesterKey)) {
-      throw createError(400, "Kỳ học không hợp lệ");
+    if (!SEMESTER_KEYS.includes(resolvedKey)) {
+      throw createError(
+        400,
+        "Kỳ học không hợp lệ"
+      );
     }
 
-    const academicYear = await semesterRepository.findById(id);
+    const academicYear =
+      await semesterRepository.findById(id);
+
     if (!academicYear) {
-      throw createError(404, "Không tìm thấy năm học");
+      throw createError(
+        404,
+        "Không tìm thấy năm học"
+      );
     }
 
-    const oldPeriod = academicYear[semesterKey];
+    const oldPeriod = academicYear[resolvedKey];
+    const semesterName =
+      SEMESTER_META[resolvedKey].name;
 
-    academicYear[semesterKey] = buildPeriod({
+    /*
+     * Kiểm tra trạng thái của kỳ trước khi sửa.
+     */
+    ensureUpcomingSemester(
+      oldPeriod,
+      semesterName
+    );
+
+    const updatedPeriod = buildPeriod({
       startDate: startDate || oldPeriod.startDate,
       endDate: endDate || oldPeriod.endDate,
     });
+
+    /*
+     * Sau khi cập nhật, ngày bắt đầu vẫn phải nằm trong tương lai.
+     */
+    if (!isUpcomingSemester(updatedPeriod)) {
+      throw createError(
+        400,
+        `Ngày bắt đầu kỳ ${semesterName} phải lớn hơn thời điểm hiện tại`
+      );
+    }
+
+    academicYear[resolvedKey] = updatedPeriod;
 
     validateYearOrder(
       academicYear.spring,
@@ -258,14 +418,43 @@ const semesterService = {
   },
 
   deleteSemester: async (id) => {
-    const academicYear = await semesterRepository.findById(id);
+    const academicYear =
+      await semesterRepository.findById(id);
 
     if (!academicYear) {
-      throw createError(404, "Không tìm thấy năm học");
+      throw createError(
+        404,
+        "Không tìm thấy năm học"
+      );
     }
 
-    academicYear.isDeleted = true;
-    await academicYear.save();
+    const blockedSemesterKey =
+      SEMESTER_KEYS.find(
+        (key) => !isUpcomingSemester(academicYear[key])
+      );
+
+    if (blockedSemesterKey) {
+      const semesterName =
+        SEMESTER_META[blockedSemesterKey].name;
+
+      const status = getStatus(
+        academicYear[blockedSemesterKey]
+      );
+
+      if (status === "Ongoing") {
+        throw createError(
+          400,
+          `Không thể xóa năm học vì kỳ ${semesterName} đang diễn ra`
+        );
+      }
+
+      throw createError(
+        400,
+        `Không thể xóa năm học vì kỳ ${semesterName} đã kết thúc`
+      );
+    }
+
+    await semesterRepository.deleteById(id);
 
     return true;
   },

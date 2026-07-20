@@ -21,6 +21,7 @@ import {
   FaCalendarAlt,
   FaTimes,
   FaBook,
+  FaCogs,
 } from "react-icons/fa";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -121,11 +122,6 @@ function Sidebar() {
         icon: <FaBed />,
       },
       {
-        path: "/admin/buildings",
-        label: "Quản lý tòa nhà",
-        icon: <FaBuilding />,
-      },
-      {
         path: "/admin/students",
         label: "Quản lý sinh viên",
         icon: <FaUserGraduate />,
@@ -141,19 +137,9 @@ function Sidebar() {
         icon: <FaBell />,
       },
       {
-        path: "/admin/payments",
-        label: "Thanh toán",
-        icon: <FaMoneyBillWave />,
-      },
-      {
-        path: "/admin/requests",
-        label: "Yêu cầu",
-        icon: <FaTools />,
-      },
-      {
-        path: "/admin/accounts",
-        label: "Tài khoản",
-        icon: <FaUsersCog />,
+        path: "/admin/system-configs",
+        label: "Cấu hình hệ thống",
+        icon: <FaCogs />,
       },
     ],
 
@@ -172,6 +158,11 @@ function Sidebar() {
         path: "/manager/students",
         label: "Quản lý sinh viên",
         icon: <FaUserGraduate />,
+      },
+      {
+        path: "/manager/bookings",
+        label: "Quản lý đặt phòng",
+        icon: <FaClipboardList />,
       },
       {
         path: "/manager/tickets",
@@ -306,6 +297,11 @@ function Sidebar() {
       {
         path: "/student/invoices",
         label: "Hóa đơn",
+        icon: <FaMoneyBillWave />,
+      },
+      {
+        path: "/student/my-utilities",
+        label: "Dịch vụ",
         icon: <FaMoneyBillWave />,
       },
       {

@@ -12,17 +12,22 @@ const getVNDateString = (date) => {
 };
 
 const updateRoomOccupancyAndStatus = async (roomId) => {
-  const room = await Room.findById(roomId);
-  if (!room) return;
+  const room = await Room.findById(roomId).select("students capacity status");
+
+  if (!room) {
+    console.log(`Không tìm thấy phòng: ${roomId}`);
+    return;
+  }
 
   const currentOccupants = room.students.length;
 
-  const newStatus =
-    room.status === "maintenance"
-      ? "maintenance"
-      : currentOccupants >= room.capacity
-      ? "occupied"
-      : "available";
+  let newStatus;
+
+  if (room.status === "maintenance") {
+    newStatus = "maintenance";
+  } else {
+    newStatus = currentOccupants > 0 ? "occupied" : "available";
+  }
 
   await Room.updateOne(
     { _id: roomId },
@@ -31,48 +36,43 @@ const updateRoomOccupancyAndStatus = async (roomId) => {
         currentOccupants,
         status: newStatus,
       },
-    }
+    },
   );
 };
-
-const autoCheckInBookings = () => {
+const autoCheckOutBookings = () => {
   cron.schedule(
-    // Chạy sau checkout 1 phút để tránh đụng cùng lúc
-    "1 0 * * *",
+    // Chạy lúc 00:00 mỗi ngày
+    "0 0 * * *",
     async () => {
       try {
         const now = new Date();
         const todayVN = getVNDateString(now);
 
         const bookings = await Booking.find({
-          status: "confirmed",
+          status: "checked_in",
         });
 
         const matchedBookings = bookings.filter((booking) => {
-          const startDateVN = getVNDateString(booking.startDate);
-          return startDateVN <= todayVN;
+          const endDateVN = getVNDateString(booking.endDate);
+          return endDateVN < todayVN;
         });
 
         console.log("Today VN:", todayVN);
-        console.log("Matched check-in bookings:", matchedBookings.length);
+        console.log("Matched check-out bookings:", matchedBookings.length);
 
         for (const booking of matchedBookings) {
           const room = await Room.findById(booking.roomId);
           if (!room) continue;
 
           await Room.updateOne(
+            { _id: booking.roomId },
             {
-              _id: booking.roomId,
-              "students.student": { $ne: booking.studentId },
-            },
-            {
-              $push: {
+              $pull: {
                 students: {
                   student: booking.studentId,
-                  bedNumber: booking.bedNumber,
                 },
               },
-            }
+            },
           );
 
           await updateRoomOccupancyAndStatus(booking.roomId);
@@ -80,25 +80,25 @@ const autoCheckInBookings = () => {
           await Booking.updateOne(
             {
               _id: booking._id,
-              status: "confirmed",
+              status: "checked_in",
             },
             {
               $set: {
-                status: "checked_in",
+                status: "checked_out",
               },
-            }
+            },
           );
         }
 
-        console.log("Auto check-in bookings done");
+        console.log("Auto check-out bookings done");
       } catch (error) {
-        console.error("Auto check-in bookings error:", error);
+        console.error("Auto check-out bookings error:", error);
       }
     },
     {
       timezone: "Asia/Ho_Chi_Minh",
-    }
+    },
   );
 };
 
-module.exports = autoCheckInBookings;
+module.exports = autoCheckOutBookings;
