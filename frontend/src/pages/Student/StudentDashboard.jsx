@@ -97,7 +97,7 @@ function UnbookedHomeScreen({ setActiveModule }) {
           </div>
         </div>
 
-       
+
       </div>
 
       <section className="student-metrics">

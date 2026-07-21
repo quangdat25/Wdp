@@ -57,10 +57,9 @@ class ViolationService {
 
   async getViolations({ userRole, userId, userBuildingId }) {
     let query = {};
-    if (userRole === "student") {
+    if (userRole === "student" || userRole === "parent") {
       query.studentId = userId;
     } else if (userRole !== "admin") {
-      // Manager hoặc Security: Chỉ thấy lỗi thuộc tòa nhà mình quản lý
       if (userBuildingId) {
         query.buildingId = userBuildingId;
       }
