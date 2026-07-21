@@ -1,7 +1,5 @@
 const SystemConfig = require("../models/systemConfig.model");
-
 class SystemConfigRepository {
-
   async create(data) {
     return SystemConfig.create(data);
   }
