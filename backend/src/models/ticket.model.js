@@ -4,7 +4,7 @@ const ticketSchema = new mongoose.Schema(
   {
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Student",
+      ref: "student",
       required: true,
     },
 
@@ -41,7 +41,7 @@ const ticketSchema = new mongoose.Schema(
       ],
       required: true,
     },
-    
+
     description: {
       type: String,
       required: true,
