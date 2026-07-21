@@ -27,6 +27,8 @@ async function seedMissingBookings() {
       { code: "Fall 2026", start: "2026-08-31T17:00:00.000Z", end: "2026-12-31T16:59:59.999Z", status: "confirmed" }
     ];
 
+    const activeConfig = await SystemConfig.findOne({ status: "active" });
+
     for (const room of rooms) {
       for (const studentInfo of room.students) {
         if (!studentInfo.student) continue;
@@ -49,6 +51,7 @@ async function seedMissingBookings() {
               startDate: new Date(sem.start),
               endDate: new Date(sem.end),
               status: sem.status,
+              configId: activeConfig ? activeConfig._id : null,
               createdAt: new Date(),
               updatedAt: new Date()
             });

@@ -347,7 +347,7 @@ const MyRoom = () => {
                                 {getCheckoutDisplay(booking)}
                               </td>
                               <td className="px-5 py-4 border-b border-slate-100 align-middle text-slate-700 font-medium">
-                                {formatMoney(booking.configId?.roomPrice)}
+                                {formatMoney(booking.configId?.roomPrice || booking.roomId?.price)}
                               </td>
                               <td className="px-5 py-4 border-b border-slate-100 align-middle">
                                 <span
@@ -365,7 +365,7 @@ const MyRoom = () => {
                                   >
                                     Roommates
                                   </button>
-                                  {(booking.status === "checked_in" || booking.status === "confirmed") && (
+                                  {booking.status === "checked_in" && (
                                     <button
                                       onClick={() => handleRenew(booking, hasRenewed)}
                                       className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-2 px-5 rounded-lg shadow-md shadow-orange-500/20 transition-all text-[13px] border border-orange-600/20"
