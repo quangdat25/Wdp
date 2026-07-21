@@ -169,17 +169,51 @@ class BookingRepository {
     });
   }
 
-  /**
-   * Xóa booking pending đã hết thời gian thanh toán.
-   * Hàm này dùng cho cron job.
-   */
+
   async deleteExpiredPendingBookings() {
-    return Booking.deleteMany({
+    const now = new Date();
+
+    // Lấy các booking pending đã quá hạn
+    const expiredBookings = await Booking.find({
       status: "pending",
       paymentExpiresAt: {
-        $lte: new Date(),
+        $lte: now,
+      },
+    }).select("_id");
+
+    if (!expiredBookings.length) {
+      return {
+        deletedBookings: 0,
+        deletedInvoices: 0,
+      };
+    }
+
+    const bookingIds = expiredBookings.map((booking) => booking._id);
+
+    // Xóa hóa đơn tiền phòng thuộc các booking hết hạn
+    const invoiceResult = await Invoice.deleteMany({
+      bookingId: {
+        $in: bookingIds,
+      },
+      type: "room_fee",
+      status: "unpaid",
+    });
+
+    // Xóa booking hết hạn
+    const bookingResult = await Booking.deleteMany({
+      _id: {
+        $in: bookingIds,
+      },
+      status: "pending",
+      paymentExpiresAt: {
+        $lte: now,
       },
     });
+
+    return {
+      deletedBookings: bookingResult.deletedCount,
+      deletedInvoices: invoiceResult.deletedCount,
+    };
   }
 
   /**
