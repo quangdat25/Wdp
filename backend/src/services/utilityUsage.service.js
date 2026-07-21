@@ -106,8 +106,14 @@ class UtilityUsageService {
 
       const electricityUnitPrice = Number(systemConfig.electricityPrice);
 
+      const waterUnitPrice = Number(systemConfig.waterPrice);
+
       if (!Number.isFinite(electricityUnitPrice) || electricityUnitPrice < 0) {
         throw createError(400, "Giá điện trong cấu hình hệ thống không hợp lệ");
+      }
+
+      if (!Number.isFinite(waterUnitPrice) || waterUnitPrice < 0) {
+        throw createError(400, "Giá nước trong cấu hình hệ thống không hợp lệ");
       }
 
       const workbook = xlsx.readFile(file.path);
@@ -149,18 +155,13 @@ class UtilityUsageService {
         const rowNumber = i + 2;
 
         const buildingName = String(row["Tòa"] || "").trim();
-
         const floor = Number(row["Tầng"]);
-
         const roomNumber = String(row["Phòng"] || "").trim();
 
         const electricityUsage = normalizeUsage(row["Số điện"]);
 
-        const waterAmount = normalizeMoney(row["Tiền nước"]);
-
         const month = Number(row["Tháng"]);
         const year = Number(row["Năm"]);
-
         const semester = String(row["Kỳ"] || "").trim();
 
         if (!buildingName) {
@@ -173,12 +174,12 @@ class UtilityUsageService {
           continue;
         }
 
-        if (!Number.isInteger(floor) || floor < 1) {
+        if (!Number.isInteger(floor) || floor < 1 || floor > 5) {
           errorRows.push({
             row: rowNumber,
             column: "Tầng",
             buildingName,
-            reason: "Tầng không hợp lệ",
+            reason: "Tầng phải là số nguyên từ 1 đến 5",
           });
 
           continue;
@@ -209,19 +210,6 @@ class UtilityUsageService {
           continue;
         }
 
-        if (!Number.isFinite(waterAmount) || waterAmount < 0) {
-          errorRows.push({
-            row: rowNumber,
-            column: "Tiền nước",
-            buildingName,
-            floor,
-            roomNumber,
-            reason: "Tiền nước phải là số hợp lệ và không được âm",
-          });
-
-          continue;
-        }
-
         if (!Number.isInteger(month) || month < 1 || month > 12) {
           errorRows.push({
             row: rowNumber,
@@ -229,7 +217,7 @@ class UtilityUsageService {
             buildingName,
             floor,
             roomNumber,
-            reason: "Tháng không hợp lệ",
+            reason: "Tháng phải là số nguyên từ 1 đến 12",
           });
 
           continue;
@@ -261,16 +249,12 @@ class UtilityUsageService {
           continue;
         }
 
-        const electricityAmount = Math.round(
-          electricityUsage * electricityUnitPrice,
-        );
-
-        const totalAmount = electricityAmount + waterAmount;
-
-        const room = await utilityUsageRepository.findRoomByImportInfo({
-          floor,
-          roomNumber,
-        });
+        const room =
+          await utilityUsageRepository.findRoomByBuildingFloorAndNumber({
+            buildingName,
+            floor,
+            roomNumber,
+          });
 
         if (!room) {
           errorRows.push({
@@ -279,35 +263,44 @@ class UtilityUsageService {
             buildingName,
             floor,
             roomNumber,
-            reason: "Không tìm thấy phòng",
+            reason: "Không tìm thấy phòng tương ứng trong hệ thống",
           });
 
           continue;
         }
 
-        const realBuildingName =
-          room.building?.name ||
-          room.building?.buildingName ||
-          room.building?.displayName ||
-          "";
+        /*
+         * Lấy số sinh viên đang ở trong phòng.
+         * Ưu tiên độ dài mảng students.
+         */
+        const occupantCount = Array.isArray(room.students)
+          ? room.students.length
+          : Number(room.currentOccupants || 0);
 
         if (
-          realBuildingName &&
-          realBuildingName.trim().toLowerCase() !== buildingName.toLowerCase()
+          !Number.isInteger(occupantCount) ||
+          occupantCount < 0 ||
+          occupantCount > room.capacity
         ) {
           errorRows.push({
             row: rowNumber,
-            column: "Tòa",
+            column: "Phòng",
             buildingName,
             floor,
             roomNumber,
-            reason:
-              `Tên tòa không khớp. ` +
-              `Tòa đúng trong hệ thống: ${realBuildingName}`,
+            reason: "Số người hiện đang ở trong phòng không hợp lệ",
           });
 
           continue;
         }
+
+        const electricityAmount = Math.round(
+          electricityUsage * electricityUnitPrice,
+        );
+
+        const waterAmount = Math.round(occupantCount * waterUnitPrice);
+
+        const totalAmount = electricityAmount + waterAmount;
 
         validRows.push({
           room,
@@ -317,19 +310,15 @@ class UtilityUsageService {
           semester,
           month,
           year,
-
           electricityUsage,
           electricityUnitPrice,
           electricityAmount,
-
           waterAmount,
           totalAmount,
         });
       }
 
       if (errorRows.length > 0) {
-        deleteUploadedFile();
-
         return {
           success: false,
           message: "File có lỗi. Vui lòng sửa rồi import lại.",
@@ -355,9 +344,11 @@ class UtilityUsageService {
           },
           {
             roomId: item.room._id,
+
             buildingName: item.buildingName,
             floor: item.floor,
             roomNumber: item.roomNumber,
+
             semester: item.semester,
             month: item.month,
             year: item.year,
@@ -393,8 +384,6 @@ class UtilityUsageService {
         }
       }
 
-      deleteUploadedFile();
-
       return {
         success: imported.length > 0,
 
@@ -407,6 +396,7 @@ class UtilityUsageService {
           id: systemConfig._id,
           name: systemConfig.name,
           electricityPrice: electricityUnitPrice,
+          waterPrice: waterUnitPrice,
         },
 
         totalRows: rows.length,
@@ -417,9 +407,8 @@ class UtilityUsageService {
         existedRows,
         data: imported,
       };
-    } catch (error) {
+    } finally {
       deleteUploadedFile();
-      throw error;
     }
   }
 
