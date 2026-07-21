@@ -365,7 +365,7 @@ const MyRoom = () => {
                                   >
                                     Roommates
                                   </button>
-                                  {(booking.status === "checked_in" || booking.status === "confirmed") && (
+                                  {booking.status === "checked_in" && (
                                     <button
                                       onClick={() => handleRenew(booking, hasRenewed)}
                                       className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-2 px-5 rounded-lg shadow-md shadow-orange-500/20 transition-all text-[13px] border border-orange-600/20"
