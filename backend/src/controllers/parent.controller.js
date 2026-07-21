@@ -28,18 +28,15 @@ const getMyChildRoom = async (req, res) => {
             (s) => s.student.toString() === student._id.toString()
         );
 
-        // Xử lý nghiệp vụ: Lấy tháng trước đó
         const today = new Date();
-        let previousMonth = today.getMonth(); // 0 (Jan) - 11 (Dec)
+        let previousMonth = today.getMonth();
         let previousMonthYear = today.getFullYear();
         
-        // Nếu đang là tháng 1 (previousMonth === 0), lùi về tháng 12 năm ngoái
         if (previousMonth === 0) {
             previousMonth = 12;
             previousMonthYear -= 1;
         }
 
-        // Lấy hóa đơn tiện ích (utility) mới nhất của học sinh thay vì query theo billingMonth (do model Invoice không có trường này)
         const utilityInvoice = await Invoice.findOne({
             studentId: student._id,
             type: "utility"
