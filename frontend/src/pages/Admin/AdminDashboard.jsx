@@ -161,7 +161,6 @@ function AdminDashboard() {
             <div style={{ display: "flex", gap: 32, background: "rgba(255,255,255,0.1)", padding: "20px 32px", borderRadius: 16, backdropFilter: "blur(10px)" }}>
               <HeroMetric label="Tỷ lệ lấp đầy" value={`${occupancy.rate}%`} />
               <HeroMetric label="Phòng trống" value={occupancy.availableRooms} />
-              <HeroMetric label="Yêu cầu chờ duyệt" value={pendingTickets} />
               <HeroMetric label="Doanh thu tháng" value={formatCurrency(monthlyRevenue.total)} />
             </div>
           </div>
@@ -256,15 +255,15 @@ function AdminDashboard() {
                         const offset = -currentAngle;
                         currentAngle += (d.value / totalRooms) * 100;
                         return (
-                          <circle 
-                            key={i} 
-                            cx="18" 
-                            cy="18" 
-                            r="16" 
-                            fill="none" 
-                            stroke={d.color} 
-                            strokeWidth="4" 
-                            strokeDasharray={dashArray} 
+                          <circle
+                            key={i}
+                            cx="18"
+                            cy="18"
+                            r="16"
+                            fill="none"
+                            stroke={d.color}
+                            strokeWidth="4"
+                            strokeDasharray={dashArray}
                             strokeDashoffset={offset}
                             style={{ animation: "drawDonut 1s ease-out forwards", opacity: 0 }}
                           >
@@ -323,7 +322,7 @@ function AdminDashboard() {
                   if (alerts.pendingBookings > 0) {
                     activeAlerts.push({ type: "warning", icon: <FaExclamationCircle />, badge: "Cảnh báo", title: "Chờ duyệt", text: `${alerts.pendingBookings} yêu cầu đặt phòng đang chờ duyệt`, time: "2 giờ trước" });
                   }
-                  
+
                   if (activeAlerts.length === 0) {
                     return (
                       <div style={{ textAlign: "center", padding: "24px 0", color: "#6B7280" }}>
