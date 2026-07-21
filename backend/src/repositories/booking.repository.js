@@ -3,6 +3,7 @@ const Building = require("../models/building.model");
 const Booking = require("../models/booking.model");
 const User = require("../models/user.model");
 const Invoice = require("../models/invoice.model");
+const SystemConfig = require("../models/systemConfig.model");
 
 /**
  * Điều kiện xác định booking đang giữ giường:
