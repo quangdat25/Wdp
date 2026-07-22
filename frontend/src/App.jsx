@@ -41,7 +41,8 @@ import BookingManagement from "./pages/Manager/BookingManagement";
 import MyUtilities from "./pages/Student/MyUtilities";
 import MyRoom from "./pages/Student/MyRoom";
 import SystemConfigManagement from "./pages/Admin/SystemConfigManagement";
-import MyViolations from "./pages/Student/MyViolations";
+import CheckInOutManagement from "./pages/Staff/SecurityTabs/CheckInOutManagement";
+
 function App() {
   const location = useLocation();
   const isHomePage = location.pathname === "/";
@@ -97,7 +98,6 @@ function App() {
               />
               <Route path="/student/my-utilities" element={<MyUtilities />} />
               <Route path="/student/room" element={<MyRoom />} />
-              <Route path="/student/violations" element={<MyViolations />} />
             </Route>
 
             {/* Parent Routes */}
@@ -105,7 +105,6 @@ function App() {
               <Route path="/parent/dashboard" element={<ParentDashboard />} />
               <Route path="/parent/student" element={<ParentStudentInfo />} />
               <Route path="/parent/payments" element={<ParentPayment />} />
-              <Route path="/parent/violations" element={<MyViolations />} />
             </Route>
 
             {/* Manager Routes */}
@@ -148,6 +147,17 @@ function App() {
                     allowedStaffTypes={["maintenance"]}
                   >
                     <MaintenanceDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/security/check-in-out/*"
+                element={
+                  <ProtectedRoute
+                    allowedRoles={["staff"]}
+                    allowedStaffTypes={["security"]}
+                  >
+                    <CheckInOutManagement />
                   </ProtectedRoute>
                 }
               />

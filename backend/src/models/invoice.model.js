@@ -6,29 +6,45 @@ const invoiceSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Booking",
       required: true,
+      index: true,
     },
 
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
 
     invoiceCode: {
       type: String,
       unique: true,
       required: true,
+      trim: true,
     },
 
     type: {
       type: String,
       enum: ["room_fee", "utility"],
       required: true,
+      index: true,
+    },
+
+    semester: {
+      type: String,
+      trim: true,
+    },
+
+    billingMonth: {
+      type: Number,
+      min: 1,
+      max: 12,
     },
 
     amount: {
       type: Number,
       required: true,
+      min: 0,
     },
 
     items: [
@@ -36,23 +52,32 @@ const invoiceSchema = new mongoose.Schema(
         name: {
           type: String,
           enum: ["electricity", "water"],
+          required: true,
         },
 
         amount: {
           type: Number,
           required: true,
+          min: 0,
         },
       },
     ],
 
-    dueDate: Date,
+    dueDate: {
+      type: Date,
+      required: true,
+    },
 
-    paidAt: Date,
+    paidAt: {
+      type: Date,
+      default: null,
+    },
 
     status: {
       type: String,
       enum: ["unpaid", "paid", "overdue", "cancelled"],
       default: "unpaid",
+      index: true,
     },
   },
   {

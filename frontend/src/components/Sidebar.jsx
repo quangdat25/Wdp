@@ -241,6 +241,11 @@ function Sidebar() {
         label: "Tìm kiếm sinh viên",
         icon: <FaSearch />,
       },
+      {
+        path: "/staff/security/check-in-out",
+        label: "Check-in/Check-out",
+        icon: <FaSearch />,
+      },
     ],
 
     student: [

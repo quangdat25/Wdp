@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getMyChildRoom, getStudentInvoices } from "../../api/parentService";
+import { getMyChildRoom, getStudentInvoices, getStudentInfo } from "../../api/parentService";
 import {
   FaBed,
   FaCalendarAlt,
@@ -11,6 +11,7 @@ import {
   FaTint,
   FaFileInvoiceDollar,
 } from "react-icons/fa";
+import systemConfigService from "../../api/systemConfigService";
 
 import "./ParentDashboard.css";
 import Sidebar from "../../components/Sidebar";
@@ -41,21 +42,31 @@ const parentModules = [
 function ParentDashboard() {
   const [activeModule, setActiveModule] = useState("home");
   const [childData, setChildData] = useState(null);
+  const [studentInfo, setStudentInfo] = useState(null);
   const [invoices, setInvoices] = useState([]);
+  const [systemConfig, setSystemConfig] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [roomData, invoiceData] = await Promise.all([
-          getMyChildRoom(),
-          getStudentInvoices()
+        const [roomData, invoiceData, configData, studentData] = await Promise.all([
+          getMyChildRoom().catch(() => null),
+          getStudentInvoices().catch(() => null),
+          systemConfigService.getActiveConfig().catch(() => null),
+          getStudentInfo().catch(() => null)
         ]);
         if (roomData && roomData.success) {
           setChildData(roomData.data);
         }
         if (invoiceData && invoiceData.success) {
           setInvoices(invoiceData.data);
+        }
+        if (configData) {
+          setSystemConfig(configData?.data || configData);
+        }
+        if (studentData && studentData.success) {
+          setStudentInfo(studentData.data);
         }
       } catch (error) {
         console.error("Lỗi khi tải thông tin:", error);
@@ -79,7 +90,7 @@ function ParentDashboard() {
         <Header avatarText="P" />
 
         {activeModule === "home" && (
-          <HomeScreen setActiveModule={setActiveModule} childData={childData} invoices={invoices} loading={loading} />
+          <HomeScreen setActiveModule={setActiveModule} childData={childData} studentInfo={studentInfo} invoices={invoices} systemConfig={systemConfig} loading={loading} />
         )}
 
         {activeModule === "news" && <ParentNewsPage />}
@@ -96,7 +107,7 @@ function ParentDashboard() {
   );
 }
 
-function HomeScreen({ setActiveModule, childData, invoices, loading }) {
+function HomeScreen({ setActiveModule, childData, studentInfo, invoices, systemConfig, loading }) {
   const { news, loading: newsLoading } = useNews();
   const [selectedNews, setSelectedNews] = useState(null);
 
@@ -112,10 +123,10 @@ function HomeScreen({ setActiveModule, childData, invoices, loading }) {
 
   const roomText = childData
     ? `${childData.room.roomNumber} – ${childData.building.name}`
-    : "Chưa xếp phòng";
+    : "Chưa có phòng";
   const bedText = childData
     ? `Giường số ${childData.bedNumber} · Đang hoạt động`
-    : "Vui lòng liên hệ BQL";
+    : "";
 
   let electricityValue = "0 đ";
   let waterValue = "0 đ";
@@ -131,6 +142,12 @@ function HomeScreen({ setActiveModule, childData, invoices, loading }) {
     utilityNote = `Tháng ${month < 10 ? '0' + month : month}`;
     utilityStatus = status === "unpaid" ? "Chưa thanh toán" : status === "paid" ? "Đã thanh toán" : "";
   }
+
+  const elecPrice = systemConfig?.electricityPrice ? `(${systemConfig.electricityPrice.toLocaleString("vi-VN")}đ/kWh)` : "";
+  const waterPrice = systemConfig?.waterPrice ? `(${systemConfig.waterPrice.toLocaleString("vi-VN")}đ/tháng)` : "";
+
+  const elecNote = utilityStatus ? `${utilityStatus} ${elecPrice}` : elecPrice;
+  const waterNote = utilityStatus ? `${utilityStatus} ${waterPrice}` : waterPrice;
 
   return (
     <div className="parent-stack">
@@ -159,7 +176,7 @@ function HomeScreen({ setActiveModule, childData, invoices, loading }) {
         <MetricCard
           icon={<FaBed />}
           label="Phòng của con"
-          value={childData ? `${childData.room.roomNumber} – ${childData.building.name}` : "N/A"}
+          value={childData ? `${childData.room.roomNumber} – ${childData.building.name}` : "Chưa có phòng"}
           note={childData ? "Đang lưu trú" : ""}
           tone="purple"
         />
@@ -168,7 +185,7 @@ function HomeScreen({ setActiveModule, childData, invoices, loading }) {
           icon={<FaTachometerAlt />}
           label={`Tiền điện ${utilityNote}`}
           value={electricityValue}
-          note={utilityStatus}
+          note={elecNote}
           tone="amber"
         />
 
@@ -176,14 +193,14 @@ function HomeScreen({ setActiveModule, childData, invoices, loading }) {
           icon={<FaTint />}
           label={`Tiền nước ${utilityNote}`}
           value={waterValue}
-          note={utilityStatus}
+          note={waterNote}
           tone="rose"
         />
 
         <MetricCard
           icon={<FaStar />}
           label="Điểm ý thức"
-          value={childData ? childData.student.CFDScore : "N/A"}
+          value={studentInfo ? studentInfo.CFDScore : "N/A"}
           note="CFD Score của con"
           tone="green"
         />
