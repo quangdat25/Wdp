@@ -40,6 +40,7 @@ import BookingManagement from "./pages/Manager/BookingManagement";
 import MyUtilities from "./pages/Student/MyUtilities";
 import MyRoom from "./pages/Student/MyRoom";
 import SystemConfigManagement from "./pages/Admin/SystemConfigManagement";
+import CheckInOutManagement from "./pages/Staff/SecurityTabs/CheckInOutManagement";
 
 function App() {
   const location = useLocation();
@@ -145,6 +146,17 @@ function App() {
                     allowedStaffTypes={["maintenance"]}
                   >
                     <MaintenanceDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff/security/check-in-out/*"
+                element={
+                  <ProtectedRoute
+                    allowedRoles={["staff"]}
+                    allowedStaffTypes={["security"]}
+                  >
+                    <CheckInOutManagement />
                   </ProtectedRoute>
                 }
               />

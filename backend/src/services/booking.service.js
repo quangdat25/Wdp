@@ -5,7 +5,7 @@ const bookingRepository = require("../repositories/booking.repository");
 const systemConfigRepository = require("../repositories/systemConfig.repository");
 const semesterService = require("./semester.service");
 
-const BOOKING_HOLD_MINUTES = 5;
+const BOOKING_HOLD_MINUTES = 1;
 
 const getUTCDateString = (date) => {
   return new Intl.DateTimeFormat("en-CA", {
@@ -115,26 +115,7 @@ class BookingService {
       };
     }
 
-    const existingRoom =
-      await bookingRepository.findCurrentRoomByStudent(studentId);
 
-    if (existingRoom && !isRenew) {
-      const studentEntry = existingRoom.students.find(
-        (item) => item.student.toString() === studentId.toString(),
-      );
-
-      return {
-        statusCode: 400,
-        response: {
-          success: false,
-          eligible: false,
-          reason: "already_in_room",
-          message: `Bạn đang ở phòng ${existingRoom.displayName}${
-            studentEntry ? ` - Giường ${studentEntry.bedNumber}` : ""
-          }. Không thể đặt phòng mới.`,
-        },
-      };
-    }
 
     const existingBooking =
       await bookingRepository.findActiveBookingByStudentAndSemester(
@@ -488,18 +469,6 @@ class BookingService {
       };
     }
 
-    const existingRoom =
-      await bookingRepository.findCurrentRoomByStudent(studentId);
-
-    if (existingRoom && !renewedFrom) {
-      return {
-        statusCode: 400,
-        response: {
-          success: false,
-          message: `Bạn đang ở phòng ${existingRoom.displayName}. Không thể đặt thêm.`,
-        },
-      };
-    }
 
     const existingBooking =
       await bookingRepository.findActiveBookingByStudentAndSemester(

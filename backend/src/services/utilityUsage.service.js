@@ -445,157 +445,259 @@ class UtilityUsageService {
   }
 
   async createUtilityInvoices(data) {
-    const { semester, dueDate } = data;
+    const { semester, billingMonth, dueDate } = data;
 
-    if (!semester || !dueDate) {
-      throw createError(400, "Thiếu kỳ hoặc hạn thanh toán");
+    if (!semester || billingMonth === undefined || !dueDate) {
+      throw createError(
+        400,
+        "Thiếu học kỳ, tháng thanh toán hoặc hạn thanh toán",
+      );
+    }
+
+    const parsedBillingMonth = Number(billingMonth);
+
+    if (
+      !Number.isInteger(parsedBillingMonth) ||
+      parsedBillingMonth < 1 ||
+      parsedBillingMonth > 12
+    ) {
+      throw createError(
+        400,
+        "Tháng thanh toán phải nằm trong khoảng từ 1 đến 12",
+      );
     }
 
     const dueDateTime = new Date(dueDate);
+
+    if (Number.isNaN(dueDateTime.getTime())) {
+      throw createError(400, "Hạn thanh toán không hợp lệ");
+    }
+
     dueDateTime.setHours(23, 59, 59, 999);
 
     const bookings =
       await utilityUsageRepository.findConfirmedBookingsBySemester(semester);
 
     if (!bookings.length) {
-      throw createError(404, "Không tìm thấy sinh viên đang ở trong kỳ này");
+      throw createError(
+        404,
+        "Không tìm thấy sinh viên đang ở trong học kỳ này",
+      );
     }
 
     const results = [];
 
     for (const booking of bookings) {
-      const room = booking.roomId;
-      const studentId = booking.studentId;
+      try {
+        const room = booking.roomId;
+        const studentId = booking.studentId?._id || booking.studentId;
 
-      if (!room) {
-        results.push({
-          bookingId: booking._id,
-          status: "failed",
-          message: "Booking không có phòng",
-        });
-        continue;
-      }
+        if (!room) {
+          results.push({
+            bookingId: booking._id,
+            status: "failed",
+            message: "Booking không có phòng",
+          });
+          continue;
+        }
 
-      if (!studentId) {
-        results.push({
-          bookingId: booking._id,
-          roomId: room._id,
-          status: "failed",
-          message: "Booking không có sinh viên",
-        });
-        continue;
-      }
+        if (!studentId) {
+          results.push({
+            bookingId: booking._id,
+            roomId: room._id,
+            status: "failed",
+            message: "Booking không có sinh viên",
+          });
+          continue;
+        }
 
-      const usages = await utilityUsageRepository.findUsagesByRoomAndSemester(
-        room._id,
-        semester,
-      );
+        /*
+         * Chỉ lấy dữ liệu điện nước của đúng một tháng,
+         * không cộng toàn bộ 4 tháng trong học kỳ nữa.
+         */
+        const usage =
+          await utilityUsageRepository.findUsageByRoomSemesterAndMonth(
+            room._id,
+            semester,
+            parsedBillingMonth,
+          );
 
-      if (!usages.length) {
-        results.push({
+        if (!usage) {
+          results.push({
+            bookingId: booking._id,
+            studentId,
+            roomId: room._id,
+            status: "failed",
+            message: `Phòng chưa có dữ liệu điện nước tháng ${parsedBillingMonth} của học kỳ ${semester}`,
+          });
+          continue;
+        }
+
+        /*
+         * Kiểm tra trùng theo:
+         * booking + sinh viên + học kỳ + tháng.
+         */
+        const existedInvoice =
+          await utilityUsageRepository.findExistingUtilityInvoice({
+            bookingId: booking._id,
+            studentId,
+            semester,
+            billingMonth: parsedBillingMonth,
+          });
+
+        if (existedInvoice) {
+          results.push({
+            bookingId: booking._id,
+            studentId,
+            roomId: room._id,
+            invoiceId: existedInvoice._id,
+            status: "skipped",
+            message: `Sinh viên đã có hóa đơn điện nước tháng ${parsedBillingMonth} của học kỳ ${semester}`,
+          });
+          continue;
+        }
+
+        const studentCount =
+          await utilityUsageRepository.countStudentsInRoomBySemester(
+            room._id,
+            semester,
+          );
+
+        if (studentCount <= 0) {
+          results.push({
+            bookingId: booking._id,
+            studentId,
+            roomId: room._id,
+            status: "failed",
+            message: "Không có sinh viên trong phòng",
+          });
+          continue;
+        }
+
+        /*
+         * Vì usage là dữ liệu của một tháng nên không cần reduce
+         * cộng nhiều bản ghi của cả học kỳ.
+         */
+        const totalElectricity = Number(usage.electricityAmount || 0);
+        const totalWater = Number(usage.waterAmount || 0);
+
+        const studentElectricity = Math.round(totalElectricity / studentCount);
+
+        const studentWater = Math.round(totalWater / studentCount);
+
+        const studentTotal = studentElectricity + studentWater;
+
+        const invoice = await utilityUsageRepository.createInvoice({
           bookingId: booking._id,
           studentId,
-          roomId: room._id,
-          status: "failed",
-          message: "Phòng chưa có dữ liệu điện nước do staff import",
-        });
-        continue;
-      }
 
-      const existedInvoice =
-        await utilityUsageRepository.findExistingUtilityInvoice(
-          booking._id,
-          studentId,
-        );
+          invoiceCode: generateInvoiceCode({
+            semester,
+            billingMonth: parsedBillingMonth,
+          }),
 
-      if (existedInvoice) {
-        results.push({
-          bookingId: booking._id,
-          studentId,
-          roomId: room._id,
-          status: "skipped",
-          message: "Sinh viên đã có hóa đơn điện nước kỳ này",
-        });
-        continue;
-      }
+          type: "utility",
 
-      const studentCount =
-        await utilityUsageRepository.countStudentsInRoomBySemester(
-          room._id,
           semester,
-        );
+          billingMonth: parsedBillingMonth,
 
-      if (studentCount <= 0) {
+          amount: studentTotal,
+
+          items: [
+            {
+              name: "electricity",
+              amount: studentElectricity,
+            },
+            {
+              name: "water",
+              amount: studentWater,
+            },
+          ],
+
+          dueDate: dueDateTime,
+          status: "unpaid",
+        });
+
+        const student = await utilityUsageRepository.findStudentById(studentId);
+
+        let emailSent = false;
+
+        if (student?.email) {
+          try {
+            await sendUtilityInvoiceMail({
+              booking: {
+                ...booking.toObject(),
+                studentId: student,
+              },
+              invoice,
+              semester,
+              billingMonth: parsedBillingMonth,
+              dueDate,
+            });
+
+            emailSent = true;
+          } catch (mailError) {
+            console.error(
+              `Không thể gửi email hóa đơn cho sinh viên ${studentId}:`,
+              mailError.message,
+            );
+          }
+        }
+
         results.push({
+          status: "success",
+          bookingId: booking._id,
+          studentId,
           roomId: room._id,
-          status: "failed",
-          message: "Không có sinh viên trong phòng",
-        });
-        continue;
-      }
-
-      const totalElectricity = usages.reduce(
-        (sum, item) => sum + Number(item.electricityAmount || 0),
-        0,
-      );
-
-      const totalWater = usages.reduce(
-        (sum, item) => sum + Number(item.waterAmount || 0),
-        0,
-      );
-
-      const studentElectricity = Math.round(totalElectricity / studentCount);
-      const studentWater = Math.round(totalWater / studentCount);
-      const studentTotal = studentElectricity + studentWater;
-
-      const invoice = await utilityUsageRepository.createInvoice({
-        bookingId: booking._id,
-        studentId,
-        invoiceCode: generateInvoiceCode(),
-        type: "utility",
-        amount: studentTotal,
-        items: [
-          { name: "electricity", amount: studentElectricity },
-          { name: "water", amount: studentWater },
-        ],
-        dueDate: dueDateTime,
-        status: "unpaid",
-      });
-
-      const student = await utilityUsageRepository.findStudentById(studentId);
-      if (student?.email) {
-        await sendUtilityInvoiceMail({
-          booking: {
-            ...booking.toObject(),
-            studentId: student,
-          },
-          invoice,
+          invoiceId: invoice._id,
           semester,
-          dueDate,
+          billingMonth: parsedBillingMonth,
+          amount: studentTotal,
+          message: emailSent
+            ? "Tạo hóa đơn thành công và đã gửi email"
+            : student?.email
+              ? "Tạo hóa đơn thành công nhưng gửi email thất bại"
+              : "Tạo hóa đơn thành công nhưng sinh viên chưa có email",
+        });
+      } catch (error) {
+        /*
+         * Nếu hai request tạo cùng hóa đơn chạy đồng thời
+         * và database có unique index, MongoDB trả mã 11000.
+         */
+        if (error?.code === 11000) {
+          results.push({
+            bookingId: booking._id,
+            studentId: booking.studentId?._id || booking.studentId,
+            roomId: booking.roomId?._id,
+            status: "skipped",
+            message: `Hóa đơn tháng ${parsedBillingMonth} đã tồn tại`,
+          });
+
+          continue;
+        }
+
+        results.push({
+          bookingId: booking._id,
+          studentId: booking.studentId?._id || booking.studentId,
+          roomId: booking.roomId?._id,
+          status: "failed",
+          message: error.message || "Không thể tạo hóa đơn",
         });
       }
-
-      results.push({
-        status: "success",
-        bookingId: booking._id,
-        studentId,
-        roomId: room._id,
-        invoiceId: invoice._id,
-        amount: studentTotal,
-        message: student?.email
-          ? "Tạo hóa đơn thành công và đã gửi mail"
-          : "Tạo hóa đơn thành công nhưng sinh viên chưa có email",
-      });
     }
 
     const successCount = results.filter(
       (item) => item.status === "success",
     ).length;
 
-    if (successCount === 0) {
+    const skippedCount = results.filter(
+      (item) => item.status === "skipped",
+    ).length;
+
+    if (successCount === 0 && skippedCount === 0) {
       throw createError(
         400,
-        "Không thể tạo hóa đơn. Chưa có dữ liệu điện nước hợp lệ do staff import hoặc hóa đơn đã tồn tại.",
+        `Không thể tạo hóa đơn tháng ${parsedBillingMonth}. Chưa có dữ liệu điện nước hợp lệ.`,
       );
     }
 
