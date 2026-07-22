@@ -3,21 +3,19 @@ const bookingRepository = require("../repositories/booking.repository");
 
 const autoDeleteExpiredBookings = () => {
   cron.schedule(
-    "* * * * *", 
+    "* * * * *",
     async () => {
       try {
-        const result = await bookingRepository.deleteExpiredPendingBookings();
+        const result =
+          await bookingRepository.deleteExpiredPendingBookings();
 
-        if (result.deletedCount > 0) {
+        if (result.deletedBookings > 0 || result.deletedInvoices > 0) {
           console.log(
-            `Deleted ${result.deletedCount} expired pending bookings.`,
+            `Deleted ${result.deletedBookings} expired bookings and ${result.deletedInvoices} related invoices.`,
           );
         }
       } catch (error) {
-        console.error(
-          "Auto delete expired bookings error:",
-          error,
-        );
+        console.error("Auto delete expired bookings error:", error);
       }
     },
     {

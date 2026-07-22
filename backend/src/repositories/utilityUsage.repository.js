@@ -61,6 +61,7 @@ class UtilityUsageRepository {
       },
     });
   }
+
   async findByStudentId(studentId) {
     const bookings = await Booking.find({
       studentId,
@@ -103,19 +104,14 @@ class UtilityUsageRepository {
       for (const usage of usages) {
         results.push({
           ...usage,
-
           bookingId: booking._id,
-
           bookingStatus: booking.status,
-
           bookingStartDate: booking.startDate,
           bookingEndDate: booking.endDate,
-
           room: {
             _id: booking.roomId._id,
             roomNumber: booking.roomId.roomNumber,
             floor: booking.roomId.floor,
-
             building:
               booking.roomId.building?.name ||
               booking.roomId.building?.buildingName ||
@@ -130,10 +126,10 @@ class UtilityUsageRepository {
       if (a.year !== b.year) {
         return b.year - a.year;
       }
-
       return b.month - a.month;
     });
   }
+
   async deleteById(id) {
     return UtilityUsage.findByIdAndDelete(id);
   }
@@ -197,6 +193,18 @@ class UtilityUsageRepository {
 
   async createInvoice(data) {
     return Invoice.create(data);
+  }
+
+  async findRoomByBuildingFloorAndNumber({ buildingName, floor, roomNumber }) {
+    return Room.findOne({
+      floor,
+      roomNumber,
+    }).populate({
+      path: "building",
+      match: {
+        name: buildingName,
+      },
+    });
   }
 }
 

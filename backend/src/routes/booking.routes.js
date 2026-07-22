@@ -8,8 +8,10 @@ const {
   getRoomBedAvailability,
   createBooking,
   getMyBooking,
+  getMyHistory,
   getRoomHistory,
   getAllBookings,
+  getRoommates,
 } = require("../controllers/booking.controller");
 
 const {
@@ -53,6 +55,13 @@ router.get(
 );
 
 router.get(
+  "/my-history",
+  authenticate,
+  authorize("student"),
+  getMyHistory,
+);
+
+router.get(
   "/",
   authenticate,
   authorize("manager", "admin"),
@@ -66,12 +75,11 @@ router.get(
   getRoomHistory,
 );
 
-// Lấy tất cả các booking (cho Admin)
 router.get(
-  "/all",
+  "/room/:roomId/roommates",
   authenticate,
-  authorize("admin", "manager"),
-  getAllBookings,
+  authorize("student", "manager", "admin"),
+  getRoommates,
 );
 
 module.exports = router;

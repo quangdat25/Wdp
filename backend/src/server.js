@@ -14,6 +14,7 @@
   const autoCheckInBookings = require("./config/checkIn.job");
   const autoCheckOutBookings = require("./config/checkOut.job");
   const autoDeleteExpiredBookings = require("./config/bookingExpiration.job");
+  const paymentReminder = require("./config/paymentReminder.job");
 
   app.use(bodyParser.json());
   app.use(
@@ -60,3 +61,4 @@
   autoCheckInBookings();
   autoCheckOutBookings();
   autoDeleteExpiredBookings();
+  paymentReminder();

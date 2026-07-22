@@ -122,19 +122,9 @@ function Sidebar() {
         icon: <FaBed />,
       },
       {
-        path: "/admin/semesters",
-        label: "Quản lý kỳ học",
-        icon: <FaCalendarAlt />,
-      },
-      {
         path: "/admin/students",
         label: "Quản lý sinh viên",
         icon: <FaUserGraduate />,
-      },
-      {
-        path: "/admin/orders",
-        label: "Quản lý đơn đặt phòng",
-        icon: <FaClipboardList />,
       },
       {
         path: "/admin/personnel",
@@ -158,16 +148,6 @@ function Sidebar() {
         path: "/manager/dashboard",
         label: "Bảng điều khiển",
         icon: <FaChartPie />,
-      },
-      {
-        path: "/manager/buildings",
-        label: "Quản lý tòa nhà",
-        icon: <FaBuilding />,
-      },
-      {
-        path: "/manager/students",
-        label: "Quản lý sinh viên",
-        icon: <FaUserGraduate />,
       },
       {
         path: "/manager/bookings",
@@ -243,34 +223,9 @@ function Sidebar() {
         label: "Danh sách sự cố",
         icon: <FaWrench />,
       },
-      {
-        path: "/staff/utility-usages",
-        label: "Import điện nước",
-        icon: <FaFileInvoiceDollar />,
-      },
     ],
 
     security: [
-      {
-        path: "/staff/dashboard/security",
-        label: "Trang chủ",
-        icon: <FaChartPie />,
-      },
-      {
-        path: "/staff/dashboard/security/history",
-        label: "Lịch sử ra vào",
-        icon: <FaShieldAlt />,
-      },
-      {
-        path: "/staff/dashboard/security/create-report",
-        label: "Lập biên bản",
-        icon: <FaPlusCircle />,
-      },
-      {
-        path: "/staff/dashboard/security/search",
-        label: "Tìm kiếm sinh viên",
-        icon: <FaSearch />,
-      },
       {
         path: "/staff/dashboard/security",
         label: "Trang chủ",
@@ -320,6 +275,11 @@ function Sidebar() {
         icon: <FaClipboardList />,
       },
       {
+        path: "/student/violations",
+        label: "Lịch sử trừ điểm",
+        icon: <FaShieldAlt />,
+      },
+      {
         path: "/img/KTX.pdf",
         label: "Nội quy ký túc xá",
         icon: <FaBook />,
@@ -344,14 +304,9 @@ function Sidebar() {
         icon: <FaMoneyBillWave />,
       },
       {
-        path: "/parent/requests",
-        label: "Yêu cầu",
-        icon: <FaTools />,
-      },
-      {
-        path: "/parent/notifications",
-        label: "Thông báo",
-        icon: <FaBell />,
+        path: "/parent/violations",
+        label: "Lịch sử trừ điểm",
+        icon: <FaShieldAlt />,
       },
     ],
   };

@@ -1,32 +1,22 @@
-const uploadImage = require("../config/uploadImage");
+const uploadService = require("../services/uploadImage.service");
 
 exports.upload = async (req, res) => {
   try {
-    const file = req.file;
-
-    if (!file) {
-      return res.status(400).json({
-        success: false,
-        message: "Vui lòng chọn ảnh",
-      });
-    }
-
-    const base64 = `data:${file.mimetype};base64,${file.buffer.toString(
-      "base64"
-    )}`;
-
-    const imageUrl = await uploadImage(base64);
+    const imageUrl = await uploadService.upload(req.file);
 
     return res.status(200).json({
       success: true,
       message: "Upload ảnh thành công",
+
+      // Giữ nguyên cấu trúc cũ để frontend vẫn đọc res.data.url
       url: imageUrl,
     });
   } catch (error) {
-    return res.status(500).json({
+    console.error("UPLOAD IMAGE ERROR:", error);
+
+    return res.status(error.status || 500).json({
       success: false,
-      message: "Upload ảnh thất bại",
-      error: error.message,
+      message: error.message || "Upload ảnh thất bại",
     });
   }
 };

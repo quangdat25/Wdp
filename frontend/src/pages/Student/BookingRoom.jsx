@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   FaArrowLeft,
   FaArrowRight,
@@ -31,6 +31,8 @@ import { showError } from "../../components/alert";
 
 function BookingRoom() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const renewState = location.state;
 
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -67,13 +69,13 @@ function BookingRoom() {
   }, []);
 
   useEffect(() => {
-    if (currentStep === 2) {
+    if (currentStep === 2 && !renewState?.isRenew) {
       loadBuildings();
     }
   }, [currentStep]);
 
   useEffect(() => {
-    if (selectedBuilding?._id) {
+    if (selectedBuilding?._id && !renewState?.isRenew) {
       loadRooms();
     }
   }, [selectedBuilding?._id, selectedFloor]);
@@ -100,7 +102,7 @@ function BookingRoom() {
       setChecking(true);
       setEligible(null);
 
-      const response = await checkEligibility();
+      const response = await checkEligibility(renewState?.isRenew || false);
 
       setEligible(Boolean(response?.eligible));
       setEligibilityData(response?.data || {});
@@ -109,7 +111,14 @@ function BookingRoom() {
 
       if (response?.eligible) {
         setTimeout(() => {
-          setCurrentStep(2);
+          if (renewState?.isRenew && renewState?.roomId) {
+            // Jump directly to renewal confirm step
+            setSelectedRoom({ _id: renewState.roomId, roomNumber: renewState.roomNumber });
+            setSelectedBed(renewState.bedNumber);
+            setCurrentStep(2); 
+          } else {
+            setCurrentStep(2);
+          }
         }, 800);
       }
     } catch (error) {
@@ -234,36 +243,29 @@ function BookingRoom() {
        * Refresh lại ngay trước khi tạo booking để UX chính xác hơn.
        * Backend + unique index vẫn là lớp bảo vệ cuối cùng.
        */
-      const availabilityResponse =
-        await getRoomBedAvailability(selectedRoom._id);
+      if (!renewState?.isRenew) {
+        const availabilityResponse = await getRoomBedAvailability(selectedRoom._id);
+        const latestBeds = availabilityResponse?.data?.beds || [];
+        const selectedBedInfo = latestBeds.find((bed) => bed.bedNumber === selectedBed);
 
-      const latestBeds =
-        availabilityResponse?.data?.beds || [];
-
-      const selectedBedInfo = latestBeds.find(
-        (bed) => bed.bedNumber === selectedBed,
-      );
-
-      if (!selectedBedInfo?.available) {
-        setBeds(latestBeds);
-        setSelectedBed(null);
-        setShowConfirmModal(false);
-
-        showError(
-          `Giường ${selectedBed} vừa được sinh viên khác đặt. Vui lòng chọn giường khác.`,
-        );
-
-        return;
+        if (!selectedBedInfo?.available) {
+          setBeds(latestBeds);
+          setSelectedBed(null);
+          setShowConfirmModal(false);
+          showError(`Giường ${selectedBed} vừa được sinh viên khác đặt. Vui lòng chọn giường khác.`);
+          return;
+        }
       }
 
       const response = await createBooking({
         roomId: selectedRoom._id,
         bedNumber: selectedBed,
+        renewedFrom: renewState?.renewedFrom || null,
       });
 
       setBookingResult(response);
       setShowConfirmModal(false);
-      setCurrentStep(4);
+      setCurrentStep(renewState?.isRenew ? 3 : 4);
     } catch (error) {
       const status = error.response?.status;
       const message =
@@ -318,12 +320,18 @@ function BookingRoom() {
     }
   };
 
-  const steps = [
-    { id: 1, label: "Kiểm tra điều kiện" },
-    { id: 2, label: "Chọn phòng" },
-    { id: 3, label: "Chọn giường" },
-    { id: 4, label: "Thanh toán" },
-  ];
+  const steps = renewState?.isRenew
+    ? [
+        { id: 1, label: "Kiểm tra điều kiện" },
+        { id: 2, label: "Xác nhận gia hạn" },
+        { id: 3, label: "Thanh toán" },
+      ]
+    : [
+        { id: 1, label: "Kiểm tra điều kiện" },
+        { id: 2, label: "Chọn phòng" },
+        { id: 3, label: "Chọn giường" },
+        { id: 4, label: "Thanh toán" },
+      ];
 
   return (
     <div className="student-shell">
@@ -352,7 +360,18 @@ function BookingRoom() {
           />
         )}
 
-        {currentStep === 2 && (
+        {currentStep === 2 && renewState?.isRenew && selectedRoom && (
+          <RenewalConfirmScreen
+            room={selectedRoom}
+            bedNumber={selectedBed}
+            submitting={submitting}
+            onConfirm={handleConfirmBooking}
+            onGoBack={() => navigate("/student/dashboard")}
+            semester={nextSemester ? `${nextSemester.name} ${nextSemester.year}` : "—"}
+          />
+        )}
+
+        {currentStep === 2 && !renewState?.isRenew && (
           <RoomSelectionScreen
             buildings={buildings}
             selectedBuilding={selectedBuilding}
@@ -366,19 +385,15 @@ function BookingRoom() {
           />
         )}
 
-        {currentStep === 3 && selectedRoom && (
+        {currentStep === 3 && !renewState?.isRenew && selectedRoom && (
           <BedSelectionScreen
             room={selectedRoom}
             beds={beds}
             loadingBeds={loadingBeds}
             selectedBed={selectedBed}
             onSelectBed={handleSelectBed}
-            onRefresh={() =>
-              loadBedAvailability(selectedRoom._id)
-            }
-            onConfirm={() =>
-              setShowConfirmModal(true)
-            }
+            onRefresh={() => loadBedAvailability(selectedRoom._id)}
+            onConfirm={() => setShowConfirmModal(true)}
             onGoBack={() => {
               setCurrentStep(2);
               setSelectedRoom(null);
@@ -388,7 +403,7 @@ function BookingRoom() {
           />
         )}
 
-        {currentStep === 4 && bookingResult && (
+        {((currentStep === 3 && renewState?.isRenew) || (currentStep === 4 && !renewState?.isRenew)) && bookingResult && (
           <PaymentScreen
             result={bookingResult}
             submitting={submitting}
@@ -789,6 +804,54 @@ function RoomSelectionScreen({
           )}
         </>
       )}
+    </div>
+  );
+}
+
+function RenewalConfirmScreen({
+  room,
+  bedNumber,
+  submitting,
+  onConfirm,
+  onGoBack,
+  semester,
+}) {
+  return (
+    <div className="booking-bed-selection">
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+        <button
+          type="button"
+          className="booking-btn-secondary"
+          onClick={onGoBack}
+          style={{ minHeight: 36, padding: "0 14px", fontSize: 13 }}
+        >
+          <FaArrowLeft />
+        </button>
+        <h3 className="booking-section-title" style={{ margin: 0 }}>Xác nhận gia hạn phòng</h3>
+      </div>
+
+      <div className="booking-selected-room-info" style={{ marginTop: 24, padding: 24, background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0" }}>
+        <div className="booking-selected-room-info__icon" style={{ background: "#dcfce7", color: "#16a34a" }}>
+          <FaCheckCircle />
+        </div>
+        <div>
+          <h4 style={{ fontSize: 18, color: "#1e293b", marginBottom: 8 }}>
+            Phòng {room.roomNumber} - Giường {bedNumber}
+          </h4>
+          <p style={{ color: "#64748b", margin: 0 }}>
+            Bạn đang yêu cầu gia hạn phòng hiện tại cho học kỳ: <strong style={{ color: "#334155" }}>{semester}</strong>
+          </p>
+        </div>
+      </div>
+
+      <div className="booking-btn-group" style={{ marginTop: 32 }}>
+        <button type="button" className="booking-btn-secondary" onClick={onGoBack} disabled={submitting}>
+          <FaArrowLeft /> Trở về
+        </button>
+        <button type="button" className="booking-btn-primary" onClick={onConfirm} disabled={submitting}>
+          {submitting ? "Đang xử lý..." : "Xác nhận gia hạn và Thanh toán"} <FaArrowRight />
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
+const Invoice = require("../models/invoice.model");
 
 const bookingRepository = require("../repositories/booking.repository");
 const systemConfigRepository = require("../repositories/systemConfig.repository");
 const semesterService = require("./semester.service");
 
-const BOOKING_HOLD_MINUTES = 1;
+const BOOKING_HOLD_MINUTES = 5;
 
 const getUTCDateString = (date) => {
   return new Intl.DateTimeFormat("en-CA", {
@@ -36,7 +37,7 @@ class BookingService {
     };
   }
 
-  async checkBookingEligibility(studentId) {
+  async checkBookingEligibility(studentId, isRenew = false) {
     if (!studentId) {
       return {
         statusCode: 401,
@@ -76,24 +77,29 @@ class BookingService {
       };
     }
 
-    if (
-      !currentSemester?.bookingStartDate ||
-      !currentSemester?.bookingEndDate
-    ) {
+    const targetStart = isRenew
+      ? currentSemester?.renewalStartDate
+      : currentSemester?.bookingStartDate;
+    const targetEnd = isRenew
+      ? currentSemester?.renewalEndDate
+      : currentSemester?.bookingEndDate;
+    const timeTypeLabel = isRenew ? "gia hạn" : "đăng ký mới";
+
+    if (!targetStart || !targetEnd) {
       return {
         statusCode: 400,
         response: {
           success: false,
           eligible: false,
           reason: "booking_time_not_configured",
-          message: "Kỳ hiện tại chưa được cấu hình thời gian đăng ký phòng",
+          message: `Kỳ hiện tại chưa được cấu hình thời gian ${timeTypeLabel}`,
         },
       };
     }
 
     const today = getUTCDateString(new Date());
-    const bookingStart = getUTCDateString(currentSemester.bookingStartDate);
-    const bookingEnd = getUTCDateString(currentSemester.bookingEndDate);
+    const bookingStart = getUTCDateString(targetStart);
+    const bookingEnd = getUTCDateString(targetEnd);
 
     if (today < bookingStart || today > bookingEnd) {
       return {
@@ -102,9 +108,9 @@ class BookingService {
           success: false,
           eligible: false,
           reason: "booking_closed",
-          message: `Hiện không nằm trong thời gian đăng ký phòng. Thời gian đăng ký từ ${formatDateUTC(
-            currentSemester.bookingStartDate,
-          )} đến ${formatDateUTC(currentSemester.bookingEndDate)}.`,
+          message: `Hiện không nằm trong thời gian ${timeTypeLabel} phòng. Thời gian ${timeTypeLabel} từ ${formatDateUTC(
+            targetStart,
+          )} đến ${formatDateUTC(targetEnd)}.`,
         },
       };
     }
@@ -112,7 +118,7 @@ class BookingService {
     const existingRoom =
       await bookingRepository.findCurrentRoomByStudent(studentId);
 
-    if (existingRoom) {
+    if (existingRoom && !isRenew) {
       const studentEntry = existingRoom.students.find(
         (item) => item.student.toString() === studentId.toString(),
       );
@@ -407,7 +413,7 @@ class BookingService {
     };
   }
 
-  async createBooking(studentId, roomId, bedNumber) {
+  async createBooking(studentId, roomId, bedNumber, renewedFrom = null) {
     if (!studentId) {
       return {
         statusCode: 401,
@@ -485,7 +491,7 @@ class BookingService {
     const existingRoom =
       await bookingRepository.findCurrentRoomByStudent(studentId);
 
-    if (existingRoom) {
+    if (existingRoom && !renewedFrom) {
       return {
         statusCode: 400,
         response: {
@@ -641,7 +647,7 @@ class BookingService {
         Date.now() + BOOKING_HOLD_MINUTES * 60 * 1000,
       );
 
-      const booking = await bookingRepository.createBooking({
+      const bookingPayload = {
         studentId,
         roomId,
         bedNumber: parsedBedNumber,
@@ -654,6 +660,27 @@ class BookingService {
 
         status: "pending",
         paymentExpiresAt,
+      };
+
+      if (renewedFrom) {
+        bookingPayload.renewedFrom = renewedFrom;
+      }
+
+      const booking = await bookingRepository.createBooking(bookingPayload);
+
+      const invoiceCode = `INV-${booking._id
+        .toString()
+        .slice(-6)
+        .toUpperCase()}-${Date.now().toString().slice(-4)}`;
+
+      await Invoice.create({
+        bookingId: booking._id,
+        studentId,
+        invoiceCode,
+        type: "room_fee",
+        amount: roomPrice,
+        status: "unpaid",
+        dueDate: paymentExpiresAt,
       });
 
       const populatedRoom =
@@ -760,6 +787,17 @@ class BookingService {
           ...booking.toObject(),
           myBedNumber,
         },
+      },
+    };
+  }
+
+  async getMyHistory(studentId) {
+    const history = await bookingRepository.findMyBookingHistory(studentId);
+    return {
+      statusCode: 200,
+      response: {
+        success: true,
+        data: history,
       },
     };
   }
@@ -910,6 +948,39 @@ class BookingService {
         success: true,
         total: bookings.length,
         data: bookings,
+      },
+    };
+  }
+
+  async getRoommates(roomId, semester) {
+    if (!roomId || !semester) {
+      return {
+        statusCode: 400,
+        response: {
+          success: false,
+          message: "Thiếu thông tin phòng hoặc kỳ học",
+        },
+      };
+    }
+
+    const roommates = await bookingRepository.findRoommatesByRoomAndSemester(
+      roomId,
+      semester,
+    );
+
+    // Format to match the frontend expectations: array of { bedNumber, student }
+    const formattedRoommates = roommates
+      .filter((booking) => booking.studentId) // Ensure studentId is populated
+      .map((booking) => ({
+        bedNumber: booking.bedNumber,
+        student: booking.studentId,
+      }));
+
+    return {
+      statusCode: 200,
+      response: {
+        success: true,
+        data: formattedRoommates,
       },
     };
   }

@@ -3,6 +3,7 @@ const Building = require("../models/building.model");
 const Booking = require("../models/booking.model");
 const User = require("../models/user.model");
 const Invoice = require("../models/invoice.model");
+const SystemConfig = require("../models/systemConfig.model");
 
 /**
  * Điều kiện xác định booking đang giữ giường:
@@ -104,6 +105,9 @@ class BookingRepository {
     }).lean();
   }
 
+  /**
+   * Lấy tất cả giường đang bị giữ trong một phòng.
+   */
   async findReservedBedsByRoomAndSemester(roomId, semester) {
     return Booking.find({
       roomId,
@@ -111,6 +115,20 @@ class BookingRepository {
       ...getReservedBookingCondition(),
     })
       .select("bedNumber status studentId paymentExpiresAt")
+      .lean();
+  }
+
+  /**
+   * Lấy danh sách bạn cùng phòng trong một phòng theo kỳ học.
+   */
+  async findRoommatesByRoomAndSemester(roomId, semester) {
+    return Booking.find({
+      roomId,
+      semester,
+      status: { $in: ["confirmed", "checked_in", "checked_out"] },
+    })
+      .populate("studentId", "fullName studentCode phone email gender")
+      .select("bedNumber status studentId")
       .lean();
   }
 
@@ -152,17 +170,51 @@ class BookingRepository {
     });
   }
 
-  /**
-   * Xóa booking pending đã hết thời gian thanh toán.
-   * Hàm này dùng cho cron job.
-   */
+
   async deleteExpiredPendingBookings() {
-    return Booking.deleteMany({
+    const now = new Date();
+
+    // Lấy các booking pending đã quá hạn
+    const expiredBookings = await Booking.find({
       status: "pending",
       paymentExpiresAt: {
-        $lte: new Date(),
+        $lte: now,
+      },
+    }).select("_id");
+
+    if (!expiredBookings.length) {
+      return {
+        deletedBookings: 0,
+        deletedInvoices: 0,
+      };
+    }
+
+    const bookingIds = expiredBookings.map((booking) => booking._id);
+
+    // Xóa hóa đơn tiền phòng thuộc các booking hết hạn
+    const invoiceResult = await Invoice.deleteMany({
+      bookingId: {
+        $in: bookingIds,
+      },
+      type: "room_fee",
+      status: "unpaid",
+    });
+
+    // Xóa booking hết hạn
+    const bookingResult = await Booking.deleteMany({
+      _id: {
+        $in: bookingIds,
+      },
+      status: "pending",
+      paymentExpiresAt: {
+        $lte: now,
       },
     });
+
+    return {
+      deletedBookings: bookingResult.deletedCount,
+      deletedInvoices: invoiceResult.deletedCount,
+    };
   }
 
   /**
@@ -237,6 +289,28 @@ class BookingRepository {
    * Lịch sử phòng chỉ lấy các booking hợp lệ,
    * không lấy pending hoặc cancelled.
    */
+  async findMyBookingHistory(studentId) {
+    return Booking.find({
+      studentId,
+      status: { $nin: ["pending", "cancelled"] },
+    })
+      .populate({
+        path: "roomId",
+        populate: [
+          { path: "building", select: "name" },
+          {
+            path: "students.student",
+            select: "fullName studentCode gender phone email",
+          },
+        ],
+      })
+      .populate({
+        path: "configId",
+        select: "roomPrice",
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+  }
   async findRoomBookingHistory(roomId) {
     return Booking.find({
       roomId,

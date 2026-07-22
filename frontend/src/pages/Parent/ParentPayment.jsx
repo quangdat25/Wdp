@@ -133,11 +133,11 @@ function ParentPayment() {
               <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
                 <div>
                   <h2 className="text-lg font-black text-slate-900">
-                    Thanh toán hóa đơn của con
+                    Hóa đơn của con
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Theo dõi hạn thanh toán và thực hiện thanh toán trực tuyến.
+                    Theo dõi hạn thanh toán 
                   </p>
                 </div>
 

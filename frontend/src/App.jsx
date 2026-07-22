@@ -34,7 +34,6 @@ import SecurityDashboard from "./pages/Staff/SecurityDashboard";
 import MyTickets from "./pages/Student/MyTickets";
 import TicketManagement from "./pages/Manager/TicketManagement";
 import ViolationManagement from "./pages/Manager/ViolationManagement";
-import UtilityUsageManagement from "./pages/Staff/UtilityUsageManagement";
 import UtilityInvoiceManagement from "./pages/Manager/UtilityInvoiceManagement";
 import MyInvoices from "./pages/Student/MyInvoices";
 import PaymentResult from "./pages/Student/PaymentResult";
@@ -42,7 +41,7 @@ import BookingManagement from "./pages/Manager/BookingManagement";
 import MyUtilities from "./pages/Student/MyUtilities";
 import MyRoom from "./pages/Student/MyRoom";
 import SystemConfigManagement from "./pages/Admin/SystemConfigManagement";
-
+import MyViolations from "./pages/Student/MyViolations";
 function App() {
   const location = useLocation();
   const isHomePage = location.pathname === "/";
@@ -98,6 +97,7 @@ function App() {
               />
               <Route path="/student/my-utilities" element={<MyUtilities />} />
               <Route path="/student/room" element={<MyRoom />} />
+              <Route path="/student/violations" element={<MyViolations />} />
             </Route>
 
             {/* Parent Routes */}
@@ -105,6 +105,7 @@ function App() {
               <Route path="/parent/dashboard" element={<ParentDashboard />} />
               <Route path="/parent/student" element={<ParentStudentInfo />} />
               <Route path="/parent/payments" element={<ParentPayment />} />
+              <Route path="/parent/violations" element={<MyViolations />} />
             </Route>
 
             {/* Manager Routes */}
@@ -160,10 +161,6 @@ function App() {
                     <SecurityDashboard />
                   </ProtectedRoute>
                 }
-              />
-              <Route
-                path="/staff/utility-usages"
-                element={<UtilityUsageManagement />}
               />
             </Route>
           </Routes>

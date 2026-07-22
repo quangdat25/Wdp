@@ -10,7 +10,6 @@ import {
   FaFileInvoiceDollar,
   FaFilter,
   FaHome,
-  FaMoneyBillWave,
   FaReceipt,
   FaSpinner,
   FaTimesCircle,
@@ -48,11 +47,23 @@ function MyInvoices() {
     fetchInvoices();
   }, []);
 
-  const handlePayInvoice = async (invoiceId) => {
-    try {
-      setPayingId(invoiceId);
+  const handlePayInvoice = async (invoice) => {
+    const dueTime = new Date(invoice.dueDate).getTime();
 
-      const response = await createInvoicePayment(invoiceId);
+    if (
+      invoice.type === "room_fee" &&
+      (!invoice.dueDate || Number.isNaN(dueTime) || dueTime <= Date.now())
+    ) {
+      showError(
+        "Thời gian giữ phòng đã hết. Bạn không thể thanh toán hóa đơn này.",
+      );
+      return;
+    }
+
+    try {
+      setPayingId(invoice._id);
+
+      const response = await createInvoicePayment(invoice._id);
       const paymentUrl = response?.data?.data?.paymentUrl;
 
       if (!paymentUrl) {
@@ -69,7 +80,6 @@ function MyInvoices() {
       setPayingId(null);
     }
   };
-
   const invoiceStats = useMemo(() => {
     const unpaid = invoices.filter((invoice) => invoice.status === "unpaid");
     const paid = invoices.filter((invoice) => invoice.status === "paid");
@@ -197,9 +207,9 @@ function MyInvoices() {
                 <EmptyState statusFilter={statusFilter} />
               ) : (
                 <>
-                  <div className="hidden overflow-hidden rounded-2xl border border-slate-200 xl:block">
+                  <div className="overflow-hidden rounded-2xl border border-slate-200">
                     <div className="overflow-x-auto">
-                      <table className="w-full min-w-[1180px] text-left">
+                      <table className="w-full min-w-[1050px] text-left">
                         <thead>
                           <tr className="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
                             <TableHead>Mã hóa đơn</TableHead>
@@ -229,17 +239,6 @@ function MyInvoices() {
                     </div>
                   </div>
 
-                  <div className="space-y-4 xl:hidden">
-                    {paginatedInvoices.map((invoice) => (
-                      <InvoiceMobileCard
-                        key={invoice._id}
-                        invoice={invoice}
-                        payingId={payingId}
-                        onPay={handlePayInvoice}
-                      />
-                    ))}
-                  </div>
-
                   <div className="mt-6 flex flex-col items-center justify-between gap-4 border-t border-slate-100 pt-5 sm:flex-row">
                     <Pagination
                       current={currentPage}
@@ -265,7 +264,7 @@ function MyInvoices() {
 }
 
 function InvoiceTableRow({ invoice, payingId, onPay }) {
-  const canPay = invoice.status === "unpaid" || invoice.status === "overdue";
+  const canPay = canPayInvoice(invoice);
 
   return (
     <tr className="transition hover:bg-slate-50/80">
@@ -293,8 +292,8 @@ function InvoiceTableRow({ invoice, payingId, onPay }) {
       </TableCell>
 
       <TableCell>
-        {invoice.type === "room_fee" ? (
-          <span className="font-bold text-slate-300">—</span>
+        {invoice.type === "room_fee" && invoice.status === "unpaid" ? (
+          <PaymentCountdown dueDate={invoice.dueDate} />
         ) : (
           <DateDisplay
             date={invoice.dueDate}
@@ -318,95 +317,13 @@ function InvoiceTableRow({ invoice, payingId, onPay }) {
       <TableCell className="text-right">
         {canPay && (
           <PayButton
-            invoiceId={invoice._id}
+            invoiceId={invoice}
             loading={payingId === invoice._id}
             onPay={onPay}
           />
         )}
       </TableCell>
     </tr>
-  );
-}
-
-function InvoiceMobileCard({ invoice, payingId, onPay }) {
-  const canPay = invoice.status === "unpaid" || invoice.status === "overdue";
-
-  return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="truncate font-black text-slate-900">
-            {invoice.invoiceCode || "-"}
-          </div>
-
-          <div className="mt-2">
-            <InvoiceTypeBadge type={invoice.type} />
-          </div>
-        </div>
-
-        <StatusBadge status={invoice.status} />
-      </div>
-
-      <div className="mt-5 rounded-2xl bg-slate-50 p-4">
-        <div className="text-xs font-black uppercase tracking-wide text-slate-400">
-          Tổng thanh toán
-        </div>
-
-        <div className="mt-1 text-2xl font-black text-blue-700">
-          {formatMoney(invoice.amount)}
-        </div>
-      </div>
-
-      <div className="mt-5">
-        <div className="text-xs font-black uppercase tracking-wide text-slate-400">
-          Chi tiết
-        </div>
-
-        <div className="mt-2">
-          <InvoiceItems items={invoice.items} />
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-1 gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
-        <div>
-          <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-            Hạn thanh toán
-          </div>
-
-          {invoice.type === "room_fee" ? (
-            <span className="font-bold text-slate-300">—</span>
-          ) : (
-            <DateDisplay
-              date={invoice.dueDate}
-              overdue={invoice.status === "overdue"}
-            />
-          )}
-        </div>
-
-        <div>
-          <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-            Đã thanh toán lúc
-          </div>
-
-          {invoice.paidAt ? (
-            <DateDisplay date={invoice.paidAt} />
-          ) : (
-            <span className="font-bold text-slate-300">Chưa thanh toán</span>
-          )}
-        </div>
-      </div>
-
-      {canPay && (
-        <div className="mt-5">
-          <PayButton
-            invoiceId={invoice._id}
-            loading={payingId === invoice._id}
-            onPay={onPay}
-            fullWidth
-          />
-        </div>
-      )}
-    </article>
   );
 }
 
@@ -475,6 +392,72 @@ function DateDisplay({ date, overdue = false }) {
   );
 }
 
+function PaymentCountdown({ dueDate }) {
+  const getRemainingTime = () => {
+    const dueTime = new Date(dueDate).getTime();
+
+    if (!dueDate || Number.isNaN(dueTime)) {
+      return 0;
+    }
+
+    return Math.max(0, dueTime - Date.now());
+  };
+
+  const [remainingTime, setRemainingTime] = useState(getRemainingTime);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setRemainingTime(getRemainingTime());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [dueDate]);
+
+  if (remainingTime <= 0) {
+    return (
+      <div className="flex items-center gap-2 whitespace-nowrap text-sm font-black text-red-600">
+        <FaExclamationTriangle />
+        Đã hết hạn
+      </div>
+    );
+  }
+
+  const totalSeconds = Math.floor(remainingTime / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (value) => String(value).padStart(2, "0");
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 whitespace-nowrap text-xs font-bold text-amber-700">
+        <FaClock />
+        Thời gian còn lại
+      </div>
+
+      <div className="mt-1 whitespace-nowrap text-base font-black text-red-600">
+        {pad(hours)}:{pad(minutes)}:{pad(seconds)}
+      </div>
+    </div>
+  );
+}
+
+function canPayInvoice(invoice) {
+  if (invoice.status !== "unpaid") {
+    return false;
+  }
+
+  if (invoice.type === "room_fee") {
+    const dueTime = new Date(invoice.dueDate).getTime();
+
+    if (Number.isNaN(dueTime) || dueTime <= Date.now()) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function PayButton({ invoiceId, loading, onPay, fullWidth = false }) {
   return (
     <button
@@ -499,7 +482,6 @@ function PayButton({ invoiceId, loading, onPay, fullWidth = false }) {
     </button>
   );
 }
-
 function LoadingState() {
   return (
     <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-6 text-center">

@@ -1,8 +1,8 @@
 import request from "../config/axiosConfig";
 
 // Kiểm tra điều kiện booking (CFD Score + Invoice)
-export const checkEligibility = async () => {
-  const res = await request.get("/api/booking/check-eligibility");
+export const checkEligibility = async (isRenew = false) => {
+  const res = await request.get("/api/booking/check-eligibility", { params: { isRenew } });
   return res.data;
 };
 
@@ -26,6 +26,12 @@ export const createBooking = async (data) => {
   return res.data;
 };
 
+// Lấy lịch sử booking
+export const getMyBookingHistory = async () => {
+  const res = await request.get("/api/booking/my-history");
+  return res.data;
+};
+
 // Lấy booking hiện tại
 export const getMyBooking = async () => {
   const res = await request.get("/api/booking/my-booking");
@@ -39,17 +45,28 @@ export const createBookingPayment = async (bookingId) => {
   return res.data;
 };
 
-// Lấy tất cả booking (Admin)
-export const getAllBookings = async () => {
-  const res = await request.get("/api/booking/all");
+// Lấy danh sách bạn cùng phòng theo phòng và kỳ học
+export const getRoommates = async (roomId, semester) => {
+  const res = await request.get(`/api/booking/room/${roomId}/roommates`, {
+    params: { semester }
+  });
+  return res.data;
+};
+
+// Lấy tất cả các booking (cho Admin/Manager)
+export const getAllBookings = async (params) => {
+  const res = await request.get("/api/booking", { params });
   return res.data;
 };
 
 export default {
   checkEligibility,
   getAvailableRooms,
+  getRoomBedAvailability,
   createBooking,
+  getMyBookingHistory,
   getMyBooking,
-  createBookingPayment,
   getAllBookings,
+  createBookingPayment,
+  getRoommates,
 };

@@ -5,7 +5,7 @@ import {
   showConfirm,
   showError,
   showSuccess,
-} from "../../components/alert";
+} from "../../components/Alert";
 
 const STATUS_META = {
   Ongoing: {
