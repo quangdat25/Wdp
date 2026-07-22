@@ -13,6 +13,9 @@ import {
   FaCalendarAlt,
   FaChartPie,
 } from "react-icons/fa";
+import systemConfigService from "../../api/systemConfigService";
+import authService from "../../api/authService";
+import { useEffect } from "react";
 
 import "./StudentDashboard.css";
 import Sidebar from "../../components/Sidebar";
@@ -32,6 +35,29 @@ function StudentDashboard() {
   const toastTimerRef = useRef(null);
   const [activeModule, setActiveModule] = useState("home");
   const [hasBooked] = useState(false);
+  const [systemConfig, setSystemConfig] = useState(null);
+  const [studentProfile, setStudentProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [configRes, profileRes] = await Promise.allSettled([
+          systemConfigService.getActiveConfig(),
+          authService.getMyProfile(),
+        ]);
+
+        if (configRes.status === "fulfilled" && configRes.value) {
+          setSystemConfig(configRes.value?.data || configRes.value);
+        }
+        if (profileRes.status === "fulfilled" && profileRes.value) {
+          setStudentProfile(profileRes.value?.data || profileRes.value);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải dữ liệu:", error);
+      }
+    };
+    fetchData();
+  }, []);
 
   const activeConfig = studentModules.find(
     (item) => item.id === activeModule,
@@ -49,9 +75,9 @@ function StudentDashboard() {
 
         {activeModule === "home" &&
           (hasBooked ? (
-            <BookedHomeScreen setActiveModule={setActiveModule} />
+            <BookedHomeScreen setActiveModule={setActiveModule} systemConfig={systemConfig} studentProfile={studentProfile} />
           ) : (
-            <UnbookedHomeScreen setActiveModule={setActiveModule} />
+            <UnbookedHomeScreen setActiveModule={setActiveModule} systemConfig={systemConfig} studentProfile={studentProfile} />
           ))}
 
         {activeModule === "news" && <NewsPage />}
@@ -79,7 +105,10 @@ function PlaceholderScreen({ activeConfig }) {
   );
 }
 
-function UnbookedHomeScreen({ setActiveModule }) {
+function UnbookedHomeScreen({ setActiveModule, systemConfig, studentProfile }) {
+  const elecPrice = systemConfig?.electricityPrice ? ` (${systemConfig.electricityPrice.toLocaleString("vi-VN")}đ/kWh)` : "";
+  const waterPrice = systemConfig?.waterPrice ? ` (${systemConfig.waterPrice.toLocaleString("vi-VN")}đ/tháng)` : "";
+
   return (
     <div className="student-stack">
       <div className="student-cta-banner">
@@ -110,25 +139,25 @@ function UnbookedHomeScreen({ setActiveModule }) {
         />
 
         <MetricCard
-          icon={<FaCheckCircle />}
-          label="Phòng 4 giường"
-          value="120"
-          note="Giá từ 950.000đ/tháng"
-          tone="green"
+          icon={<FaBolt />}
+          label="Tiền điện"
+          value="0 đ"
+          note={`Chưa có phòng${elecPrice}`}
+          tone="amber"
         />
 
         <MetricCard
-          icon={<FaCheckCircle />}
-          label="Phòng 6 giường"
-          value="132"
-          note="Giá từ 750.000đ/tháng"
-          tone="amber"
+          icon={<FaWater />}
+          label="Tiền nước"
+          value="0 đ"
+          note={`Chưa có phòng${waterPrice}`}
+          tone="rose"
         />
 
         <MetricCard
           icon={<FaStar />}
           label="Điểm ý thức"
-          value="96"
+          value={studentProfile?.CFDScore ?? "N/A"}
           note="CFD Score hiện tại"
           tone="purple"
         />
@@ -139,7 +168,10 @@ function UnbookedHomeScreen({ setActiveModule }) {
   );
 }
 
-function BookedHomeScreen({ setActiveModule }) {
+function BookedHomeScreen({ setActiveModule, systemConfig, studentProfile }) {
+  const elecPrice = systemConfig?.electricityPrice ? ` (${systemConfig.electricityPrice.toLocaleString("vi-VN")}đ/kWh)` : "";
+  const waterPrice = systemConfig?.waterPrice ? ` (${systemConfig.waterPrice.toLocaleString("vi-VN")}đ/m³)` : "";
+
   return (
     <div className="student-stack">
       <div className="student-room-banner">
@@ -168,7 +200,7 @@ function BookedHomeScreen({ setActiveModule }) {
           icon={<FaBolt />}
           label="Điện tháng 06"
           value="4.210 kWh"
-          note="Cập nhật 08/06/2026"
+          note={`Cập nhật 08/06/2026${elecPrice}`}
           tone="amber"
         />
 
@@ -176,14 +208,14 @@ function BookedHomeScreen({ setActiveModule }) {
           icon={<FaWater />}
           label="Nước tháng 06"
           value="782 m³"
-          note="Cập nhật 08/06/2026"
+          note={`Cập nhật 08/06/2026${waterPrice}`}
           tone="blue"
         />
 
         <MetricCard
           icon={<FaStar />}
           label="Điểm ý thức"
-          value="96"
+          value={studentProfile?.CFDScore ?? "N/A"}
           note="CFD Score hiện tại"
           tone="green"
         />
