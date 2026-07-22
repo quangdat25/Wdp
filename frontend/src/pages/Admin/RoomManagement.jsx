@@ -66,6 +66,8 @@ function RoomManagement({ role = "admin" }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newBuildingName, setNewBuildingName] = useState("");
   const [newBuildingDesc, setNewBuildingDesc] = useState("");
+  const [newBuildingFloorCount, setNewBuildingFloorCount] = useState(5);
+  const [newBuildingRoomsPerFloor, setNewBuildingRoomsPerFloor] = useState(14);
   const [creating, setCreating] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
@@ -161,16 +163,44 @@ function RoomManagement({ role = "admin" }) {
 
   // Create building
   const handleCreate = async () => {
-    if (!newBuildingName.trim()) return;
+    const floorCount = Number(newBuildingFloorCount);
+    const roomsPerFloor = Number(newBuildingRoomsPerFloor);
+
+    if (!newBuildingName.trim()) {
+      alert("Vui lòng nhập tên tòa nhà");
+      return;
+    }
+
+    if (!Number.isInteger(floorCount) || floorCount < 1 || floorCount > 20) {
+      alert("Số tầng phải là số nguyên từ 1 đến 20");
+      return;
+    }
+
+    if (
+      !Number.isInteger(roomsPerFloor) ||
+      roomsPerFloor < 1 ||
+      roomsPerFloor > 50
+    ) {
+      alert("Số phòng mỗi tầng phải là số nguyên từ 1 đến 50");
+      return;
+    }
+
     try {
       setCreating(true);
+
       await createBuilding({
         name: newBuildingName.trim(),
         description: newBuildingDesc.trim(),
+        totalFloors: floorCount,
+        totalRoomsPerFloor: roomsPerFloor,
       });
+
       setShowCreateModal(false);
       setNewBuildingName("");
       setNewBuildingDesc("");
+      setNewBuildingFloorCount(5);
+      setNewBuildingRoomsPerFloor(14);
+
       await fetchBuildings();
     } catch (error) {
       alert(error.response?.data?.message || "Lỗi tạo tòa nhà");
@@ -373,6 +403,11 @@ function RoomManagement({ role = "admin" }) {
       month: "2-digit",
       year: "numeric",
     }).format(date);
+  };
+
+  const getBuildingFloorCount = (building) => {
+    const count = Number(building?.totalFloors);
+    return Number.isInteger(count) && count > 0 ? count : 5;
   };
 
   // Select building
@@ -672,8 +707,17 @@ function RoomManagement({ role = "admin" }) {
                     />
                     Chọn tầng — Tòa {selectedBuilding.name}
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {[1, 2, 3, 4, 5].map((floor) => {
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {Array.from(
+                      { length: getBuildingFloorCount(selectedBuilding) },
+                      (_, index) => index + 1,
+                    ).map((floor) => {
                       const isActive = selectedFloor === floor;
                       return (
                         <button
@@ -929,7 +973,7 @@ function RoomManagement({ role = "admin" }) {
                       fontSize: 14,
                     }}
                   >
-                    Hệ thống sẽ tự động tạo 5 tầng × 14 phòng (70 phòng).
+                    Chọn số tầng và số phòng mỗi tầng cho tòa nhà.
                   </p>
                 </div>
                 <CloseButton
@@ -957,6 +1001,60 @@ function RoomManagement({ role = "admin" }) {
                   placeholder="Mô tả ngắn..."
                   style={inputStyle}
                 />
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 12,
+                    marginTop: 14,
+                  }}
+                >
+                  <div>
+                    <label style={labelStyle}>Số tầng *</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={newBuildingFloorCount}
+                      onChange={(e) =>
+                        setNewBuildingFloorCount(e.target.value)
+                      }
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Số phòng mỗi tầng *</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={newBuildingRoomsPerFloor}
+                      onChange={(e) =>
+                        setNewBuildingRoomsPerFloor(e.target.value)
+                      }
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    background: "#f0fdf4",
+                    border: "1px solid #bbf7d0",
+                    color: "#166534",
+                    fontSize: 13,
+                    fontWeight: 700,
+                  }}
+                >
+                  Tổng số phòng sẽ tạo:{" "}
+                  {Number(newBuildingFloorCount || 0) *
+                    Number(newBuildingRoomsPerFloor || 0)}
+                </div>
               </div>
 
               <div
@@ -976,7 +1074,14 @@ function RoomManagement({ role = "admin" }) {
                 </ActionButton>
                 <ActionButton
                   onClick={handleCreate}
-                  disabled={creating || !newBuildingName.trim()}
+                  disabled={
+                    creating ||
+                    !newBuildingName.trim() ||
+                    !Number.isInteger(Number(newBuildingFloorCount)) ||
+                    Number(newBuildingFloorCount) < 1 ||
+                    !Number.isInteger(Number(newBuildingRoomsPerFloor)) ||
+                    Number(newBuildingRoomsPerFloor) < 1
+                  }
                   variant="primary"
                 >
                   {creating ? "Đang tạo..." : "Tạo tòa nhà"}
