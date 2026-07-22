@@ -487,10 +487,7 @@ function SettingsScreen() {
                 disabled={sending}
               />
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0" }}>
-              <input type="checkbox" id="isPinned" checked={newsForm.isPinned} onChange={(e) => setNewsForm(prev => ({ ...prev, isPinned: e.target.checked }))} style={{ width: 16, height: 16, cursor: "pointer" }} disabled={sending} />
-              <label htmlFor="isPinned" style={{ fontSize: 13, fontWeight: 700, color: "#64748B", cursor: "pointer", userSelect: "none" }}>Ghim bài viết này lên đầu bảng tin 📌</label>
-            </div>
+
             <div>
               <button type="submit" disabled={sending} style={{ padding: "10px 24px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, fontWeight: 600, cursor: "pointer", fontSize: 14 }}>
                 {sending ? "Đang gửi..." : "Đăng tin"}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getMyChildRoom, getStudentInvoices } from "../../api/parentService";
+import { getMyChildRoom, getStudentInvoices, getStudentInfo } from "../../api/parentService";
 import {
   FaBed,
   FaCalendarAlt,
@@ -11,29 +11,15 @@ import {
   FaTint,
   FaFileInvoiceDollar,
 } from "react-icons/fa";
+import systemConfigService from "../../api/systemConfigService";
 
 import "./ParentDashboard.css";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Headers";
-
-const newsItems = [
-  {
-    title: "Thông báo về việc đóng tiền nước sinh hoạt tháng 06/2026",
-    date: "08/06/2026",
-  },
-  {
-    title: "Lịch bảo trì điều hòa toàn bộ tòa nhà KTX từ 10/06 đến 15/06",
-    date: "07/06/2026",
-  },
-  {
-    title: "Giải bóng đá thường niên Dormitory Cup 2026 chính thức khởi tranh",
-    date: "05/06/2026",
-  },
-  {
-    title: "Quy định mới về giờ giấc ra vào cổng KTX áp dụng từ tuần sau",
-    date: "03/06/2026",
-  },
-];
+import ParentNewsPage from "./ParentNewsPage";
+import { useNews } from "../../hooks/useNews";
+import { formatRelativeTime } from "../../utils/date";
+import NewsDetailModal from "../../components/NewsDetailModal";
 
 const parentModules = [
   {
@@ -56,21 +42,31 @@ const parentModules = [
 function ParentDashboard() {
   const [activeModule, setActiveModule] = useState("home");
   const [childData, setChildData] = useState(null);
+  const [studentInfo, setStudentInfo] = useState(null);
   const [invoices, setInvoices] = useState([]);
+  const [systemConfig, setSystemConfig] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [roomData, invoiceData] = await Promise.all([
-          getMyChildRoom(),
-          getStudentInvoices()
+        const [roomData, invoiceData, configData, studentData] = await Promise.all([
+          getMyChildRoom().catch(() => null),
+          getStudentInvoices().catch(() => null),
+          systemConfigService.getActiveConfig().catch(() => null),
+          getStudentInfo().catch(() => null)
         ]);
         if (roomData && roomData.success) {
           setChildData(roomData.data);
         }
         if (invoiceData && invoiceData.success) {
           setInvoices(invoiceData.data);
+        }
+        if (configData) {
+          setSystemConfig(configData?.data || configData);
+        }
+        if (studentData && studentData.success) {
+          setStudentInfo(studentData.data);
         }
       } catch (error) {
         console.error("Lỗi khi tải thông tin:", error);
@@ -94,10 +90,12 @@ function ParentDashboard() {
         <Header avatarText="P" />
 
         {activeModule === "home" && (
-          <HomeScreen setActiveModule={setActiveModule} childData={childData} invoices={invoices} loading={loading} />
+          <HomeScreen setActiveModule={setActiveModule} childData={childData} studentInfo={studentInfo} invoices={invoices} systemConfig={systemConfig} loading={loading} />
         )}
 
-        {activeModule !== "home" && (
+        {activeModule === "news" && <ParentNewsPage />}
+
+        {activeModule !== "home" && activeModule !== "news" && (
           <div className="parent-placeholder">
             <div className="parent-placeholder__icon">{activeConfig.icon}</div>
             <h3>{activeConfig.label}</h3>
@@ -109,7 +107,10 @@ function ParentDashboard() {
   );
 }
 
-function HomeScreen({ setActiveModule, childData, invoices, loading }) {
+function HomeScreen({ setActiveModule, childData, studentInfo, invoices, systemConfig, loading }) {
+  const { news, loading: newsLoading } = useNews();
+  const [selectedNews, setSelectedNews] = useState(null);
+
   if (loading) {
     return (
       <div className="parent-stack">
@@ -122,10 +123,10 @@ function HomeScreen({ setActiveModule, childData, invoices, loading }) {
 
   const roomText = childData
     ? `${childData.room.roomNumber} – ${childData.building.name}`
-    : "Chưa xếp phòng";
+    : "Chưa có phòng";
   const bedText = childData
     ? `Giường số ${childData.bedNumber} · Đang hoạt động`
-    : "Vui lòng liên hệ BQL";
+    : "";
 
   let electricityValue = "0 đ";
   let waterValue = "0 đ";
@@ -142,6 +143,12 @@ function HomeScreen({ setActiveModule, childData, invoices, loading }) {
     utilityStatus = status === "unpaid" ? "Chưa thanh toán" : status === "paid" ? "Đã thanh toán" : "";
   }
 
+  const elecPrice = systemConfig?.electricityPrice ? `(${systemConfig.electricityPrice.toLocaleString("vi-VN")}đ/kWh)` : "";
+  const waterPrice = systemConfig?.waterPrice ? `(${systemConfig.waterPrice.toLocaleString("vi-VN")}đ/tháng)` : "";
+
+  const elecNote = utilityStatus ? `${utilityStatus} ${elecPrice}` : elecPrice;
+  const waterNote = utilityStatus ? `${utilityStatus} ${waterPrice}` : waterPrice;
+
   return (
     <div className="parent-stack">
       <div className="parent-room-banner">
@@ -155,21 +162,21 @@ function HomeScreen({ setActiveModule, childData, invoices, loading }) {
             <span>{bedText}</span>
           </div>
         </div>
-
+        {/* 
         <button
           type="button"
           className="parent-primary-button"
           onClick={() => setActiveModule("room")}
         >
           Xem chi tiết
-        </button>
+        </button> */}
       </div>
 
       <section className="parent-metrics">
         <MetricCard
           icon={<FaBed />}
           label="Phòng của con"
-          value={childData ? `${childData.room.roomNumber} – ${childData.building.name}` : "N/A"}
+          value={childData ? `${childData.room.roomNumber} – ${childData.building.name}` : "Chưa có phòng"}
           note={childData ? "Đang lưu trú" : ""}
           tone="purple"
         />
@@ -178,7 +185,7 @@ function HomeScreen({ setActiveModule, childData, invoices, loading }) {
           icon={<FaTachometerAlt />}
           label={`Tiền điện ${utilityNote}`}
           value={electricityValue}
-          note={utilityStatus}
+          note={elecNote}
           tone="amber"
         />
 
@@ -186,14 +193,14 @@ function HomeScreen({ setActiveModule, childData, invoices, loading }) {
           icon={<FaTint />}
           label={`Tiền nước ${utilityNote}`}
           value={waterValue}
-          note={utilityStatus}
+          note={waterNote}
           tone="rose"
         />
 
         <MetricCard
           icon={<FaStar />}
           label="Điểm ý thức"
-          value={childData ? childData.student.CFDScore : "N/A"}
+          value={studentInfo ? studentInfo.CFDScore : "N/A"}
           note="CFD Score của con"
           tone="green"
         />
@@ -216,15 +223,67 @@ function HomeScreen({ setActiveModule, childData, invoices, loading }) {
             </button>
           </div>
 
-          <div className="parent-news-list">
-            {newsItems.map((item, idx) => (
-              <div key={idx} className="parent-news-item">
-                <span className="parent-news-item__dot" />
-                <span className="parent-news-item__text">{item.title}</span>
-                <span className="parent-news-item__date">{item.date}</span>
-              </div>
-            ))}
-          </div>
+          {newsLoading ? (
+            <div className="parent-news-list">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: 12,
+                    borderRadius: 8,
+                    background: "#f0faf4",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: "#bbf7d0",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div
+                    style={{
+                      flex: 1,
+                      height: 14,
+                      background: "#bbf7d0",
+                      borderRadius: 4,
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : news.length === 0 ? (
+            <div
+              style={{
+                padding: "32px 16px",
+                textAlign: "center",
+                color: "#6b9e7e",
+              }}
+            >
+              <div style={{ fontSize: 32, marginBottom: 8 }}>📰</div>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>
+                Chưa có bản tin nào.
+              </span>
+            </div>
+          ) : (
+            <div className="parent-news-list">
+              {news.slice(0, 5).map((item) => (
+                <div key={item._id} className="parent-news-item" onClick={() => setSelectedNews(item)}>
+                  <span className="parent-news-item__dot" style={{ background: item.isPinned ? "#dc2626" : "#16a34a" }} />
+                  <span className="parent-news-item__text">
+                    {item.isPinned && "📌 "}
+                    {item.title}
+                  </span>
+                  <span className="parent-news-item__date">{formatRelativeTime(item.createdAt)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="parent-panel">
@@ -238,6 +297,10 @@ function HomeScreen({ setActiveModule, childData, invoices, loading }) {
           <ContactList />
         </div>
       </section>
+
+      {selectedNews && (
+        <NewsDetailModal news={selectedNews} onClose={() => setSelectedNews(null)} />
+      )}
     </div>
   );
 }
