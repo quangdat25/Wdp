@@ -24,6 +24,7 @@ import {
   FaCogs,
 } from "react-icons/fa";
 
+
 import { useNavigate, useLocation } from "react-router-dom";
 import authService from "../api/authService";
 import { showSuccess } from "../components/Alert";
@@ -280,6 +281,11 @@ function Sidebar() {
         icon: <FaClipboardList />,
       },
       {
+        path: "/student/violations",
+        label: "Lịch sử trừ điểm",
+        icon: <FaShieldAlt />,
+      },
+      {
         path: "/img/KTX.pdf",
         label: "Nội quy ký túc xá",
         icon: <FaBook />,
@@ -304,14 +310,9 @@ function Sidebar() {
         icon: <FaMoneyBillWave />,
       },
       {
-        path: "/parent/requests",
-        label: "Yêu cầu",
-        icon: <FaTools />,
-      },
-      {
-        path: "/parent/notifications",
-        label: "Thông báo",
-        icon: <FaBell />,
+        path: "/parent/violations",
+        label: "Lịch sử trừ điểm",
+        icon: <FaShieldAlt />,
       },
     ],
   };
