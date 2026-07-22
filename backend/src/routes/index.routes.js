@@ -16,6 +16,7 @@ const semesterRoutes = require("./semester.routes");
 const newsRoutes = require("./news.routes");
 const dashboardRoutes = require("./dashboard.routes");
 const systemConfigRoutes = require("./systemConfig.route");
+const checkInOutRoutes = require("./checkInOut.routes");
 function routes(app) {
   app.use("/api/dashboard", dashboardRoutes);
   app.use("/api/students", studentRoutes);
@@ -35,6 +36,7 @@ function routes(app) {
   app.use("/api/semesters", semesterRoutes);
   app.use("/api/news", newsRoutes);
   app.use("/api/configs", systemConfigRoutes);
+  app.use("/api/check-in-out",checkInOutRoutes);
 }
 
 module.exports = routes;

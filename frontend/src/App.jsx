@@ -40,7 +40,12 @@ import BookingManagement from "./pages/Manager/BookingManagement";
 import MyUtilities from "./pages/Student/MyUtilities";
 import MyRoom from "./pages/Student/MyRoom";
 import SystemConfigManagement from "./pages/Admin/SystemConfigManagement";
+<<<<<<< HEAD
+import CheckInOutManagement from "./pages/Staff/SecurityTabs/CheckInOutManagement";
+
+=======
 import MyViolations from "./pages/Student/MyViolations";
+>>>>>>> a3507cd2cd1e1cadd5ba1a08cebe9d0e17e68e7a
 function App() {
   const location = useLocation();
   const isHomePage = location.pathname === "/";
@@ -147,6 +152,17 @@ function App() {
                     allowedStaffTypes={["maintenance"]}
                   >
                     <MaintenanceDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff/security/check-in-out/*"
+                element={
+                  <ProtectedRoute
+                    allowedRoles={["staff"]}
+                    allowedStaffTypes={["security"]}
+                  >
+                    <CheckInOutManagement />
                   </ProtectedRoute>
                 }
               />
