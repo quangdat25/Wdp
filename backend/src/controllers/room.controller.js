@@ -16,14 +16,6 @@ const parsePositiveInteger = (value) => {
   return parsedValue;
 };
 
-/**
- * Tạo mã phòng.
- *
- * Ví dụ:
- * - Tòa A, tầng 1, phòng thứ 1  => A101
- * - Tòa A, tầng 1, phòng thứ 14 => A114
- * - Tòa B, tầng 5, phòng thứ 3  => B503
- */
 const generateRoomNumber = (buildingName, floor, roomIndex) => {
   const paddedRoomIndex = String(roomIndex).padStart(2, "0");
   return `${buildingName}${floor}${paddedRoomIndex}`;
