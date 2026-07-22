@@ -43,10 +43,28 @@ const utilityUsageSchema = new mongoose.Schema(
       required: true,
     },
 
+    // Số điện sử dụng trong tháng
+    electricityUsage: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
+    },
+
+    // Đơn giá điện tại thời điểm import
+    electricityUnitPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
+    },
+
+    // Tiền điện = số điện × đơn giá
     electricityAmount: {
       type: Number,
-      default: 0,
+      required: true,
       min: 0,
+      default: 0,
     },
 
     waterAmount: {
@@ -68,7 +86,7 @@ const utilityUsageSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 utilityUsageSchema.index(
@@ -79,7 +97,10 @@ utilityUsageSchema.index(
   },
   {
     unique: true,
-  }
+  },
 );
 
-module.exports = mongoose.model("UtilityUsage", utilityUsageSchema);
+module.exports = mongoose.model(
+  "UtilityUsage",
+  utilityUsageSchema,
+);

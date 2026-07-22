@@ -1,0 +1,224 @@
+@startuml Conceptual_Data_Model_ERD
+title Conceptual Data Model - Hệ thống Quản lý Ký túc xá (Dormitory Management System)
+
+hide circle
+hide empty members
+skinparam linetype ortho
+
+skinparam rectangle {
+    BackgroundColor #FAFAFA
+    BorderColor #333333
+    FontSize 14
+    FontStyle bold
+}
+skinparam diamond {
+    BackgroundColor #FFF8DC
+    BorderColor #333333
+    FontSize 11
+}
+
+' ========================================
+' ENTITIES (Hình chữ nhật)
+' ========================================
+
+rectangle "User" as user
+rectangle "Student" as student
+rectangle "Admin" as admin
+rectangle "Manager" as manager
+rectangle "Staff" as staff
+
+rectangle "Building" as building
+rectangle "Room" as room
+rectangle "Semester" as semester
+rectangle "SystemConfig" as systemConfig
+
+rectangle "Booking" as booking
+rectangle "Invoice" as invoice
+rectangle "Payment" as payment
+
+rectangle "Ticket" as ticket
+rectangle "Violation" as violation
+rectangle "UtilityUsage" as utilityUsage
+
+rectangle "News" as news
+rectangle "Notification" as notification
+rectangle "NotificationReceipt" as notifReceipt
+
+' ========================================
+' RELATIONSHIPS (Hình thoi)
+' ========================================
+
+' --- Kế thừa (Discriminator) ---
+diamond "is_a" as r_is_student
+diamond "is_a" as r_is_admin
+diamond "is_a" as r_is_manager
+diamond "is_a" as r_is_staff
+
+' --- Building & Room ---
+diamond "contains" as r_building_room
+diamond "manages" as r_manager_building
+diamond "assigned_to" as r_staff_building
+
+' --- Student & Room ---
+diamond "resides_in" as r_student_room
+diamond "belongs_to\n(building)" as r_student_building
+
+' --- Booking ---
+diamond "makes" as r_student_booking
+diamond "for_room" as r_booking_room
+diamond "uses_pricing" as r_booking_config
+diamond "renewed_from" as r_booking_renew
+
+' --- Finance ---
+diamond "generates" as r_booking_invoice
+diamond "owes" as r_student_invoice
+diamond "paid_by" as r_booking_payment
+diamond "makes_payment" as r_user_payment
+
+' --- Ticket ---
+diamond "submits" as r_student_ticket
+diamond "approved_by" as r_ticket_approved
+diamond "assigned_to" as r_ticket_assigned
+diamond "assigned_by" as r_ticket_assignedby
+
+' --- Violation ---
+diamond "incurs" as r_student_violation
+diamond "reported_by\n(security)" as r_violation_security
+diamond "reviewed_by\n(manager)" as r_violation_manager
+diamond "occurred_in" as r_violation_building
+
+' --- Utility ---
+diamond "records" as r_room_utility
+diamond "imported_by" as r_utility_staff
+
+' --- News ---
+diamond "writes" as r_user_news
+diamond "tagged_in" as r_news_building
+
+' --- SystemConfig ---
+diamond "creates" as r_user_config_create
+diamond "activates" as r_user_config_activate
+
+' --- Notification ---
+diamond "sends" as r_user_notification
+diamond "has_receipts" as r_notif_receipt
+diamond "received_by" as r_receipt_user
+
+' ========================================
+' CONNECTIONS (Nối Entity - Relationship)
+' ========================================
+
+' --- Kế thừa User ---
+user "1" -down- r_is_student
+r_is_student -down- "1" student
+
+user "1" -down- r_is_admin
+r_is_admin -down- "1" admin
+
+user "1" -down- r_is_manager
+r_is_manager -down- "1" manager
+
+user "1" -down- r_is_staff
+r_is_staff -down- "1" staff
+
+' --- Building & Room ---
+building "1" -down- r_building_room
+r_building_room -down- "M" room
+
+manager "1" -right- r_manager_building
+r_manager_building -right- "M" building
+
+staff "M" -right- r_staff_building
+r_staff_building -right- "1" building
+
+' --- Student & Room ---
+student "M" -right- r_student_room
+r_student_room -right- "1" room
+
+student "M" -right- r_student_building
+r_student_building -right- "1" building
+
+' --- Booking ---
+student "1" -down- r_student_booking
+r_student_booking -down- "M" booking
+
+booking "M" -left- r_booking_room
+r_booking_room -left- "1" room
+
+booking "M" -right- r_booking_config
+r_booking_config -right- "1" systemConfig
+
+booking "1" -down- r_booking_renew
+r_booking_renew -down- "1" booking
+
+' --- Finance ---
+booking "1" -down- r_booking_invoice
+r_booking_invoice -down- "M" invoice
+
+student "1" -down- r_student_invoice
+r_student_invoice -down- "M" invoice
+
+booking "1" -right- r_booking_payment
+r_booking_payment -right- "M" payment
+
+user "1" -down- r_user_payment
+r_user_payment -down- "M" payment
+
+' --- Ticket ---
+student "1" -right- r_student_ticket
+r_student_ticket -right- "M" ticket
+
+ticket "M" -up- r_ticket_approved
+r_ticket_approved -up- "1" user
+
+ticket "M" -up- r_ticket_assigned
+r_ticket_assigned -up- "1" user
+
+ticket "M" -up- r_ticket_assignedby
+r_ticket_assignedby -up- "1" user
+
+' --- Violation ---
+student "1" -left- r_student_violation
+r_student_violation -left- "M" violation
+
+violation "M" -up- r_violation_security
+r_violation_security -up- "1" user
+
+violation "M" -up- r_violation_manager
+r_violation_manager -up- "1" user
+
+violation "M" -right- r_violation_building
+r_violation_building -right- "1" building
+
+' --- Utility ---
+room "1" -down- r_room_utility
+r_room_utility -down- "M" utilityUsage
+
+utilityUsage "M" -right- r_utility_staff
+r_utility_staff -right- "1" user
+
+' --- News ---
+user "1" -right- r_user_news
+r_user_news -right- "M" news
+
+news "M" -down- r_news_building
+r_news_building -down- "1" building
+
+' --- SystemConfig ---
+user "1" -right- r_user_config_create
+r_user_config_create -right- "M" systemConfig
+
+user "1" -right- r_user_config_activate
+r_user_config_activate -right- "M" systemConfig
+
+' --- Notification ---
+user "1" -right- r_user_notification
+r_user_notification -right- "M" notification
+
+notification "1" -down- r_notif_receipt
+r_notif_receipt -down- "M" notifReceipt
+
+notifReceipt "M" -left- r_receipt_user
+r_receipt_user -left- "1" user
+
+@enduml

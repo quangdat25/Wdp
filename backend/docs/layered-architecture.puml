@@ -1,0 +1,191 @@
+@startuml
+title LAYERED ARCHITECTURE — DORMBOOKING SYSTEM
+
+top to bottom direction
+
+' ==================================================
+' STYLE
+' ==================================================
+skinparam backgroundColor #FAFAFA
+skinparam shadowing false
+skinparam roundCorner 12
+skinparam linetype ortho
+skinparam defaultTextAlignment center
+
+skinparam package {
+    BorderThickness 2
+    FontSize 14
+    FontStyle bold
+}
+
+skinparam rectangle {
+    BackgroundColor white
+    BorderColor #374151
+    FontColor #111827
+    FontSize 11
+}
+
+skinparam database {
+    BackgroundColor #FCE7F3
+    BorderColor #DB2777
+    FontColor #831843
+}
+
+skinparam actor {
+    BackgroundColor white
+    BorderColor #374151
+}
+
+skinparam note {
+    BackgroundColor #F9FAFB
+    BorderColor #D1D5DB
+    FontSize 10
+}
+
+' ==================================================
+' CLIENT
+' ==================================================
+actor "Client\nWeb / Mobile" as Client
+
+' ==================================================
+' PRESENTATION LAYER (Tầng 1)
+' ==================================================
+package "PRESENTATION LAYER\nTầng giao tiếp" as Presentation #DFF2FE {
+
+    rectangle "Routes\n(src/routes)\n──────────────\nbooking · room · student\nuser · payment · invoice\nsemester · ticket · news\nnotification · violation\nutilityUsage · dashboard\npersonnel · parent\nsystemConfig · uploadImage\nticketManagement\n──────────────\nĐịnh tuyến API\nKhai báo endpoint\nGắn Middleware vào route" as Routes
+
+    rectangle "Middleware\n(src/middleware)\n──────────────\nauthUser.js\nasyncHandler.js\nupload.js\nviolation.validation.js\n──────────────\nAuthentication (JWT)\nAuthorization (Role-based)\nValidation · File Upload\nAsync Error Wrapper" as Middleware
+
+    rectangle "Controllers\n(src/controllers)\n──────────────\nbooking · room · student\nuser · payment · invoice\nsemester · ticket · news\nnotification · violation\nutilityUsage · dashboard\npersonnel · parent · profile\nsystemConfig · uploadImage\nticketManagement\n──────────────\nNhận HTTP Request\nGọi Service\nTrả HTTP Response" as Controllers
+
+    rectangle "Socket Handlers\n(src/socket)\n──────────────\nindex.js\n──────────────\nNhận Socket Event\nPhát Realtime Event\n(Notification, Booking)" as Socket
+}
+
+' ==================================================
+' APPLICATION / BUSINESS LAYER (Tầng 2)
+' ==================================================
+package "APPLICATION / BUSINESS LAYER\nTầng nghiệp vụ" as Business #DCFCE7 {
+
+    rectangle "Services\n(src/services)\n──────────────\nbooking · semester\ndashboard · ticket\ninvoice · violation\nsystemConfig\nutilityUsage\n──────────────\nXử lý Business Logic\nKiểm tra quy tắc nghiệp vụ\nĐiều phối Repository\nKhông phụ thuộc req / res" as Services
+}
+
+' ==================================================
+' PERSISTENCE LAYER (Tầng 3)
+' ==================================================
+package "PERSISTENCE LAYER\nTầng truy cập dữ liệu" as Persistence #FEF3C7 {
+
+    rectangle "Repositories\n(src/repositories)\n──────────────\nbooking · dashboard\ninvoice · notification\nsemester · student\nsystemConfig · ticket\nuser · utilityUsage\nviolation\n──────────────\nCung cấp hàm truy vấn\nCreate / Read / Update / Delete\nKhông xử lý HTTP Response" as Repositories
+
+    rectangle "Mongoose Models\n(src/models)\n──────────────\nuser · student · admin\nmanager · staff\nbooking · room · building\ninvoice · payment\nsemester · ticket\nnews · notification\nnotificationReceipt\nsystemConfig\nutilityUsage · violation\n──────────────\nĐịnh nghĩa Schema\nValidation dữ liệu\nMapping Collection" as Models
+}
+
+' ==================================================
+' DATABASE LAYER (Tầng 4)
+' ==================================================
+package "DATABASE LAYER\nTầng cơ sở dữ liệu" as DatabaseLayer #FCE7F3 {
+
+    database "MongoDB\n──────────────\nCollections\nDocuments" as MongoDB
+}
+
+' ==================================================
+' MAIN REST FLOW (Luồng HTTP chính)
+' ==================================================
+Client -down-> Routes : <color:#2563EB>HTTP Request</color>
+Routes -down-> Middleware : <color:#2563EB>Kiểm tra</color>
+Middleware -down-> Controllers : <color:#2563EB>next()</color>
+Controllers -down-> Services : <color:#2563EB>Gọi nghiệp vụ</color>
+
+' ==================================================
+' SOCKET FLOW (Luồng Realtime)
+' ==================================================
+Client -down-> Socket : <color:#7C3AED>Socket Event</color>
+Socket -down-> Services : <color:#7C3AED>Gọi nghiệp vụ</color>
+
+' ==================================================
+' DATA FLOW (Luồng dữ liệu)
+' ==================================================
+Services -down-> Repositories : <color:#059669>Yêu cầu dữ liệu</color>
+Repositories -down-> Models : <color:#059669>Sử dụng Model</color>
+Models -down-> MongoDB : <color:#059669>Mongoose Query</color>
+
+' ==================================================
+' NOTES — QUY TẮC TỪNG TẦNG
+' ==================================================
+note right of Presentation
+  <b>QUY TẮC TẦNG PRESENTATION</b>
+  ─────────
+  • Route chỉ khai báo endpoint & gắn middleware
+  • Middleware xử lý auth, validation trước Controller
+  • Controller KHÔNG chứa business logic
+  • Controller là nơi DUY NHẤT sử dụng req / res
+  • Socket Handler đẩy logic xuống Service
+end note
+
+note right of Business
+  <b>QUY TẮC TẦNG BUSINESS</b>
+  ─────────
+  • Service là "bộ não" xử lý nghiệp vụ
+  • KHÔNG phụ thuộc vào req / res (HTTP Context)
+  • KHÔNG truy vấn DB trực tiếp → gọi Repository
+  • Có thể được gọi từ Controller HOẶC Socket
+  • Throw Error khi vi phạm nghiệp vụ
+end note
+
+note right of Persistence
+  <b>QUY TẮC TẦNG PERSISTENCE</b>
+  ─────────
+  • Repository chỉ chứa các hàm CRUD
+  • KHÔNG xử lý HTTP Request / Response
+  • KHÔNG chứa business logic
+  • Model định nghĩa schema & validation cấp DB
+  • Mỗi Collection tương ứng 1 Model file
+end note
+
+note right of DatabaseLayer
+  <b>MongoDB</b>
+  ─────────
+  Kết nối qua: src/config/connectDB.js
+  Lưu trữ dữ liệu thực tế
+  Quản lý bởi Mongoose ODM
+end note
+
+' ==================================================
+' SHARED / CROSS-CUTTING (Cột phụ bên trái — KHÔNG phải tầng)
+' ==================================================
+note left of Presentation
+  <b>SHARED COMPONENTS</b>
+  <i>(Không phải tầng — Dùng chung)</i>
+  ─────────
+  <b>src/config</b>
+  connectDB.js · mail.js
+  vnpay.js · uploadImage.js
+  semester.js
+
+  <b>src/config (Scheduled Jobs)</b>
+  bookingExpiration.job.js
+  checkIn.job.js · checkout.job.js
+
+  <b>src/utils</b>
+  jwt.util.js
+
+  ─────────
+  Được sử dụng bởi
+  nhiều tầng khác nhau
+end note
+
+' ==================================================
+' LEGEND
+' ==================================================
+legend right
+  |= Màu |= Ý nghĩa |
+  | <back:#2563EB>    </back> | Luồng HTTP Request |
+  | <back:#7C3AED>    </back> | Luồng Socket Realtime |
+  | <back:#059669>    </back> | Luồng truy vấn Dữ liệu |
+  |= Tầng |= Vai trò |
+  | <back:#DFF2FE>    </back> | Tầng 1 — Presentation Layer |
+  | <back:#DCFCE7>    </back> | Tầng 2 — Business Layer |
+  | <back:#FEF3C7>    </back> | Tầng 3 — Persistence Layer |
+  | <back:#FCE7F3>    </back> | Tầng 4 — Database Layer |
+endlegend
+
+@enduml

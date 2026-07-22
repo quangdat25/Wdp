@@ -13,7 +13,8 @@ router.get("/next", authenticate, asyncHandler(semesterController.getNextSemeste
 // Get all semesters (Admin only)
 router.get("/", authenticate, authorize("admin"), asyncHandler(semesterController.getAllSemesters));
 
-// Create a new semester (Admin only)
+// // Create a new semester (Admin only)
+
 router.post("/", authenticate, authorize("admin"), asyncHandler(semesterController.createSemester));
 
 // Update a semester (Admin only)

@@ -183,7 +183,12 @@ class PaymentController {
       const { bookingId } = req.body;
       const studentId = req.user._id;
 
-      const booking = await Booking.findById(bookingId).populate("roomId");
+      const booking = await Booking.findById(bookingId)
+        .populate("roomId")
+        .populate({
+          path: "configId",
+          select: "name roomPrice status",
+        });
 
       if (!booking) {
         return res.status(404).json({
@@ -206,13 +211,32 @@ class PaymentController {
         });
       }
 
-      const amount = booking.roomId?.price || 2000000;
+      if (!booking.configId) {
+        return res.status(400).json({
+          success: false,
+          message: "Booking chưa có cấu hình giá",
+        });
+      }
+
+      const amount = Number(booking.configId.roomPrice);
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Giá phòng của booking không hợp lệ",
+        });
+      }
+
+      const roomName =
+        booking.roomId?.displayName ||
+        booking.roomId?.roomNumber ||
+        "chưa xác định";
 
       const paymentUrl = createVNPayUrl({
         amount,
         ipAddr: req.ip,
         txnRef: `BOOKING_${booking._id}_${generatePayID()}`,
-        orderInfo: `Thanh toan dat phong ${booking.roomId?.displayName || booking.roomId?.roomNumber}`,
+        orderInfo: `Thanh toan dat phong ${roomName}`,
       });
 
       return res.status(200).json({
@@ -221,10 +245,17 @@ class PaymentController {
         data: {
           paymentUrl,
           bookingId: booking._id,
+          amount,
+          config: {
+            id: booking.configId._id,
+            name: booking.configId.name,
+            roomPrice: amount,
+          },
         },
       });
     } catch (error) {
       console.error("Create Booking Payment Error:", error);
+
       return res.status(500).json({
         success: false,
         message: error.message,
@@ -331,13 +362,18 @@ class PaymentController {
 
   async handleBookingSuccess(bookingId, res) {
     try {
-      const booking = await Booking.findById(bookingId).populate({
-        path: "roomId",
-        populate: {
-          path: "building",
-          select: "name",
-        },
-      });
+      const booking = await Booking.findById(bookingId)
+        .populate({
+          path: "roomId",
+          populate: {
+            path: "building",
+            select: "name",
+          },
+        })
+        .populate({
+          path: "configId",
+          select: "name roomPrice",
+        });
 
       if (!booking) {
         return res.redirect(
@@ -345,11 +381,6 @@ class PaymentController {
         );
       }
 
-      /*
-       * VNPay có thể gọi return URL nhiều lần.
-       * Nếu booking đã confirmed thì không tạo thêm hóa đơn
-       * và không gửi lại email.
-       */
       if (booking.status === "confirmed" || booking.status === "checked_in") {
         return res.redirect(
           `${process.env.CLIENT_URL}/student/booking-result?status=success&bookingId=${booking._id}`,
@@ -380,12 +411,20 @@ class PaymentController {
         );
       }
 
-      const amount = Number(room.price || 2000000);
+      if (!booking.configId) {
+        return res.redirect(
+          `${process.env.CLIENT_URL}/student/payment-result?status=error&message=BookingConfigNotFound`,
+        );
+      }
 
-      /*
-       * Kiểm tra hóa đơn đã tồn tại để chống tạo trùng
-       * khi VNPay callback/return bị gọi lại.
-       */
+      const amount = Number(booking.configId.roomPrice);
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.redirect(
+          `${process.env.CLIENT_URL}/student/payment-result?status=error&message=InvalidBookingPrice`,
+        );
+      }
+
       let invoice = await Invoice.findOne({
         bookingId: booking._id,
         type: "room_fee",
@@ -395,19 +434,25 @@ class PaymentController {
         invoice = await Invoice.create({
           bookingId: booking._id,
           studentId: booking.studentId,
+
           invoiceCode: `INV-${booking._id
             .toString()
             .slice(-6)
             .toUpperCase()}-${Date.now().toString().slice(-4)}`,
+
           type: "room_fee",
           amount,
           status: "paid",
           paidAt: new Date(),
           dueDate: new Date(),
+
+          description: `Tiền phòng kỳ ${booking.semester} theo cấu hình ${booking.configId.name}`,
         });
       } else if (invoice.status !== "paid") {
+        invoice.amount = amount;
         invoice.status = "paid";
         invoice.paidAt = new Date();
+
         await invoice.save();
       }
 

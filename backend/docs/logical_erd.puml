@@ -1,0 +1,401 @@
+@startuml Logical_Data_Model_ERD
+title Logical Data Model - Hệ thống Quản lý Ký túc xá (Dormitory Management System)
+
+' Styling
+hide circle
+hide methods
+skinparam linetype ortho
+
+skinparam entity {
+    BackgroundColor #FAFAFA
+    BorderColor #333333
+    ArrowColor #333333
+    FontSize 12
+}
+
+' ========================================
+'  USER & ROLE DISCRIMINATORS
+' ========================================
+
+entity "User" as user {
+    * _id : ObjectId <<PK>>
+    --
+    * fullName : String
+    * email : String <<unique>>
+    username : String <<unique, sparse>>
+    password : String
+    * role : String <<discriminator>>
+    status : String
+    createdAt : Date
+    updatedAt : Date
+}
+
+entity "Student" as student {
+    ' Inherits all User fields
+    --
+    * studentCode : String <<unique>>
+    phone : String
+    gender : String
+    CFDScore : Number
+    dateOfBirth : Date
+    major : String
+    address : String
+    buildingId : ObjectId <<FK>>
+    roomId : ObjectId <<FK>>
+    -- parent (embedded object) --
+    parent.username : String
+    parent.password : String
+    parent.fullName : String
+    parent.phone : String
+    parent.relationship : String
+    parent.role : String
+}
+
+entity "Admin" as admin {
+    ' Inherits all User fields
+    --
+    adminCode : String <<unique, sparse>>
+    phone : String
+    department : String
+    permissionLevel : String
+}
+
+entity "Manager" as manager {
+    ' Inherits all User fields
+    --
+    * managerCode : String <<unique>>
+    phone : String
+    department : String
+    startDate : Date
+    buildingId : ObjectId <<FK>>
+}
+
+entity "Staff" as staff {
+    ' Inherits all User fields
+    --
+    * staffCode : String <<unique>>
+    phone : String
+    * staffType : String
+    shift : String
+    startDate : Date
+    buildingId : ObjectId <<FK>>
+}
+
+' ========================================
+'  BUILDING & ROOM
+' ========================================
+
+entity "Building" as building {
+    * _id : ObjectId <<PK>>
+    --
+    * name : String <<unique>>
+    description : String
+    status : String
+    managerId : ObjectId <<FK>>
+    totalFloors : Number
+    totalRoomsPerFloor : Number
+    createdAt : Date
+    updatedAt : Date
+}
+
+entity "Room" as room {
+    * _id : ObjectId <<PK>>
+    --
+    * building : ObjectId <<FK>>
+    * floor : Number
+    * roomNumber : String
+    displayName : String
+    status : String
+    capacity : Number
+    currentOccupants : Number
+    price : Number
+    -- students (embedded array) --
+    students[].student : ObjectId <<FK>>
+    students[].bedNumber : Number
+    --
+    createdAt : Date
+    updatedAt : Date
+}
+
+' ========================================
+'  SEMESTER & SYSTEM CONFIG
+' ========================================
+
+entity "Semester" as semester {
+    * _id : ObjectId <<PK>>
+    --
+    * name : String
+    * year : Number
+    * code : String <<unique>>
+    * startDate : Date
+    * endDate : Date
+    isDeleted : Boolean
+    createdAt : Date
+    updatedAt : Date
+}
+
+entity "SystemConfig" as systemConfig {
+    * _id : ObjectId <<PK>>
+    --
+    * name : String
+    * roomPrice : Number
+    * electricityPrice : Number
+    * waterPrice : Number
+    status : String
+    effectiveFrom : Date
+    * createdBy : ObjectId <<FK>>
+    activatedBy : ObjectId <<FK>>
+    createdAt : Date
+    updatedAt : Date
+}
+
+' ========================================
+'  BOOKING
+' ========================================
+
+entity "Booking" as booking {
+    * _id : ObjectId <<PK>>
+    --
+    * studentId : ObjectId <<FK>>
+    * roomId : ObjectId <<FK>>
+    * bedNumber : Number
+    * semester : String
+    * startDate : Date
+    * endDate : Date
+    status : String
+    paymentExpiresAt : Date
+    renewedFrom : ObjectId <<FK>> (self)
+    * configId : ObjectId <<FK>>
+    createdAt : Date
+    updatedAt : Date
+}
+
+' ========================================
+'  FINANCE (INVOICE & PAYMENT)
+' ========================================
+
+entity "Invoice" as invoice {
+    * _id : ObjectId <<PK>>
+    --
+    * bookingId : ObjectId <<FK>>
+    * studentId : ObjectId <<FK>>
+    * invoiceCode : String <<unique>>
+    * type : String
+    * amount : Number
+    dueDate : Date
+    paidAt : Date
+    status : String
+    -- items (embedded array) --
+    items[].name : String
+    items[].amount : Number
+    --
+    createdAt : Date
+    updatedAt : Date
+}
+
+entity "Payment" as payment {
+    * _id : ObjectId <<PK>>
+    --
+    userId : ObjectId <<FK>>
+    bookingId : ObjectId <<FK>>
+    * fullName : String
+    * phoneNumber : String
+    * address : String
+    * email : String
+    * paymentMethod : String
+    status : String
+    totalPrice : Number
+    finalPrice : Number
+    couponId : ObjectId
+    -- products (embedded array) --
+    products[].productId : ObjectId
+    products[].quantity : Number
+    --
+    createdAt : Date
+    updatedAt : Date
+}
+
+' ========================================
+'  TICKET
+' ========================================
+
+entity "Ticket" as ticket {
+    * _id : ObjectId <<PK>>
+    --
+    * studentId : ObjectId <<FK>>
+    * buildingName : String
+    * roomNumber : String
+    * title : String
+    * type : String
+    * description : String
+    image : String
+    status : String
+    approvedBy : ObjectId <<FK>>
+    approvedAt : Date
+    rejectedReason : String
+    assignedTo : ObjectId <<FK>>
+    assignedBy : ObjectId <<FK>>
+    assignedAt : Date
+    startedAt : Date
+    completedAt : Date
+    resolution : String
+    -- damageReported (embedded object) --
+    damageReported.ticketId : ObjectId <<FK>>
+    damageReported.reportedBy : ObjectId <<FK>>
+    damageReported.description : String
+    damageReported.date : String
+    damageReported.severity : String
+    --
+    createdAt : Date
+    updatedAt : Date
+}
+
+' ========================================
+'  VIOLATION
+' ========================================
+
+entity "Violation" as violation {
+    * _id : ObjectId <<PK>>
+    --
+    * studentId : ObjectId <<FK>>
+    * securityId : ObjectId <<FK>>
+    managerId : ObjectId <<FK>>
+    * buildingId : ObjectId <<FK>>
+    * reason : String
+    * location : String
+    pointsDeducted : Number
+    status : String
+    revokeReason : String
+    createdAt : Date
+    updatedAt : Date
+}
+
+' ========================================
+'  UTILITY USAGE
+' ========================================
+
+entity "UtilityUsage" as utilityUsage {
+    * _id : ObjectId <<PK>>
+    --
+    * roomId : ObjectId <<FK>>
+    * buildingName : String
+    * floor : Number
+    * roomNumber : String
+    * semester : String
+    * month : Number
+    * year : Number
+    * electricityUsage : Number
+    * electricityUnitPrice : Number
+    * electricityAmount : Number
+    waterAmount : Number
+    * totalAmount : Number
+    importedBy : ObjectId <<FK>>
+    createdAt : Date
+    updatedAt : Date
+}
+
+' ========================================
+'  NEWS
+' ========================================
+
+entity "News" as news {
+    * _id : ObjectId <<PK>>
+    --
+    * title : String
+    * content : String
+    * authorId : ObjectId <<FK>>
+    buildingId : ObjectId <<FK>>
+    status : String
+    isPinned : Boolean
+    createdAt : Date
+    updatedAt : Date
+}
+
+' ========================================
+'  NOTIFICATION & RECEIPT
+' ========================================
+
+entity "Notification" as notification {
+    * _id : ObjectId <<PK>>
+    --
+    * title : String
+    * content : String
+    senderId : ObjectId <<FK>>
+    * targetType : String
+    targetRoles : [String]
+    targetUsers : [ObjectId]
+    createdAt : Date
+    updatedAt : Date
+}
+
+entity "NotificationReceipt" as notifReceipt {
+    * _id : ObjectId <<PK>>
+    --
+    * notificationId : ObjectId <<FK>>
+    * userId : ObjectId <<FK>>
+    isRead : Boolean
+    readAt : Date
+    createdAt : Date
+    updatedAt : Date
+}
+
+' ========================================
+'  RELATIONSHIPS
+' ========================================
+
+' --- Discriminator Inheritance ---
+user ||--|| student : "is_a (role=student)"
+user ||--|| admin : "is_a (role=admin)"
+user ||--|| manager : "is_a (role=manager)"
+user ||--|| staff : "is_a (role=staff)"
+
+' --- Building & Room ---
+building ||--o{ room : "building"
+user ||--o{ building : "managerId"
+staff }o--|| building : "buildingId"
+manager }o--o| building : "buildingId"
+
+' --- Student → Building & Room ---
+student }o--o| building : "buildingId"
+student }o--o| room : "roomId"
+
+' --- Booking ---
+user ||--o{ booking : "studentId"
+room ||--o{ booking : "roomId"
+systemConfig ||--o{ booking : "configId"
+
+' --- Invoice ---
+booking ||--o{ invoice : "bookingId"
+user ||--o{ invoice : "studentId"
+
+' --- Payment ---
+user ||--o{ payment : "userId"
+booking ||--o{ payment : "bookingId"
+
+' --- Ticket ---
+user ||--o{ ticket : "studentId"
+ticket }o--o| user : "approvedBy"
+ticket }o--o| user : "assignedTo"
+
+' --- Violation ---
+user ||--o{ violation : "studentId"
+user ||--o{ violation : "securityId"
+building ||--o{ violation : "buildingId"
+
+' --- UtilityUsage ---
+room ||--o{ utilityUsage : "roomId"
+user ||--o{ utilityUsage : "importedBy"
+
+' --- News ---
+user ||--o{ news : "authorId"
+news }o--o| building : "buildingId"
+
+' --- SystemConfig ---
+user ||--o{ systemConfig : "createdBy"
+
+' --- Notification ---
+user ||--o{ notification : "senderId"
+notification ||--o{ notifReceipt : "notificationId"
+notifReceipt }o--|| user : "userId"
+
+@enduml

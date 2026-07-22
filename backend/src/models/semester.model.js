@@ -4,8 +4,8 @@ const semesterSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
       enum: ["Spring", "Summer", "Fall"],
+      required: true,
     },
     year: {
       type: Number,

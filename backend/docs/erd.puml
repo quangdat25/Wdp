@@ -1,0 +1,274 @@
+@startuml
+' hide the spot
+hide circle
+' avoid problems with angled crows feet
+skinparam linetype ortho
+
+' --- Entities ---
+
+entity "User (Base)" as user {
+  * _id : ObjectId
+  --
+  * fullName : String
+  * email : String
+  username : String
+  password : String
+  * role : String
+  status : String
+}
+
+entity "Student" as student {
+  * _id : ObjectId
+  --
+  * studentCode : String
+  phone : String
+  gender : String
+  CFDScore : Number
+  dateOfBirth : Date
+  major : String
+  address : String
+  roomId : ObjectId <<FK>>
+  buildingId : ObjectId <<FK>>
+}
+
+entity "Admin" as admin {
+  * _id : ObjectId
+  --
+  * adminCode : String
+  phone : String
+  department : String
+  permissionLevel : String
+}
+
+entity "Manager" as manager {
+  * _id : ObjectId
+  --
+  * managerCode : String
+  phone : String
+  department : String
+  startDate : Date
+  buildingId : ObjectId <<FK>>
+}
+
+entity "Staff" as staff {
+  * _id : ObjectId
+  --
+  * staffCode : String
+  phone : String
+  staffType : String
+  shift : String
+  startDate : Date
+  buildingId : ObjectId <<FK>>
+}
+
+entity "Building" as building {
+  * _id : ObjectId
+  --
+  * name : String
+  description : String
+  status : String
+  totalFloors : Number
+  totalRoomsPerFloor : Number
+  managerId : ObjectId <<FK>>
+}
+
+entity "Room" as room {
+  * _id : ObjectId
+  --
+  * floor : Number
+  * roomNumber : String
+  displayName : String
+  status : String
+  capacity : Number
+  currentOccupants : Number
+  price : Number
+  buildingId : ObjectId <<FK>>
+}
+
+entity "Semester" as semester {
+  * _id : ObjectId
+  --
+  * name : String
+  * year : Number
+  * code : String
+  * startDate : Date
+  * endDate : Date
+  isDeleted : Boolean
+}
+
+entity "SystemConfig" as systemConfig {
+  * _id : ObjectId
+  --
+  * name : String
+  * roomPrice : Number
+  * electricityPrice : Number
+  * waterPrice : Number
+  status : String
+  effectiveFrom : Date
+  createdBy : ObjectId <<FK>>
+  activatedBy : ObjectId <<FK>>
+}
+
+entity "Booking" as booking {
+  * _id : ObjectId
+  --
+  * bedNumber : Number
+  * semester : String
+  * startDate : Date
+  * endDate : Date
+  status : String
+  paymentExpiresAt : Date
+  studentId : ObjectId <<FK>>
+  roomId : ObjectId <<FK>>
+  configId : ObjectId <<FK>>
+}
+
+entity "Invoice" as invoice {
+  * _id : ObjectId
+  --
+  * invoiceCode : String
+  * type : String
+  * amount : Number
+  dueDate : Date
+  paidAt : Date
+  status : String
+  bookingId : ObjectId <<FK>>
+  studentId : ObjectId <<FK>>
+}
+
+entity "Payment" as payment {
+  * _id : ObjectId
+  --
+  * fullName : String
+  * phoneNumber : String
+  * email : String
+  totalPrice : Number
+  finalPrice : Number
+  * paymentMethod : String
+  status : String
+  userId : ObjectId <<FK>>
+  bookingId : ObjectId <<FK>>
+}
+
+entity "Ticket" as ticket {
+  * _id : ObjectId
+  --
+  * title : String
+  * type : String
+  * description : String
+  buildingName : String
+  roomNumber : String
+  status : String
+  studentId : ObjectId <<FK>>
+  assignedTo : ObjectId <<FK>>
+  approvedBy : ObjectId <<FK>>
+}
+
+entity "Violation" as violation {
+  * _id : ObjectId
+  --
+  * reason : String
+  * location : String
+  pointsDeducted : Number
+  status : String
+  studentId : ObjectId <<FK>>
+  securityId : ObjectId <<FK>>
+  managerId : ObjectId <<FK>>
+  buildingId : ObjectId <<FK>>
+}
+
+entity "UtilityUsage" as utilityUsage {
+  * _id : ObjectId
+  --
+  buildingName : String
+  * floor : Number
+  * roomNumber : String
+  * semester : String
+  * month : Number
+  * year : Number
+  * electricityUsage : Number
+  * electricityUnitPrice : Number
+  * electricityAmount : Number
+  waterAmount : Number
+  * totalAmount : Number
+  roomId : ObjectId <<FK>>
+  importedBy : ObjectId <<FK>>
+}
+
+entity "News" as news {
+  * _id : ObjectId
+  --
+  * title : String
+  * content : String
+  status : String
+  isPinned : Boolean
+  authorId : ObjectId <<FK>>
+  buildingId : ObjectId <<FK>>
+}
+
+entity "Notification" as notification {
+  * _id : ObjectId
+  --
+  * title : String
+  * content : String
+  * targetType : String
+  targetRoles : Array
+  senderId : ObjectId <<FK>>
+}
+
+entity "NotificationReceipt" as notificationReceipt {
+  * _id : ObjectId
+  --
+  isRead : Boolean
+  readAt : Date
+  notificationId : ObjectId <<FK>>
+  userId : ObjectId <<FK>>
+}
+
+' --- Relationships ---
+
+' Discriminators (Inheritance)
+user ||--|| student : is a
+user ||--|| admin : is a
+user ||--|| manager : is a
+user ||--|| staff : is a
+
+' Building / Room Management
+building ||--o{ room : contains
+manager ||--o{ building : manages (assigned)
+staff }o--|| building : assigned to
+
+' Booking & Accommodations
+student }o--|| room : resides in
+student ||--o{ booking : makes
+room ||--o{ booking : has
+booking }o--|| systemConfig : uses pricing
+
+' Finance
+booking ||--o{ invoice : generates
+booking ||--o{ payment : paid by
+student ||--o{ invoice : owes
+user ||--o{ payment : makes
+
+' Utility
+room ||--o{ utilityUsage : records
+user ||--o{ utilityUsage : imported by (staff)
+
+' Services (Tickets / Violations)
+student ||--o{ ticket : submits
+ticket }o--|| user : assigned to / approved by
+student ||--o{ violation : incurs
+violation }o--|| user : reported by (security)
+violation }o--|| building : occurred in
+
+' Information / Config
+user ||--o{ news : writes (author)
+building ||--o{ news : tagged in
+user ||--o{ systemConfig : creates / activates
+
+' Notifications
+user ||--o{ notification : sends
+notification ||--o{ notificationReceipt : has recipients
+notificationReceipt }o--|| user : belongs to (recipient)
+
+@enduml

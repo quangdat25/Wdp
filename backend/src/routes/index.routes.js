@@ -15,7 +15,7 @@ const invoiceRoutes = require("./invoice.routes");
 const semesterRoutes = require("./semester.routes");
 const newsRoutes = require("./news.routes");
 const dashboardRoutes = require("./dashboard.routes");
-
+const systemConfigRoutes = require("./systemConfig.route");
 function routes(app) {
   app.use("/api/dashboard", dashboardRoutes);
   app.use("/api/students", studentRoutes);
@@ -34,6 +34,7 @@ function routes(app) {
   app.use("/api/invoices", invoiceRoutes);
   app.use("/api/semesters", semesterRoutes);
   app.use("/api/news", newsRoutes);
+  app.use("/api/configs", systemConfigRoutes);
 }
 
 module.exports = routes;
