@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Pagination } from "antd";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Headers";
-import { showError, showSuccess } from "../../components/alert";
+import {showError, showSuccess } from "../../components/alert";
 import {
   createUtilityInvoices,
   getAllUtilityUsages,
@@ -43,6 +43,7 @@ function UtilityInvoiceManagement() {
 
   const [formData, setFormData] = useState({
     semester: "",
+    billingMonth: "",
     dueDate: "",
   });
 
@@ -91,6 +92,19 @@ function UtilityInvoiceManagement() {
     ].sort((a, b) => b.localeCompare(a));
   }, [records]);
 
+  const monthOptions = useMemo(() => {
+    if (!formData.semester) return [];
+
+    return [
+      ...new Set(
+        records
+          .filter((item) => item.semester === formData.semester)
+          .map((item) => Number(item.month))
+          .filter((month) => Number.isInteger(month) && month >= 1 && month <= 12),
+      ),
+    ].sort((a, b) => a - b);
+  }, [records, formData.semester]);
+
   useEffect(() => {
     if (!formData.semester && semesterOptions.length > 0) {
       setFormData((prev) => ({
@@ -100,36 +114,60 @@ function UtilityInvoiceManagement() {
     }
   }, [semesterOptions, formData.semester]);
 
-  const selectedSemesterRecords = useMemo(() => {
-    return records.filter((item) => item.semester === formData.semester);
-  }, [records, formData.semester]);
+  useEffect(() => {
+    if (!formData.semester) {
+      setFormData((prev) => ({
+        ...prev,
+        billingMonth: "",
+      }));
+      return;
+    }
 
-  const semesterSummary = useMemo(() => {
+    const currentMonth = Number(formData.billingMonth);
+    const monthStillExists = monthOptions.includes(currentMonth);
+
+    if (!monthStillExists) {
+      setFormData((prev) => ({
+        ...prev,
+        billingMonth:
+          monthOptions.length > 0 ? String(monthOptions[monthOptions.length - 1]) : "",
+      }));
+    }
+  }, [formData.semester, formData.billingMonth, monthOptions]);
+
+  const selectedMonthlyRecords = useMemo(() => {
+    return records.filter(
+      (item) =>
+        item.semester === formData.semester &&
+        Number(item.month) === Number(formData.billingMonth),
+    );
+  }, [records, formData.semester, formData.billingMonth]);
+
+  const monthlySummary = useMemo(() => {
     const rooms = new Set();
-    const months = new Set();
 
     let electricity = 0;
     let water = 0;
 
-    selectedSemesterRecords.forEach((item) => {
+    selectedMonthlyRecords.forEach((item) => {
       const roomKey =
         item.roomId?._id ||
         item.roomId ||
         `${item.buildingName}-${item.floor}-${item.roomNumber}`;
 
       rooms.add(String(roomKey));
-      months.add(`${item.year}-${item.month}`);
       electricity += Number(item.electricityAmount || 0);
       water += Number(item.waterAmount || 0);
     });
 
     return {
-      records: selectedSemesterRecords.length,
+      records: selectedMonthlyRecords.length,
       rooms: rooms.size,
-      months: months.size,
+      electricity,
+      water,
       total: electricity + water,
     };
-  }, [selectedSemesterRecords]);
+  }, [selectedMonthlyRecords]);
 
   const filteredRecords = useMemo(() => {
     return records.filter((item) => {
@@ -188,8 +226,9 @@ function UtilityInvoiceManagement() {
 
   const canCreateInvoice =
     Boolean(formData.semester) &&
+    Boolean(formData.billingMonth) &&
     Boolean(formData.dueDate) &&
-    selectedSemesterRecords.length > 0;
+    selectedMonthlyRecords.length > 0;
 
   const validateAndSetFile = (selectedFile) => {
     if (!selectedFile) return;
@@ -271,19 +310,34 @@ function UtilityInvoiceManagement() {
   };
 
   const handleCreateInvoices = async () => {
-    if (!formData.semester || !formData.dueDate) {
-      showError("Vui lòng chọn kỳ và hạn thanh toán");
+    if (
+      !formData.semester ||
+      !formData.billingMonth ||
+      !formData.dueDate
+    ) {
+      showError("Vui lòng chọn học kỳ, tháng thanh toán và hạn thanh toán");
       return;
     }
 
-    if (selectedSemesterRecords.length === 0) {
-      showError("Kỳ này chưa có dữ liệu điện nước");
+    if (selectedMonthlyRecords.length === 0) {
+      showError(
+        `Học kỳ ${formData.semester} chưa có dữ liệu điện nước tháng ${String(
+          formData.billingMonth,
+        ).padStart(2, "0")}`,
+      );
       return;
     }
 
     try {
       setCreating(true);
-      const response = await createUtilityInvoices(formData);
+
+      const payload = {
+        semester: formData.semester,
+        billingMonth: Number(formData.billingMonth),
+        dueDate: formData.dueDate,
+      };
+
+      const response = await createUtilityInvoices(payload);
       const result = response?.data?.data || [];
 
       const successCount = result.filter(
@@ -294,17 +348,36 @@ function UtilityInvoiceManagement() {
         (item) => item.status === "skipped",
       ).length;
 
-      showSuccess(
-        skippedCount > 0
-          ? `Đã tạo ${successCount} hóa đơn, bỏ qua ${skippedCount} hóa đơn đã tồn tại`
-          : "Tạo hóa đơn điện nước thành công",
-      );
+      const failedCount = result.filter(
+        (item) => item.status === "failed",
+      ).length;
+
+      const periodLabel = `tháng ${String(formData.billingMonth).padStart(
+        2,
+        "0",
+      )} - ${formData.semester}`;
+
+      if (successCount > 0) {
+        showSuccess(
+          `Đã tạo ${successCount} hóa đơn ${periodLabel}` +
+            (skippedCount > 0
+              ? `, bỏ qua ${skippedCount} hóa đơn đã tồn tại`
+              : "") +
+            (failedCount > 0 ? `, ${failedCount} hóa đơn thất bại` : ""),
+        );
+      } else if (skippedCount > 0) {
+        showSuccess(
+          `Không có hóa đơn mới. ${skippedCount} hóa đơn ${periodLabel} đã tồn tại`,
+        );
+      }
 
       await fetchInvoices();
+      setInvoicePage(1);
       setActiveTab("invoices");
     } catch (error) {
       showError(
-        error.response?.data?.message || "Tạo hóa đơn điện nước thất bại",
+        error.response?.data?.message ||
+          "Tạo hóa đơn điện nước theo tháng thất bại",
       );
     } finally {
       setCreating(false);
@@ -352,9 +425,10 @@ function UtilityInvoiceManagement() {
               formData={formData}
               setFormData={setFormData}
               semesterOptions={semesterOptions}
+              monthOptions={monthOptions}
               loadingRecords={loadingRecords}
-              selectedSemesterRecords={selectedSemesterRecords}
-              semesterSummary={semesterSummary}
+              selectedMonthlyRecords={selectedMonthlyRecords}
+              monthlySummary={monthlySummary}
               creating={creating}
               canCreateInvoice={canCreateInvoice}
               onCreate={handleCreateInvoices}
@@ -442,7 +516,7 @@ function ManagerPageHeader() {
               Điện nước và hóa đơn sinh viên
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500 sm:text-base">
-              Import dữ liệu điện nước, kiểm tra theo kỳ, tạo hóa đơn và theo dõi công nợ trên cùng một màn hình.
+              Import dữ liệu điện nước theo tháng, tạo hóa đơn tháng và theo dõi công nợ trên cùng một màn hình.
             </p>
           </div>
 
@@ -589,9 +663,10 @@ function InvoiceCreationPanel({
   formData,
   setFormData,
   semesterOptions,
+  monthOptions,
   loadingRecords,
-  selectedSemesterRecords,
-  semesterSummary,
+  selectedMonthlyRecords,
+  monthlySummary,
   creating,
   canCreateInvoice,
   onCreate,
@@ -600,49 +675,132 @@ function InvoiceCreationPanel({
     <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 px-6 py-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-xl font-black text-blue-700">2</div>
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-xl font-black text-blue-700">
+            2
+          </div>
+
           <div>
-            <h2 className="text-lg font-black text-slate-900">Tạo hóa đơn cuối kỳ</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-500">Chọn kỳ đã import và hạn thanh toán cho sinh viên.</p>
+            <h2 className="text-lg font-black text-slate-900">
+              Tạo hóa đơn theo tháng
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              Chọn học kỳ, tháng đã import và hạn thanh toán cho sinh viên.
+            </p>
           </div>
         </div>
       </div>
 
       <div className="p-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Kỳ thanh toán">
+          <Field label="Học kỳ">
             <select
               value={formData.semester}
-              onChange={(event) => setFormData((prev) => ({ ...prev, semester: event.target.value }))}
+              onChange={(event) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  semester: event.target.value,
+                  billingMonth: "",
+                }))
+              }
               className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             >
-              {semesterOptions.length === 0 && <option value="">Chưa có kỳ được import</option>}
-              {semesterOptions.map((semester) => <option key={semester} value={semester}>{semester}</option>)}
+              {semesterOptions.length === 0 && (
+                <option value="">Chưa có học kỳ được import</option>
+              )}
+
+              {semesterOptions.map((semester) => (
+                <option key={semester} value={semester}>
+                  {semester}
+                </option>
+              ))}
             </select>
           </Field>
 
-          <Field label="Hạn thanh toán">
-            <input
-              value={formData.dueDate}
-              onChange={(event) => setFormData((prev) => ({ ...prev, dueDate: event.target.value }))}
-              type="date"
-              min={getTodayInputValue()}
-              className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
+          <Field label="Tháng thanh toán">
+            <select
+              value={formData.billingMonth}
+              onChange={(event) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  billingMonth: event.target.value,
+                }))
+              }
+              disabled={!formData.semester || monthOptions.length === 0}
+              className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+            >
+              {monthOptions.length === 0 ? (
+                <option value="">Chưa có tháng được import</option>
+              ) : (
+                monthOptions.map((month) => (
+                  <option key={month} value={String(month)}>
+                    Tháng {String(month).padStart(2, "0")}
+                  </option>
+                ))
+              )}
+            </select>
           </Field>
+
+          <div className="sm:col-span-2">
+            <Field label="Hạn thanh toán">
+              <input
+                value={formData.dueDate}
+                onChange={(event) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    dueDate: event.target.value,
+                  }))
+                }
+                type="date"
+                min={getTodayInputValue()}
+                className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </Field>
+          </div>
         </div>
 
         <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
           {loadingRecords ? (
-            <div className="flex items-center gap-2 text-sm text-slate-500"><FaSpinner className="animate-spin" />Đang kiểm tra dữ liệu...</div>
-          ) : selectedSemesterRecords.length === 0 ? (
-            <div className="flex items-start gap-2 text-sm font-medium text-amber-700"><FaExclamationTriangle className="mt-0.5" />Kỳ đã chọn chưa có dữ liệu điện nước.</div>
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <FaSpinner className="animate-spin" />
+              Đang kiểm tra dữ liệu...
+            </div>
+          ) : !formData.semester ? (
+            <div className="flex items-start gap-2 text-sm font-medium text-amber-700">
+              <FaExclamationTriangle className="mt-0.5" />
+              Chưa có học kỳ được import.
+            </div>
+          ) : monthOptions.length === 0 ? (
+            <div className="flex items-start gap-2 text-sm font-medium text-amber-700">
+              <FaExclamationTriangle className="mt-0.5" />
+              Học kỳ đã chọn chưa có dữ liệu điện nước theo tháng.
+            </div>
+          ) : selectedMonthlyRecords.length === 0 ? (
+            <div className="flex items-start gap-2 text-sm font-medium text-amber-700">
+              <FaExclamationTriangle className="mt-0.5" />
+              Tháng đã chọn chưa có dữ liệu điện nước.
+            </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              <MiniStat label="Bản ghi" value={semesterSummary.records} />
-              <MiniStat label="Phòng" value={semesterSummary.rooms} />
-              <MiniStat label="Tháng đã nhập" value={`${semesterSummary.months}/4`} />
-              <MiniStat label="Tổng điện nước" value={formatMoney(semesterSummary.total)} className="text-blue-700" />
+              <MiniStat label="Bản ghi" value={monthlySummary.records} />
+              <MiniStat label="Phòng" value={monthlySummary.rooms} />
+              <MiniStat
+                label="Tiền điện"
+                value={formatMoney(monthlySummary.electricity)}
+              />
+              <MiniStat
+                label="Tiền nước"
+                value={formatMoney(monthlySummary.water)}
+              />
+
+              <div className="col-span-2 border-t border-slate-200 pt-3">
+                <MiniStat
+                  label={`Tổng dịch vụ tháng ${String(
+                    formData.billingMonth,
+                  ).padStart(2, "0")}`}
+                  value={formatMoney(monthlySummary.total)}
+                  className="text-blue-700"
+                />
+              </div>
             </div>
           )}
         </div>
@@ -653,7 +811,20 @@ function InvoiceCreationPanel({
           disabled={creating || !canCreateInvoice}
           className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-extrabold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {creating ? <><FaSpinner className="animate-spin" />Đang tạo hóa đơn...</> : <><FaCheckCircle />Tạo hóa đơn điện nước</>}
+          {creating ? (
+            <>
+              <FaSpinner className="animate-spin" />
+              Đang tạo hóa đơn...
+            </>
+          ) : (
+            <>
+              <FaCheckCircle />
+              Tạo hóa đơn tháng{" "}
+              {formData.billingMonth
+                ? String(formData.billingMonth).padStart(2, "0")
+                : ""}
+            </>
+          )}
         </button>
       </div>
     </section>
@@ -744,6 +915,7 @@ function InvoiceTab({
     setSelectedStudent({
       student: invoice.studentId || {},
       booking: invoice.bookingId || {},
+      invoice,
     });
     setStudentUtilities([]);
     setDetailOpen(true);
@@ -782,11 +954,12 @@ function InvoiceTab({
 
       <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1220px] text-left">
+          <table className="w-full min-w-[1320px] text-left">
             <thead>
               <tr className="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500">
                 <TableHead>Mã hóa đơn</TableHead>
-                <TableHead>Kỳ</TableHead>
+                <TableHead>Học kỳ</TableHead>
+                <TableHead>Tháng</TableHead>
                 <TableHead>Sinh viên</TableHead>
                 <TableHead>Phòng</TableHead>
                 <TableHead>Tiền điện</TableHead>
@@ -801,9 +974,9 @@ function InvoiceTab({
 
             <tbody>
               {loading ? (
-                <TableMessage colSpan={11}>Đang tải hóa đơn...</TableMessage>
+                <TableMessage colSpan={12}>Đang tải hóa đơn...</TableMessage>
               ) : invoices.length === 0 ? (
-                <TableMessage colSpan={11}>
+                <TableMessage colSpan={12}>
                   Chưa có hóa đơn điện nước
                 </TableMessage>
               ) : (
@@ -817,8 +990,6 @@ function InvoiceTab({
                       ?.amount || 0;
 
                   const room = invoice.bookingId?.roomId;
-                  const period = parseUtilityPeriod(invoice.invoiceCode);
-
                   return (
                     <tr key={invoice._id} className="hover:bg-slate-50">
                       <TableCell className="font-semibold text-slate-900">
@@ -827,7 +998,20 @@ function InvoiceTab({
 
                       <TableCell>
                         <span className="inline-flex whitespace-nowrap rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-700">
-                          {invoice.bookingId?.semester || "—"}
+                          {invoice.semester ||
+                            invoice.bookingId?.semester ||
+                            "—"}
+                        </span>
+                      </TableCell>
+
+                      <TableCell>
+                        <span className="inline-flex whitespace-nowrap rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-bold text-blue-700">
+                          {invoice.billingMonth
+                            ? `Tháng ${String(invoice.billingMonth).padStart(
+                                2,
+                                "0",
+                              )}`
+                            : "—"}
                         </span>
                       </TableCell>
 
@@ -916,13 +1100,26 @@ function StudentMonthlyDetailModal({
 }) {
   const student = selectedStudent?.student || {};
   const booking = selectedStudent?.booking || {};
+  const invoice = selectedStudent?.invoice || {};
 
   const normalizedRecords = useMemo(() => {
-    return records.map(normalizeStudentUtilityRecord).sort((a, b) => {
-      if (a.year !== b.year) return b.year - a.year;
-      return b.month - a.month;
-    });
-  }, [records]);
+    return records
+      .map(normalizeStudentUtilityRecord)
+      .filter((item) => {
+        const sameSemester =
+          !invoice.semester || item.semester === invoice.semester;
+
+        const sameMonth =
+          !invoice.billingMonth ||
+          item.month === Number(invoice.billingMonth);
+
+        return sameSemester && sameMonth;
+      })
+      .sort((a, b) => {
+        if (a.year !== b.year) return b.year - a.year;
+        return b.month - a.month;
+      });
+  }, [records, invoice.semester, invoice.billingMonth]);
 
   const totalElectricity = normalizedRecords.reduce(
     (sum, item) => sum + item.studentElectricity,
@@ -948,13 +1145,17 @@ function StudentMonthlyDetailModal({
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
           <div>
             <h3 className="text-xl font-bold text-slate-900">
-              Chi tiết điện nước theo tháng
+              Chi tiết hóa đơn điện nước
             </h3>
 
             <p className="mt-1 text-sm text-slate-500">
               {student.fullName || student.username || "Sinh viên"}
               {student.studentCode ? ` · ${student.studentCode}` : ""}
               {room?.roomNumber ? ` · Phòng ${room.roomNumber}` : ""}
+              {invoice.billingMonth
+                ? ` · Tháng ${String(invoice.billingMonth).padStart(2, "0")}`
+                : ""}
+              {invoice.semester ? ` · ${invoice.semester}` : ""}
             </p>
           </div>
 
@@ -977,7 +1178,7 @@ function StudentMonthlyDetailModal({
             </div>
           ) : normalizedRecords.length === 0 ? (
             <div className="flex min-h-[260px] items-center justify-center text-sm text-slate-500">
-              Sinh viên chưa có dữ liệu điện nước.
+              Không tìm thấy dữ liệu điện nước của hóa đơn này.
             </div>
           ) : (
             <>
@@ -1403,16 +1604,6 @@ function includesText(source, filter) {
     .includes(String(filter).trim().toLowerCase());
 }
 
-function parseUtilityPeriod(invoiceCode) {
-  const match = invoiceCode?.match(/^UTIL-(\d{4})-(\d{2})-/);
-
-  if (!match) return null;
-
-  return {
-    year: Number(match[1]),
-    month: Number(match[2]),
-  };
-}
 
 function formatMoney(value) {
   return `${Number(value || 0).toLocaleString("vi-VN")} đ`;
