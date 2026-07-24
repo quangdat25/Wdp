@@ -4,6 +4,7 @@ import Sidebar from "../../components/Sidebar";
 import authService from "../../api/authService";
 import { FaBell, FaExclamationTriangle } from "react-icons/fa";
 import Header from "../../components/Headers";
+import { Pagination } from "antd";
 
 import {
   getStaffTickets,
@@ -29,6 +30,8 @@ function CleanerDashboard() {
     } else {
       setActiveTab("Trang chủ");
     }
+    setTasksPage(1);
+    setIncidentsPage(1);
   }, [location.pathname]);
 
   // State management inside the file
@@ -42,6 +45,12 @@ function CleanerDashboard() {
     description: "",
     severity: "MEDIUM",
   });
+
+  // Pagination states
+  const [tasksPage, setTasksPage] = useState(1);
+  const [tasksPageSize, setTasksPageSize] = useState(6);
+  const [incidentsPage, setIncidentsPage] = useState(1);
+  const [incidentsPageSize, setIncidentsPageSize] = useState(10);
 
   const [toast, setToast] = useState(null);
   const showToast = (message, type = "success") => {
@@ -148,6 +157,20 @@ function CleanerDashboard() {
     return task.status === filterStatus;
   });
 
+  const paginatedTasks = filteredTasks.slice(
+    (tasksPage - 1) * tasksPageSize,
+    tasksPage * tasksPageSize,
+  );
+
+  const reportedIssues = cleanTasks.filter(
+    (t) => t.damageReported && t.damageReported.description,
+  );
+
+  const paginatedIssues = reportedIssues.slice(
+    (incidentsPage - 1) * incidentsPageSize,
+    incidentsPage * incidentsPageSize,
+  );
+
   const assignedTasksCount = cleanTasks.filter(
     (t) => t.status === "assigned",
   ).length;
@@ -220,9 +243,7 @@ function CleanerDashboard() {
                 </h3>
               </div>
               <div className="cleaner-stat-card">
-                <span className="cleaner-stat-card-title">
-                  ĐANG THỰC HIỆN
-                </span>
+                <span className="cleaner-stat-card-title">ĐANG THỰC HIỆN</span>
                 <h3
                   className="cleaner-stat-card-value"
                   style={{ color: "#0A4E9B" }}
@@ -327,7 +348,10 @@ function CleanerDashboard() {
               {["ALL", "assigned", "in_progress", "completed"].map((status) => (
                 <button
                   key={status}
-                  onClick={() => setFilterStatus(status)}
+                  onClick={() => {
+                    setFilterStatus(status);
+                    setTasksPage(1);
+                  }}
                   style={{
                     padding: "6px 14px",
                     borderRadius: 14,
@@ -383,197 +407,224 @@ function CleanerDashboard() {
 
             {/* List grid */}
             {!loading && filteredTasks.length > 0 && (
-              <div className="cleaner-tasks-grid">
-                {filteredTasks.map((task) => {
-                  const dbDamage =
-                    task.damageReported && task.damageReported.description
-                      ? task.damageReported
-                      : null;
-                  return (
-                    <div
-                      key={task._id}
-                      style={{
-                        background: "white",
-                        borderRadius: 12,
-                        border: "1px solid #E2E8F0",
-                        padding: 20,
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <div>
+              <>
+                <div className="cleaner-tasks-grid">
+                  {paginatedTasks.map((task) => {
+                    const dbDamage =
+                      task.damageReported && task.damageReported.description
+                        ? task.damageReported
+                        : null;
+                    return (
+                      <div
+                        key={task._id}
+                        style={{
+                          background: "white",
+                          borderRadius: 12,
+                          border: "1px solid #E2E8F0",
+                          padding: 20,
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginBottom: 8,
+                            }}
+                          >
+                            <h4
+                              style={{
+                                margin: 0,
+                                color: "#0F172A",
+                                fontSize: 16,
+                              }}
+                            >
+                              Phòng {task.roomNumber} - Tòa KTX{" "}
+                              {task.buildingName}
+                            </h4>
+                            <span
+                              style={{
+                                padding: "2px 8px",
+                                borderRadius: 10,
+                                fontSize: 10,
+                                fontWeight: 700,
+                                background:
+                                  task.status === "assigned"
+                                    ? "#FEE2E2"
+                                    : task.status === "in_progress"
+                                      ? "#DBEAFE"
+                                      : "#D1FAE5",
+                                color:
+                                  task.status === "assigned"
+                                    ? "#991B1B"
+                                    : task.status === "in_progress"
+                                      ? "#1E40AF"
+                                      : "#065F46",
+                              }}
+                            >
+                              {task.status === "assigned"
+                                ? "Chờ dọn"
+                                : task.status === "in_progress"
+                                  ? "Đang dọn"
+                                  : "Sẵn sàng"}
+                            </span>
+                          </div>
+
+                          <p
+                            style={{
+                              fontSize: 11,
+                              color: "#64748B",
+                              margin: "4px 0",
+                            }}
+                          >
+                            Phân loại:{" "}
+                            <strong>{task.title || task.type}</strong> | Nhận
+                            lúc:{" "}
+                            {task.assignedAt
+                              ? new Date(task.assignedAt).toLocaleString(
+                                  "vi-VN",
+                                )
+                              : new Date(task.createdAt).toLocaleString(
+                                  "vi-VN",
+                                )}
+                          </p>
+                          <p
+                            style={{
+                              fontSize: 13,
+                              color: "#475569",
+                              margin: "10px 0",
+                            }}
+                          >
+                            {task.description}
+                          </p>
+
+                          {/* Defect banner */}
+                          {dbDamage && (
+                            <div
+                              style={{
+                                background: "#FEF2F2",
+                                border: "1px solid #FEE2E2",
+                                borderRadius: 8,
+                                padding: 10,
+                                fontSize: 12,
+                                color: "#991B1B",
+                                margin: "8px 0",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                <FaExclamationTriangle /> Đã có báo cáo sự cố hư
+                                hại:
+                              </div>
+                              <p style={{ margin: "2px 0 0 0" }}>
+                                {dbDamage.description}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
                         <div
                           style={{
                             display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            marginBottom: 8,
+                            gap: 8,
+                            borderTop: "1px solid #F1F5F9",
+                            paddingTop: 12,
+                            marginTop: 12,
                           }}
                         >
-                          <h4
-                            style={{
-                              margin: 0,
-                              color: "#0F172A",
-                              fontSize: 16,
-                            }}
-                          >
-                            Phòng {task.roomNumber} - Tòa KTX{" "}
-                            {task.buildingName}
-                          </h4>
-                          <span
-                            style={{
-                              padding: "2px 8px",
-                              borderRadius: 10,
-                              fontSize: 10,
-                              fontWeight: 700,
-                              background:
-                                task.status === "assigned"
-                                  ? "#FEE2E2"
-                                  : task.status === "in_progress"
-                                    ? "#DBEAFE"
-                                    : "#D1FAE5",
-                              color:
-                                task.status === "assigned"
-                                  ? "#991B1B"
-                                  : task.status === "in_progress"
-                                    ? "#1E40AF"
-                                    : "#065F46",
-                            }}
-                          >
-                            {task.status === "assigned"
-                              ? "Chờ dọn"
-                              : task.status === "in_progress"
-                                ? "Đang dọn"
-                                : "Sẵn sàng"}
-                          </span>
-                        </div>
-
-                        <p
-                          style={{
-                            fontSize: 11,
-                            color: "#64748B",
-                            margin: "4px 0",
-                          }}
-                        >
-                          Phân loại: <strong>{task.title || task.type}</strong>{" "}
-                          | Nhận lúc:{" "}
-                          {task.assignedAt
-                            ? new Date(task.assignedAt).toLocaleString("vi-VN")
-                            : new Date(task.createdAt).toLocaleString("vi-VN")}
-                        </p>
-                        <p
-                          style={{
-                            fontSize: 13,
-                            color: "#475569",
-                            margin: "10px 0",
-                          }}
-                        >
-                          {task.description}
-                        </p>
-
-                        {/* Defect banner */}
-                        {dbDamage && (
-                          <div
-                            style={{
-                              background: "#FEF2F2",
-                              border: "1px solid #FEE2E2",
-                              borderRadius: 8,
-                              padding: 10,
-                              fontSize: 12,
-                              color: "#991B1B",
-                              margin: "8px 0",
-                            }}
-                          >
-                            <div
+                          {task.status === "assigned" && (
+                            <button
+                              onClick={() => handleStartTask(task._id)}
                               style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 4,
+                                flex: 1,
+                                background: "#0D47A1",
+                                color: "white",
+                                border: "none",
+                                borderRadius: 8,
+                                padding: "8px 12px",
+                                fontSize: 12,
                                 fontWeight: 700,
+                                cursor: "pointer",
                               }}
                             >
-                              <FaExclamationTriangle /> Đã có báo cáo sự cố hư
-                              hại:
-                            </div>
-                            <p style={{ margin: "2px 0 0 0" }}>
-                              {dbDamage.description}
-                            </p>
-                          </div>
-                        )}
+                              Bắt đầu dọn dẹp
+                            </button>
+                          )}
+
+                          {task.status === "in_progress" && (
+                            <button
+                              onClick={() => handleMarkReady(task._id)}
+                              style={{
+                                flex: 1,
+                                background: "#10B981",
+                                color: "white",
+                                border: "none",
+                                borderRadius: 8,
+                                padding: "8px 12px",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Dọn phòng xong
+                            </button>
+                          )}
+
+                          {!dbDamage && task.status !== "completed" && (
+                            <button
+                              onClick={() => setReportingTask(task)}
+                              style={{
+                                flex: 1,
+                                background: "#EF4444",
+                                color: "white",
+                                border: "none",
+                                borderRadius: 8,
+                                padding: "8px 12px",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Báo cáo hỏng hóc
+                            </button>
+                          )}
+                        </div>
                       </div>
+                    );
+                  })}
+                </div>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          borderTop: "1px solid #F1F5F9",
-                          paddingTop: 12,
-                          marginTop: 12,
-                        }}
-                      >
-                        {task.status === "assigned" && (
-                          <button
-                            onClick={() => handleStartTask(task._id)}
-                            style={{
-                              flex: 1,
-                              background: "#0D47A1",
-                              color: "white",
-                              border: "none",
-                              borderRadius: 8,
-                              padding: "8px 12px",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                            }}
-                          >
-                            Bắt đầu dọn dẹp
-                          </button>
-                        )}
-
-                        {task.status === "in_progress" && (
-                          <button
-                            onClick={() => handleMarkReady(task._id)}
-                            style={{
-                              flex: 1,
-                              background: "#10B981",
-                              color: "white",
-                              border: "none",
-                              borderRadius: 8,
-                              padding: "8px 12px",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                            }}
-                          >
-                            Dọn phòng xong
-                          </button>
-                        )}
-
-                        {!dbDamage && task.status !== "completed" && (
-                          <button
-                            onClick={() => setReportingTask(task)}
-                            style={{
-                              flex: 1,
-                              background: "#EF4444",
-                              color: "white",
-                              border: "none",
-                              borderRadius: 8,
-                              padding: "8px 12px",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                            }}
-                          >
-                            Báo cáo hỏng hóc
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    marginTop: 20,
+                  }}
+                >
+                  <Pagination
+                    current={tasksPage}
+                    total={filteredTasks.length}
+                    pageSize={tasksPageSize}
+                    pageSizeOptions={["6", "10", "15"]}
+                    showSizeChanger
+                    onChange={(page, size) => {
+                      setTasksPage(page);
+                      setTasksPageSize(size);
+                    }}
+                  />
+                </div>
+              </>
             )}
           </div>
         )}
@@ -622,16 +673,26 @@ function CleanerDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cleanTasks
-                    .filter(
-                      (t) => t.damageReported && t.damageReported.description
-                    )
-                    .map((t) => {
+                  {paginatedIssues.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan="6"
+                        style={{
+                          padding: 24,
+                          textAlign: "center",
+                          color: "#64748B",
+                        }}
+                      >
+                        Chưa có sự cố kỹ thuật nào được báo cáo.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedIssues.map((t) => {
                       const damage = t.damageReported;
                       return (
                         <tr
-                           key={t._id}
-                           style={{ borderBottom: "1px solid #E2E8F0" }}
+                          key={t._id}
+                          style={{ borderBottom: "1px solid #E2E8F0" }}
                         >
                           <td
                             style={{
@@ -647,7 +708,9 @@ function CleanerDashboard() {
                           </td>
                           <td style={{ padding: 12 }}>{damage.description}</td>
                           <td style={{ padding: 12 }}>
-                            {damage.reportedBy?.fullName || damage.reportedBy?.username || "Không rõ"}
+                            {damage.reportedBy?.fullName ||
+                              damage.reportedBy?.username ||
+                              "Không rõ"}
                           </td>
                           <td style={{ padding: 12, fontSize: 13 }}>
                             {damage.date}
@@ -676,10 +739,33 @@ function CleanerDashboard() {
                           </td>
                         </tr>
                       );
-                    })}
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
+
+            {reportedIssues.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  marginTop: 20,
+                }}
+              >
+                <Pagination
+                  current={incidentsPage}
+                  total={reportedIssues.length}
+                  pageSize={incidentsPageSize}
+                  pageSizeOptions={["10", "15", "20"]}
+                  showSizeChanger
+                  onChange={(page, size) => {
+                    setIncidentsPage(page);
+                    setIncidentsPageSize(size);
+                  }}
+                />
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -691,10 +777,10 @@ function CleanerDashboard() {
             position: "fixed",
             inset: 0,
             zIndex: 100,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              alignContent: "center",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            alignContent: "center",
             padding: 20,
           }}
         >
