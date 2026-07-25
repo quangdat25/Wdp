@@ -25,7 +25,6 @@ import BookingResult from "./pages/Student/BookingResult";
 import ParentDashboard from "./pages/Parent/ParentDashboard";
 import ParentStudentInfo from "./pages/Parent/ParentStudentInfo";
 import ParentPayment from "./pages/Parent/ParentPayment";
-import MyViolations from "./pages/Student/MyViolations";
 import CleanerDashboard from "./pages/Staff/CleanerDashboard";
 import MaintenanceDashboard from "./pages/Staff/MaintenanceDashboard";
 import SecurityDashboard from "./pages/Staff/SecurityDashboard";

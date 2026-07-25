@@ -16,7 +16,7 @@ const routes = require("./routes/index.routes");
 const port = process.env.PORT || 3000;
 const autoDeleteExpiredBookings = require("./config/bookingExpiration.job");
 const paymentReminder = require("./config/paymentReminder.job");
-
+const updateInvoiceOverdueJob = require("./config/updateStatusInvoice.job");
 app.use(bodyParser.json());
 app.use(
   bodyParser.urlencoded({
@@ -42,7 +42,9 @@ app.get("/healthz", (req, res) => {
   const isDbConnected = mongoose.connection.readyState === 1;
   return res.status(isDbConnected ? 200 : 500).json({
     success: isDbConnected,
-    message: isDbConnected ? "Server and Database are healthy" : "Database is not connected",
+    message: isDbConnected
+      ? "Server and Database are healthy"
+      : "Database is not connected",
     databaseState: mongoose.connection.readyState,
   });
 });
@@ -60,7 +62,7 @@ const startServer = async () => {
   initSocket(server);
   autoDeleteExpiredBookings();
   paymentReminder();
-
+  updateInvoiceOverdueJob();
   server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
   });

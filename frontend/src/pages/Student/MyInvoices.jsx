@@ -52,6 +52,7 @@ function MyInvoices() {
 
     if (
       invoice.type === "room_fee" &&
+      invoice.status === "unpaid" &&
       (!invoice.dueDate || Number.isNaN(dueTime) || dueTime <= Date.now())
     ) {
       showError(
@@ -458,14 +459,14 @@ function PaymentCountdown({ dueDate }) {
 }
 
 function canPayInvoice(invoice) {
-  if (invoice.status !== "unpaid") {
+  if (invoice.status !== "unpaid" && invoice.status !== "overdue") {
     return false;
   }
 
   if (invoice.type === "room_fee") {
     const dueTime = new Date(invoice.dueDate).getTime();
 
-    if (Number.isNaN(dueTime) || dueTime <= Date.now()) {
+    if (invoice.status === "unpaid" && (Number.isNaN(dueTime) || dueTime <= Date.now())) {
       return false;
     }
   }

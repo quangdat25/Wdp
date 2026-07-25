@@ -277,6 +277,31 @@
   box-shadow: 0 8px 28px rgba(22, 163, 74, 0.3);
 }
 
+/* Top-row layout: banner on left, single metric (CFD) on right */
+.student-top-row {
+  display: flex;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.student-cta-banner,
+.student-room-banner,
+.student-side-metric {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.student-side-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.student-side-metric .student-metric-card {
+  height: 100%;
+  min-height: 0;
+}
+
 .student-cta-banner__left {
   display: flex;
   align-items: center;
@@ -621,6 +646,12 @@
   }
   .student-grid--wide {
     grid-template-columns: 1fr;
+  }
+  .student-top-row {
+    flex-direction: column;
+  }
+  .student-side-metric {
+    width: 100%;
   }
 }
 

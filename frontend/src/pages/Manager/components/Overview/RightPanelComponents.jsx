@@ -9,7 +9,6 @@ export function QuickActions() {
   return (
     <Card title="Thao tác nhanh">
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
-        <Button onClick={() => navigate('/manager/students')} icon={<FaDoorOpen />} label="Quản lý sinh viên & Xếp phòng" primary style={{ justifyContent: "flex-start" }} />
         <Button onClick={() => navigate('/manager/tickets')} icon={<FaWrench />} label="Phân công bảo trì" primary style={{ justifyContent: "flex-start" }} />
         <Button onClick={() => navigate('/manager/utility-invoices')} icon={<FaFileInvoiceDollar />} label="Tạo hóa đơn điện nước" outline style={{ justifyContent: "flex-start" }} />
         <Button onClick={() => navigate('/manager/violations')} icon={<FaGavel />} label="Ghi nhận vi phạm" danger style={{ justifyContent: "flex-start" }} />

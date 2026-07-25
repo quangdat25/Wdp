@@ -571,31 +571,6 @@ function EligibilityScreen({
             </strong>
           </div>
         )}
-
-        {(reason === "unpaid_invoice" ||
-          data?.totalUnpaid !== undefined) && (
-          <div
-            className={`booking-eligibility__detail-card ${
-              Number(data?.totalUnpaid || 0) === 0
-                ? "is-pass"
-                : "is-fail"
-            }`}
-          >
-            <span>
-              <FaFileInvoice
-                style={{ marginRight: 4 }}
-              />
-              Công nợ
-            </span>
-
-            <strong>
-              {Number(
-                data?.totalUnpaid || 0,
-              ).toLocaleString("vi-VN")}
-              đ
-            </strong>
-          </div>
-        )}
       </div>
 
       <div className="booking-btn-group">

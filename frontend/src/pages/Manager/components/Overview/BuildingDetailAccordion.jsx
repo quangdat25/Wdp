@@ -40,6 +40,8 @@ export default function BuildingDetailAccordion({ buildingId, buildingName }) {
   const [removing, setRemoving] = useState(false);
 
   const { confirm } = Modal;
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const isManager = user?.role === "manager";
 
   useEffect(() => {
     // Entrance animation
@@ -145,7 +147,7 @@ export default function BuildingDetailAccordion({ buildingId, buildingName }) {
           Chi tiết Tòa {buildingName}
         </h4>
         <div style={{ display: "flex", gap: 8 }}>
-          {[1, 2, 3, 4, 5].map((floor) => (
+          {[1, 2, 3, 4].map((floor) => (
             <button
               key={floor}
               onClick={() => setSelectedFloor(floor)}
@@ -222,7 +224,7 @@ export default function BuildingDetailAccordion({ buildingId, buildingName }) {
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <h4 style={{ margin: 0, fontSize: 14, color: "#1E293B" }}>Sinh viên trong phòng ({(selectedRoom.students || []).length}/{selectedRoom.capacity})</h4>
-              {(selectedRoom.students || []).length < selectedRoom.capacity && (
+              {!isManager && (selectedRoom.students || []).length < selectedRoom.capacity && (
                 <button onClick={toggleAddStudent} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: showAddStudent ? "#F1F5F9" : "#16A34A", color: showAddStudent ? "#475569" : "#FFF", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
                   {showAddStudent ? <><FaTimes /> Đóng</> : <><FaUserPlus /> Thêm SV</>}
                 </button>
@@ -253,7 +255,7 @@ export default function BuildingDetailAccordion({ buildingId, buildingName }) {
                     <tr style={{ background: "#F8FAFC", fontSize: 12, color: "#64748B" }}>
                       <th style={{ padding: "10px 12px" }}>Sinh viên</th>
                       <th style={{ padding: "10px 12px" }}>Giường</th>
-                      <th style={{ padding: "10px 12px", textAlign: "center" }}>Thao tác</th>
+                      {!isManager && <th style={{ padding: "10px 12px", textAlign: "center" }}>Thao tác</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -264,9 +266,11 @@ export default function BuildingDetailAccordion({ buildingId, buildingName }) {
                           <div style={{ fontSize: 11, color: "#64748B" }}>{st.studentCode || "N/A"}</div>
                         </td>
                         <td style={{ padding: "10px 12px", fontSize: 12 }}>Giường {st.bedNumber}</td>
-                        <td style={{ padding: "10px 12px", textAlign: "center" }}>
-                          <button onClick={() => handleRemoveStudent(st._id)} disabled={removing} style={{ background: "#FEE2E2", color: "#EF4444", border: "none", borderRadius: 6, padding: "6px", cursor: removing ? "not-allowed" : "pointer" }}><FaUserMinus /></button>
-                        </td>
+                        {!isManager && (
+                          <td style={{ padding: "10px 12px", textAlign: "center" }}>
+                            <button onClick={() => handleRemoveStudent(st._id)} disabled={removing} style={{ background: "#FEE2E2", color: "#EF4444", border: "none", borderRadius: 6, padding: "6px", cursor: removing ? "not-allowed" : "pointer" }}><FaUserMinus /></button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

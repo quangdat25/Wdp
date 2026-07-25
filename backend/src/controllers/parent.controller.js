@@ -32,15 +32,22 @@ const getMyChildRoom = async (req, res) => {
         let previousMonth = today.getMonth();
         let previousMonthYear = today.getFullYear();
         
-        if (previousMonth === 0) {
-            previousMonth = 12;
-            previousMonthYear -= 1;
-        }
-
         const utilityInvoice = await Invoice.findOne({
             studentId: student._id,
             type: "utility"
         }).sort({ createdAt: -1 });
+
+        if (utilityInvoice?.billingMonth) {
+            previousMonth = utilityInvoice.billingMonth;
+            previousMonthYear = utilityInvoice.createdAt
+                ? new Date(utilityInvoice.createdAt).getFullYear()
+                : previousMonthYear;
+        } else {
+            if (previousMonth === 0) {
+                previousMonth = 12;
+                previousMonthYear -= 1;
+            }
+        }
 
         let electricityAmount = 0;
         let waterAmount = 0;

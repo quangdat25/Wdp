@@ -111,57 +111,29 @@ function UnbookedHomeScreen({ setActiveModule, systemConfig, studentProfile }) {
 
   return (
     <div className="student-stack">
-      <div className="student-cta-banner">
-        <div className="student-cta-banner__left">
-          <div className="student-cta-banner__icon">
-            <FaDoorOpen />
-          </div>
+      <div className="student-top-row">
+        <div className="student-cta-banner">
+          <div className="student-cta-banner__left">
+            <div className="student-cta-banner__icon">
+              <FaDoorOpen />
+            </div>
 
-          <div>
-            <strong>Bạn chưa có phòng ở kỳ Summer 2026</strong>
-            <span>
-              Hiện còn <b>300 phòng</b> đang trống – đặt sớm để có lựa chọn tốt
-              nhất!
-            </span>
+            <div>
+              <strong>Chào mừng bạn đến với KTX Đại Học FPT!</strong>
+            </div>
           </div>
         </div>
 
-
+        <div className="student-side-metric">
+          <MetricCard
+            icon={<FaStar />}
+            label="Điểm ý thức"
+            value={studentProfile?.CFDScore ?? "N/A"}
+            note="CFD Score của bạn"
+            tone="purple"
+          />
+        </div>
       </div>
-
-      <section className="student-metrics">
-        <MetricCard
-          icon={<FaBed />}
-          label="Phòng còn trống"
-          value="300"
-          note="Kỳ Summer 2026"
-          tone="blue"
-        />
-
-        <MetricCard
-          icon={<FaBolt />}
-          label="Tiền điện"
-          value="0 đ"
-          note={`Chưa có phòng${elecPrice}`}
-          tone="amber"
-        />
-
-        <MetricCard
-          icon={<FaWater />}
-          label="Tiền nước"
-          value="0 đ"
-          note={`Chưa có phòng${waterPrice}`}
-          tone="rose"
-        />
-
-        <MetricCard
-          icon={<FaStar />}
-          label="Điểm ý thức"
-          value={studentProfile?.CFDScore ?? "N/A"}
-          note="CFD Score hiện tại"
-          tone="purple"
-        />
-      </section>
 
       <HomeInfoGrid setActiveModule={setActiveModule} />
     </div>
@@ -174,25 +146,37 @@ function BookedHomeScreen({ setActiveModule, systemConfig, studentProfile }) {
 
   return (
     <div className="student-stack">
-      <div className="student-room-banner">
-        <div className="student-room-banner__info">
-          <div className="student-room-banner__icon">
-            <FaBed />
+      <div className="student-top-row">
+        <div className="student-room-banner">
+          <div className="student-room-banner__info">
+            <div className="student-room-banner__icon">
+              <FaBed />
+            </div>
+
+            <div className="student-room-banner__text">
+              <strong>Phòng đang ở: A-203 – Tòa Dorm A</strong>
+              <span>Giường số 3 · Summer 2026 · Đang hoạt động</span>
+            </div>
           </div>
 
-          <div className="student-room-banner__text">
-            <strong>Phòng đang ở: A-203 – Tòa Dorm A</strong>
-            <span>Giường số 3 · Summer 2026 · Đang hoạt động</span>
-          </div>
+          <button
+            type="button"
+            className="student-primary-button"
+            onClick={() => setActiveModule("room-history")}
+          >
+            Xem chi tiết
+          </button>
         </div>
 
-        <button
-          type="button"
-          className="student-primary-button"
-          onClick={() => setActiveModule("room-history")}
-        >
-          Xem chi tiết
-        </button>
+        <div className="student-side-metric">
+          <MetricCard
+            icon={<FaStar />}
+            label="Điểm ý thức"
+            value={studentProfile?.CFDScore ?? "N/A"}
+            note="CFD Score hiện tại"
+            tone="green"
+          />
+        </div>
       </div>
 
       <section className="student-metrics">
@@ -210,14 +194,6 @@ function BookedHomeScreen({ setActiveModule, systemConfig, studentProfile }) {
           value="782 m³"
           note={`Cập nhật 08/06/2026${waterPrice}`}
           tone="blue"
-        />
-
-        <MetricCard
-          icon={<FaStar />}
-          label="Điểm ý thức"
-          value={studentProfile?.CFDScore ?? "N/A"}
-          note="CFD Score hiện tại"
-          tone="green"
         />
 
         <MetricCard

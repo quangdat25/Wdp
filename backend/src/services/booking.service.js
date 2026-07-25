@@ -5,7 +5,7 @@ const bookingRepository = require("../repositories/booking.repository");
 const systemConfigRepository = require("../repositories/systemConfig.repository");
 const semesterService = require("./semester.service");
 
-const BOOKING_HOLD_MINUTES = 1;
+const BOOKING_HOLD_MINUTES = 2;
 
 const getUTCDateString = (date) => {
   return new Intl.DateTimeFormat("en-CA", {

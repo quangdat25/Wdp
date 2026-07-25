@@ -1,33 +1,40 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
-  FaChartPie,
-  FaUserGraduate,
-  FaBed,
-  FaMoneyBillWave,
-  FaTools,
-  FaUsersCog,
-  FaSignOutAlt,
-  FaUsers,
   FaBell,
-  FaLifeRing,
-  FaClipboardList,
-  FaWrench,
-  FaShieldAlt,
-  FaPlusCircle,
-  FaSearch,
+  FaBed,
+  FaBook,
   FaBuilding,
+  FaCalendarAlt,
+  FaChartPie,
+  FaClipboardCheck,
+  FaClipboardList,
+  FaCogs,
   FaDoorOpen,
   FaFileInvoiceDollar,
-  FaCalendarAlt,
+  FaHardHat,
+  FaHistory,
+  FaIdCard,
+  FaMoneyBillWave,
+  FaPlusCircle,
+  FaReceipt,
+  FaSearch,
+  FaShieldAlt,
+  FaSignInAlt,
+  FaSignOutAlt,
   FaTimes,
-  FaBook,
-  FaCogs,
+  FaTools,
+  FaUserCheck,
+  FaUserGraduate,
+  FaUserShield,
+  FaUsers,
+  FaUsersCog,
+  FaWrench,
 } from "react-icons/fa";
+import { useLocation, useNavigate } from "react-router-dom";
 
-
-import { useNavigate, useLocation } from "react-router-dom";
 import authService from "../api/authService";
 import { showSuccess } from "../components/Alert";
+
 function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -37,71 +44,95 @@ function Sidebar() {
   const [hasBuilding, setHasBuilding] = useState(true);
   const [hoveredPath, setHoveredPath] = useState(null);
 
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const role = user?.role;
+  const staffType = user?.staffType;
+
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-      if (window.innerWidth > 768) {
+      const mobile = window.innerWidth <= 768;
+
+      setIsMobile(mobile);
+
+      if (!mobile) {
         setIsOpen(false);
       }
     };
+
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
   useEffect(() => {
     if (isMobile) {
       setIsOpen(false);
     }
-  }, [location.pathname]);
-
-  const user = JSON.parse(localStorage.getItem("user"));
-  const role = user?.role;
+  }, [location.pathname, location.search, isMobile]);
 
   useEffect(() => {
-    if (role === "staff" && user?.staffType === "security") {
-      authService
-        .getMe()
-        .then((res) => {
-          if (res.success && res.data && !res.data.buildingId) {
-            setHasBuilding(false);
-          }
-        })
-        .catch((err) => {
-          console.error("Error checking building assignment:", err);
-        });
+    if (role !== "staff" || staffType !== "security") {
+      setHasBuilding(true);
+      return;
     }
-  }, [role, user?.staffType]);
+
+    const checkBuildingAssignment = async () => {
+      try {
+        const response = await authService.getMe();
+
+        if (response?.success && response?.data) {
+          setHasBuilding(Boolean(response.data.buildingId));
+        }
+      } catch (error) {
+        console.error(
+          "Lỗi khi kiểm tra tòa nhà được phân công:",
+          error,
+        );
+      }
+    };
+
+    checkBuildingAssignment();
+  }, [role, staffType]);
 
   const isActive = (path) => {
-    const currentFull = location.pathname + location.search;
+    if (!path || path.startsWith("/img/")) {
+      return false;
+    }
+
+    const [pathname, search = ""] = path.split("?");
+
     return (
-      currentFull === path ||
-      (path === location.pathname && location.search === "")
+      location.pathname === pathname &&
+      location.search === (search ? `?${search}` : "")
     );
   };
 
-  const menuStyle = (path) => {
+  const getMenuStyle = (path) => {
     const active = isActive(path);
     const hovered = hoveredPath === path;
+
     return {
-      border: "none",
+      width: "100%",
       height: 48,
+      padding: "0 16px",
+      border: "none",
       borderRadius: 12,
       background: active
         ? "#ffffff"
         : hovered
-          ? "rgba(255,255,255,0.15)"
+          ? "rgba(255, 255, 255, 0.15)"
           : "transparent",
-      color: active ? "#16A34A" : "rgba(255,255,255,0.9)",
+      color: active ? "#16a34a" : "rgba(255, 255, 255, 0.9)",
       display: "flex",
       alignItems: "center",
       gap: 14,
-      padding: "0 16px",
       fontSize: 15,
       fontWeight: active ? 600 : 500,
+      textAlign: "left",
       cursor: "pointer",
       transition: "all 0.2s ease",
-      width: "100%",
     };
   };
 
@@ -120,7 +151,7 @@ function Sidebar() {
       {
         path: "/admin/rooms",
         label: "Quản lý phòng ở",
-        icon: <FaBed />,
+        icon: <FaBuilding />,
       },
       {
         path: "/admin/students",
@@ -130,7 +161,7 @@ function Sidebar() {
       {
         path: "/admin/personnel",
         label: "Quản lý nhân sự",
-        icon: <FaUsers />,
+        icon: <FaUsersCog />,
       },
       {
         path: "/admin/notifications",
@@ -153,7 +184,7 @@ function Sidebar() {
       {
         path: "/manager/bookings",
         label: "Quản lý đặt phòng",
-        icon: <FaClipboardList />,
+        icon: <FaDoorOpen />,
       },
       {
         path: "/manager/tickets",
@@ -162,7 +193,7 @@ function Sidebar() {
       },
       {
         path: "/manager/violations",
-        label: "Quản lý Kỷ luật",
+        label: "Quản lý kỷ luật",
         icon: <FaShieldAlt />,
       },
       {
@@ -186,12 +217,12 @@ function Sidebar() {
       {
         path: "/staff/requests",
         label: "Xử lý yêu cầu",
-        icon: <FaTools />,
+        icon: <FaClipboardCheck />,
       },
       {
         path: "/staff/students",
-        label: "Sinh viên",
-        icon: <FaUserGraduate />,
+        label: "Danh sách sinh viên",
+        icon: <FaUsers />,
       },
     ],
 
@@ -204,11 +235,11 @@ function Sidebar() {
       {
         path: "/staff/dashboard/cleaner/tasks",
         label: "Dọn dẹp phòng",
-        icon: <FaClipboardList />,
+        icon: <FaClipboardCheck />,
       },
       {
         path: "/staff/dashboard/cleaner/issues",
-        label: "Sự cố kỹ thuật",
+        label: "Báo cáo sự cố",
         icon: <FaTools />,
       },
     ],
@@ -245,7 +276,7 @@ function Sidebar() {
       {
         path: "/staff/security/check-in-out",
         label: "Check-in/Check-out",
-        icon: <FaSearch />,
+        icon: <FaSignInAlt />,
       },
     ],
 
@@ -268,11 +299,11 @@ function Sidebar() {
       {
         path: "/student/invoices",
         label: "Hóa đơn",
-        icon: <FaMoneyBillWave />,
+        icon: <FaReceipt />,
       },
       {
         path: "/student/my-utilities",
-        label: "Dịch vụ",
+        label: "Dịch vụ điện nước",
         icon: <FaMoneyBillWave />,
       },
       {
@@ -283,7 +314,7 @@ function Sidebar() {
       {
         path: "/student/violations",
         label: "Lịch sử trừ điểm",
-        icon: <FaShieldAlt />,
+        icon: <FaHistory />,
       },
       {
         path: "/img/KTX.pdf",
@@ -302,7 +333,7 @@ function Sidebar() {
       {
         path: "/parent/student",
         label: "Thông tin sinh viên",
-        icon: <FaUserGraduate />,
+        icon: <FaIdCard />,
       },
       {
         path: "/parent/payments",
@@ -312,29 +343,48 @@ function Sidebar() {
       {
         path: "/parent/violations",
         label: "Lịch sử trừ điểm",
-        icon: <FaShieldAlt />,
+        icon: <FaHistory />,
       },
     ],
   };
 
-  const menus =
-    menusByRole[role === "staff" && user?.staffType ? user.staffType : role] ||
-    menusByRole[role] ||
-    [];
-  // let menus =
-  //   menusByRole[role === "staff" && user?.staffType ? user.staffType : role] ||
-  //   menusByRole[role] ||
-  //   [];
+  const getMenuKey = () => {
+    if (role === "staff" && staffType) {
+      return staffType;
+    }
+
+    return role;
+  };
+
+  const menus = menusByRole[getMenuKey()] || menusByRole[role] || [];
+
+  const handleMenuClick = (item, isDisabled) => {
+    if (isDisabled) {
+      return;
+    }
+
+    if (item.isExternal) {
+      window.open(item.path, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    navigate(item.path);
+
+    if (isMobile) {
+      setIsOpen(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
       await authService.logout();
-    } catch (err) {
-      console.error("Logout error:", err);
+    } catch (error) {
+      console.error("Lỗi khi đăng xuất:", error);
     } finally {
       localStorage.removeItem("user");
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
+
       navigate("/");
       showSuccess("Đăng xuất thành công");
     }
@@ -344,7 +394,9 @@ function Sidebar() {
     <>
       {isMobile && (
         <button
-          onClick={() => setIsOpen((prev) => !prev)}
+          type="button"
+          aria-label={isOpen ? "Đóng menu" : "Mở menu"}
+          onClick={() => setIsOpen((previousState) => !previousState)}
           style={{
             position: "fixed",
             top: 13,
@@ -352,16 +404,16 @@ function Sidebar() {
             zIndex: 1050,
             width: 46,
             height: 46,
+            border: "none",
             borderRadius: "50%",
             background: "#16a34a",
-            color: "#fff",
+            color: "#ffffff",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             fontSize: 20,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
             cursor: "pointer",
-            border: "none",
           }}
         >
           {isOpen ? (
@@ -374,13 +426,21 @@ function Sidebar() {
 
       {isMobile && isOpen && (
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Đóng menu"
           onClick={() => setIsOpen(false)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              setIsOpen(false);
+            }
+          }}
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            backdropFilter: "blur(2px)",
             zIndex: 1010,
+            background: "rgba(0, 0, 0, 0.4)",
+            backdropFilter: "blur(2px)",
           }}
         />
       )}
@@ -390,84 +450,115 @@ function Sidebar() {
           position: "fixed",
           top: 0,
           left: isMobile ? (isOpen ? 0 : -240) : 0,
+          zIndex: 1020,
           width: 240,
           height: "100vh",
+          padding: "24px 16px",
+          boxSizing: "border-box",
           background:
             "linear-gradient(180deg, #34d399 0%, #22c55e 50%, #16a34a 100%)",
-          padding: "24px 16px",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          boxSizing: "border-box",
-          zIndex: 1020,
           transition: "left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          overflowY: "auto",
         }}
       >
         <div>
           <div
             style={{
-              background: "rgba(255,255,255,0.15)",
-              borderRadius: 20,
               padding: 18,
               marginBottom: 28,
+              borderRadius: 20,
+              background: "rgba(255, 255, 255, 0.15)",
             }}
           >
-            <h2 style={{ margin: 0, color: "#fff" }}>FPT Dormitory</h2>
+            <h2
+              style={{
+                margin: 0,
+                color: "#ffffff",
+                fontSize: 22,
+              }}
+            >
+              FPT Dormitory
+            </h2>
 
             <p
               style={{
-                marginTop: 8,
-                color: "#fff",
+                margin: "8px 0 0",
+                color: "#ffffff",
                 fontSize: 13,
+                lineHeight: 1.5,
               }}
             >
               Dormitory Management System
             </p>
           </div>
 
-          {menus.map((item, index) => {
-            const isDisabled =
-              role === "staff" &&
-              user?.staffType === "security" &&
-              !hasBuilding &&
-              item.path !== "/staff/dashboard/security";
-            return (
-              <button
-                key={item.path}
-                disabled={isDisabled}
-                onMouseEnter={() => setHoveredPath(item.path)}
-                onMouseLeave={() => setHoveredPath(null)}
-                style={{
-                  ...menuStyle(item.path),
-                  marginTop: index === 0 ? 0 : 8,
-                  ...(isDisabled && {
-                    opacity: 0.5,
-                    cursor: "not-allowed",
-                  }),
-                }}
-                onClick={() => {
-                  if (isDisabled) return;
-                  if (item.isExternal) {
-                    window.open(item.path, "_blank");
-                  } else {
-                    navigate(item.path);
+          <nav>
+            {menus.map((item, index) => {
+              const isSecurityWithoutBuilding =
+                role === "staff" &&
+                staffType === "security" &&
+                !hasBuilding;
+
+              const isSecurityDashboard =
+                item.path === "/staff/dashboard/security";
+
+              const isDisabled =
+                isSecurityWithoutBuilding && !isSecurityDashboard;
+
+              return (
+                <button
+                  type="button"
+                  key={item.path}
+                  disabled={isDisabled}
+                  title={
+                    isDisabled
+                      ? "Bạn chưa được phân công tòa nhà"
+                      : item.label
                   }
-                }}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            );
-          })}
+                  onMouseEnter={() => setHoveredPath(item.path)}
+                  onMouseLeave={() => setHoveredPath(null)}
+                  onClick={() => handleMenuClick(item, isDisabled)}
+                  style={{
+                    ...getMenuStyle(item.path),
+                    marginTop: index === 0 ? 0 : 8,
+                    ...(isDisabled && {
+                      opacity: 0.5,
+                      cursor: "not-allowed",
+                    }),
+                  }}
+                >
+                  <span
+                    style={{
+                      minWidth: 18,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 17,
+                    }}
+                  >
+                    {item.icon}
+                  </span>
+
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
         </div>
 
         <button
+          type="button"
           onClick={handleLogout}
           style={{
-            border: "none",
+            flexShrink: 0,
             height: 54,
+            marginTop: 24,
+            border: "none",
             borderRadius: 14,
-            background: "#fff",
+            background: "#ffffff",
             color: "#16a34a",
             fontWeight: 700,
             cursor: "pointer",
