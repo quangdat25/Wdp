@@ -2,11 +2,19 @@ import { useState } from "react";
 import { useNews } from "../../hooks/useNews";
 import { formatRelativeTime } from "../../utils/date";
 import NewsDetailModal from "../../components/NewsDetailModal";
+import { Pagination } from "antd";
 
 // Trang danh sách bản tin đầy đủ cho module "news"
 function NewsPage() {
   const { news, loading } = useNews();
   const [selected, setSelected] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const paginatedNews = news.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   return (
     <div className="student-stack">
@@ -84,29 +92,52 @@ function NewsPage() {
             </span>
           </div>
         ) : (
-          <div className="student-news-list">
-            {news.map((item) => (
-              <div
-                key={item._id}
-                className="student-news-item"
-                onClick={() => setSelected(item)}
-              >
-                <span
-                  className="student-news-item__dot"
-                  style={{
-                    background: item.isPinned ? "#dc2626" : "#16a34a",
-                  }}
-                />
-                <span className="student-news-item__text">
-                  {item.isPinned && "📌 "}
-                  {item.title}
-                </span>
-                <span className="student-news-item__date">
-                  {formatRelativeTime(item.createdAt)}
-                </span>
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="student-news-list">
+              {paginatedNews.map((item) => (
+                <div
+                  key={item._id}
+                  className="student-news-item"
+                  onClick={() => setSelected(item)}
+                >
+                  <span
+                    className="student-news-item__dot"
+                    style={{
+                      background: item.isPinned ? "#dc2626" : "#16a34a",
+                    }}
+                  />
+                  <span className="student-news-item__text">
+                    {item.isPinned && "📌 "}
+                    {item.title}
+                  </span>
+                  <span className="student-news-item__date">
+                    {formatRelativeTime(item.createdAt)}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginTop: 20,
+                paddingBottom: 20,
+              }}
+            >
+              <Pagination
+                current={currentPage}
+                total={news.length}
+                pageSize={pageSize}
+                showSizeChanger
+                pageSizeOptions={["10", "15", "20"]}
+                onChange={(page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size);
+                }}
+              />
+            </div>
+          </>
         )}
       </div>
 
