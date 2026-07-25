@@ -28,6 +28,13 @@ const EMPTY_FILTERS = {
   year: "",
 };
 
+const EMPTY_INVOICE_FILTERS = {
+  invoiceCode: "",
+  semester: "",
+  month: "",
+  status: "",
+};
+
 function UtilityInvoiceManagement() {
   const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
@@ -48,6 +55,7 @@ function UtilityInvoiceManagement() {
   });
 
   const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [invoiceFilters, setInvoiceFilters] = useState(EMPTY_INVOICE_FILTERS);
   const [utilityPage, setUtilityPage] = useState(1);
   const [utilityPageSize, setUtilityPageSize] = useState(10);
   const [invoicePage, setInvoicePage] = useState(1);
@@ -191,10 +199,21 @@ function UtilityInvoiceManagement() {
     return filteredRecords.slice(start, start + utilityPageSize);
   }, [filteredRecords, utilityPage, utilityPageSize]);
 
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((invoice) => {
+      return (
+        includesText(invoice.invoiceCode, invoiceFilters.invoiceCode) &&
+        includesText(invoice.semester, invoiceFilters.semester) &&
+        includesText(invoice.billingMonth, invoiceFilters.month) &&
+        includesText(invoice.status, invoiceFilters.status)
+      );
+    });
+  }, [invoices, invoiceFilters]);
+
   const paginatedInvoices = useMemo(() => {
     const start = (invoicePage - 1) * invoicePageSize;
-    return invoices.slice(start, start + invoicePageSize);
-  }, [invoices, invoicePage, invoicePageSize]);
+    return filteredInvoices.slice(start, start + invoicePageSize);
+  }, [filteredInvoices, invoicePage, invoicePageSize]);
 
   const invoiceSummary = useMemo(() => {
     const unpaid = invoices.filter((item) => item.status === "unpaid");
@@ -395,6 +414,22 @@ function UtilityInvoiceManagement() {
     setUtilityPage(1);
   };
 
+  const handleInvoiceFilterChange = (event) => {
+    const { name, value } = event.target;
+
+    setInvoiceFilters((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    setInvoicePage(1);
+  };
+
+  const handleResetInvoiceFilters = () => {
+    setInvoiceFilters(EMPTY_INVOICE_FILTERS);
+    setInvoicePage(1);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Sidebar />
@@ -466,6 +501,10 @@ function UtilityInvoiceManagement() {
                 summary={invoiceSummary}
                 current={invoicePage}
                 pageSize={invoicePageSize}
+                total={filteredInvoices.length}
+                filters={invoiceFilters}
+                onFilterChange={handleInvoiceFilterChange}
+                onResetFilters={handleResetInvoiceFilters}
                 onPageChange={(page, size) => {
                   setInvoicePage(page);
                   setInvoicePageSize(size);
@@ -895,8 +934,12 @@ function InvoiceTab({
   rows,
   loading,
   summary,
+  total,
   current,
   pageSize,
+  filters,
+  onFilterChange,
+  onResetFilters,
   onPageChange,
 }) {
   const [detailOpen, setDetailOpen] = useState(false);
@@ -940,7 +983,51 @@ function InvoiceTab({
 
   return (
     <div className="p-5 sm:p-6">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+        <FilterInput
+          name="invoiceCode"
+          value={filters.invoiceCode}
+          onChange={onFilterChange}
+          placeholder="Mã hóa đơn"
+        />
+        <FilterInput
+          name="semester"
+          value={filters.semester}
+          onChange={onFilterChange}
+          placeholder="Học kỳ"
+        />
+        <FilterInput
+          name="month"
+          value={filters.month}
+          onChange={onFilterChange}
+          placeholder="Tháng"
+          type="number"
+        />
+        <FilterSelect
+          name="status"
+          value={filters.status}
+          onChange={onFilterChange}
+          placeholder="Trạng thái"
+          options={[
+            { value: "", label: "Tất cả" },
+            { value: "unpaid", label: "Chưa thanh toán" },
+            { value: "paid", label: "Đã thanh toán" },
+            { value: "overdue", label: "Quá hạn" },
+            { value: "cancelled", label: "Đã hủy" },
+          ]}
+        />
+        <div className="flex items-end">
+          <button
+            type="button"
+            onClick={onResetFilters}
+            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
+            Xóa bộ lọc
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <SummaryItem label="Tổng hóa đơn" value={summary.total} />
         <SummaryItem label="Chưa thanh toán" value={summary.unpaid} />
         <SummaryItem label="Quá hạn" value={summary.overdue} />
@@ -975,9 +1062,9 @@ function InvoiceTab({
             <tbody>
               {loading ? (
                 <TableMessage colSpan={12}>Đang tải hóa đơn...</TableMessage>
-              ) : invoices.length === 0 ? (
+              ) : rows.length === 0 ? (
                 <TableMessage colSpan={12}>
-                  Chưa có hóa đơn điện nước
+                  Không có hóa đơn phù hợp
                 </TableMessage>
               ) : (
                 rows.map((invoice) => {
@@ -1066,10 +1153,10 @@ function InvoiceTab({
         </div>
       </div>
 
-      {invoices.length > 0 && (
+      {total > 0 && (
         <PaginationFooter
           current={current}
-          total={invoices.length}
+          total={total}
           pageSize={pageSize}
           onChange={onPageChange}
           label="hóa đơn"
@@ -1522,6 +1609,23 @@ function FilterInput({ name, value, onChange, placeholder, type = "text" }) {
       type={type}
       className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
     />
+  );
+}
+
+function FilterSelect({ name, value, onChange, options }) {
+  return (
+    <select
+      name={name}
+      value={value}
+      onChange={onChange}
+      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   );
 }
 

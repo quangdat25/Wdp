@@ -274,8 +274,8 @@ const MyRoom = () => {
   };
 
   const getCheckoutDisplay = (booking) => {
-    if (booking.status === "checked_out") {
-      return formatDate(booking.checkOutDate || booking.updatedAt);
+    if (booking.endDate) {
+      return formatDate(booking.endDate);
     }
     return "—";
   };
@@ -377,10 +377,13 @@ const MyRoom = () => {
                               Mã sinh viên
                             </th>
                             <th className="px-5 py-4 border-b border-slate-100 text-slate-500 font-semibold text-sm uppercase tracking-wider">
-                              Phòng & Tòa
+                              Phòng
                             </th>
                             <th className="px-5 py-4 border-b border-slate-100 text-slate-500 font-semibold text-sm uppercase tracking-wider">
-                              Ngày check-in
+                              Ngày tạo đơn
+                            </th>
+                            <th className="px-5 py-4 border-b border-slate-100 text-slate-500 font-semibold text-sm uppercase tracking-wider">
+                              Ngày nhận phòng
                             </th>
                             <th className="px-5 py-4 border-b border-slate-100 text-slate-500 font-semibold text-sm uppercase tracking-wider">
                               Ngày trả phòng
@@ -425,9 +428,10 @@ const MyRoom = () => {
                                     {room.displayName || "N/A"} - Giường{" "}
                                     {booking.bedNumber}
                                   </div>
-                                  <div className="text-[13px] text-slate-500 mt-1 font-medium">
-                                    {building.name || "Chưa có tòa"}
-                                  </div>
+
+                                </td>
+                                <td className="px-5 py-4 border-b border-slate-100 align-middle text-slate-700 font-medium">
+                                  {formatDateTime(booking.createdAt)}
                                 </td>
                                 <td className="px-5 py-4 border-b border-slate-100 align-middle text-slate-700 font-medium">
                                   {getCheckinDisplay(booking)}
@@ -459,7 +463,7 @@ const MyRoom = () => {
                                           onClick={() =>
                                             handleShowRoommates(booking)
                                           }
-                                          className="bg-[#0056b3] hover:bg-[#004494] text-white font-semibold py-2 px-4 rounded-lg transition-all text-[13px] shadow-sm"
+                                          className="bg-[#0056b3] hover:bg-[#004494] text-white font-semibold py-2 px-4 rounded-lg transition-all text-[13px] shadow-sm whitespace-nowrap min-w-[110px]"
                                         >
                                           Roommates
                                         </button>
@@ -468,7 +472,7 @@ const MyRoom = () => {
                                           onClick={() =>
                                             handleRenew(booking, hasRenewed)
                                           }
-                                          className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-2 px-5 rounded-lg shadow-md shadow-orange-500/20 transition-all text-[13px] border border-orange-600/20"
+                                          className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-2 px-5 rounded-lg shadow-md shadow-orange-500/20 transition-all text-[13px] border border-orange-600/20 whitespace-nowrap min-w-[110px]"
                                         >
                                           Gia hạn
                                         </button>
@@ -480,7 +484,7 @@ const MyRoom = () => {
                                         onClick={() =>
                                           handleShowRoommates(booking)
                                         }
-                                        className="bg-[#0056b3] hover:bg-[#004494] text-white font-semibold py-2 px-4 rounded-lg transition-all text-[13px] shadow-sm"
+                                        className="bg-[#0056b3] hover:bg-[#004494] text-white font-semibold py-2 px-4 rounded-lg transition-all text-[13px] shadow-sm whitespace-nowrap"
                                       >
                                         Roommates
                                       </button>
@@ -516,7 +520,7 @@ const MyRoom = () => {
             <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl flex flex-col overflow-hidden">
               <div className="flex justify-between items-center p-4 border-b border-slate-200">
                 <h3 className="text-[16px] font-medium text-slate-800 m-0">
-                  Roommates
+                  Sinh viên trong phòng
                 </h3>
                 <button
                   onClick={() => setShowRoommates(false)}
@@ -547,7 +551,7 @@ const MyRoom = () => {
                           Số Điện thoại
                         </th>
                         <th className="border border-solid border-[#b8daff] text-[#0056b3] font-medium py-3 px-4 text-center whitespace-nowrap">
-                          Bed No
+                          Giường
                         </th>
                       </tr>
                     </thead>
@@ -564,7 +568,7 @@ const MyRoom = () => {
                             {r.student?.phone || "N/A"}
                           </td>
                           <td className="border border-solid border-[#b8daff] py-3 px-4 text-center text-slate-600">
-                            Bed {r.bedNumber}
+                            Giường {r.bedNumber}
                           </td>
                         </tr>
                       ))}

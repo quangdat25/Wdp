@@ -6,9 +6,13 @@ class InvoiceRepository {
       .populate("bookingId")
       .sort({ createdAt: -1 });
   }
+
   async findAllInvoices(filter = {}) {
     return Invoice.find(filter)
-      .populate("studentId", "fullName username studentCode email phone")
+      .populate(
+        "studentId",
+        "fullName username studentCode email phone",
+      )
       .populate({
         path: "bookingId",
         populate: {
@@ -21,6 +25,22 @@ class InvoiceRepository {
       .sort({ createdAt: -1 });
   }
 
+  async updateExpiredInvoicesToOverdue(currentDate) {
+    return Invoice.updateMany(
+      {
+        status: "unpaid",
+        dueDate: {
+          $lt: currentDate,
+        },
+      },
+      {
+        $set: {
+          status: "overdue",
+        },
+      },
+    );
+  }
+
   async findUpcomingDueInvoices(startDate, endDate) {
     return Invoice.find({
       status: "unpaid",
@@ -29,7 +49,10 @@ class InvoiceRepository {
         $lt: endDate,
       },
     })
-      .populate("studentId", "fullName email studentCode")
+      .populate(
+        "studentId",
+        "fullName email studentCode",
+      )
       .populate({
         path: "bookingId",
         select: "roomId semester bedNumber",
@@ -42,14 +65,18 @@ class InvoiceRepository {
 
   async findOverdueInvoices(currentDate) {
     return Invoice.find({
-      status: "unpaid",
+      status: "overdue",
       dueDate: {
         $lt: currentDate,
       },
     })
-      .populate("studentId", "fullName email studentCode")
+      .populate(
+        "studentId",
+        "fullName email studentCode",
+      )
       .populate({
         path: "bookingId",
+        select: "roomId semester bedNumber",
         populate: {
           path: "roomId",
           select: "displayName",

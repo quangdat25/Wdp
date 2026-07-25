@@ -1279,12 +1279,14 @@ function RoomManagement({ role = "admin" }) {
                   style={{
                     borderRadius: 14,
                     border: "1px solid #e2e8f0",
-                    overflow: "hidden",
+                    overflowX: "auto",
+                    overflowY: "hidden",
                   }}
                 >
                   <table
                     style={{
                       width: "100%",
+                      minWidth: 560,
                       borderCollapse: "collapse",
                       background: "#fff",
                     }}
@@ -1310,32 +1312,35 @@ function RoomManagement({ role = "admin" }) {
                                 : "none",
                           }}
                         >
-                          <td style={tdStyle}>
-                            <span
-                              style={{
-                                background: "rgba(16, 185, 129, 0.1)",
-                                color: "#059669",
-                                padding: "3px 8px",
-                                borderRadius: 6,
-                                fontWeight: 700,
-                                fontSize: 12,
-                                marginRight: 8,
-                              }}
-                            >
-                              Giường {student.bedNumber}
-                            </span>
-                            <span
-                              style={{
-                                background: "rgba(59, 130, 246, 0.1)",
-                                color: "#2563eb",
-                                padding: "3px 8px",
-                                borderRadius: 6,
-                                fontWeight: 700,
-                                fontSize: 12,
-                              }}
-                            >
-                              {student.studentCode || "N/A"}
-                            </span>
+                          <td style={{ ...tdStyle, minWidth: 220 }}>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                              <span
+                                style={{
+                                  background: "rgba(16, 185, 129, 0.1)",
+                                  color: "#059669",
+                                  padding: "4px 10px",
+                                  borderRadius: 8,
+                                  fontWeight: 700,
+                                  fontSize: 12,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                Giường {student.bedNumber}
+                              </span>
+                              <span
+                                style={{
+                                  background: "rgba(59, 130, 246, 0.1)",
+                                  color: "#2563eb",
+                                  padding: "4px 10px",
+                                  borderRadius: 8,
+                                  fontWeight: 700,
+                                  fontSize: 12,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                {student.studentCode || "N/A"}
+                              </span>
+                            </div>
                           </td>
                           <td style={tdStyle}>
                             <div style={{ fontWeight: 600, color: "#1e293b" }}>
@@ -1354,7 +1359,7 @@ function RoomManagement({ role = "admin" }) {
                           <td style={tdStyle}>
                             {student.phone || "Chưa có"}
                           </td>
-                          <td style={{ ...tdStyle, textAlign: "center" }}>
+                          <td style={{ ...tdStyle, textAlign: "center", minWidth: 84 }}>
                             <button
                               onClick={() =>
                                 handleRemoveStudent(student._id)

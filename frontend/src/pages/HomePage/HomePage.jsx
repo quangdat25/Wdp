@@ -171,9 +171,9 @@ function HomePage() {
               </span>
             </a>
 
-            <Link to="/register" className="quick-link-card" id="quick-link-register">
+            <Link to="/login" className="quick-link-card" id="quick-link-login">
               <div className="quick-link-card__border"></div>
-              <h3 className="quick-link-card__title">Đăng ký sử dụng KTX</h3>
+              <h3 className="quick-link-card__title">Đăng nhập để sử dụng KTX</h3>
               <span className="quick-link-card__action">
                 Xem hướng dẫn <span className="quick-link-card__arrow">→</span>
               </span>

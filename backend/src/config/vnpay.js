@@ -32,7 +32,7 @@ function createVNPayUrl({
   const vnpay = getVNPayInstance();
 
   const expireDate = new Date();
-  expireDate.setMinutes(expireDate.getMinutes() + 1);
+  expireDate.setMinutes(expireDate.getMinutes() + 2);
 
   return vnpay.buildPaymentUrl({
     vnp_Amount: amount,
