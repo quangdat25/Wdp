@@ -117,6 +117,16 @@ function Login() {
         <section className="glass-modal w-full max-w-[480px] rounded-xl p-xl shadow-[0px_4px_20px_rgba(0,0,0,0.1)] flex flex-col gap-lg">
           {/* Logo & Identity Section */}
           <div className="flex flex-col items-center md:items-start gap-sm">
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="inline-flex items-center gap-1.5 self-start rounded-full border border-outline-variant/60 bg-white/80 px-2.5 py-1.5 text-xs font-medium text-on-surface transition-all hover:bg-white"
+            >
+              <span className="material-symbols-outlined text-[16px]">
+                arrow_back
+              </span>
+            </button>
+
             <div className="flex items-center gap-md">
               <img
                 alt="Logo"

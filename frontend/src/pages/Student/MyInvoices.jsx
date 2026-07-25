@@ -121,6 +121,60 @@ function MyInvoices() {
     }
   }, [filteredInvoices.length, pageSize, currentPage]);
 
+  const invoiceTableContent = loading ? (
+    <LoadingState />
+  ) : filteredInvoices.length === 0 ? (
+    <EmptyState statusFilter={statusFilter} />
+  ) : (
+    <>
+      <div className="overflow-hidden rounded-2xl border border-slate-200">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1050px] text-left">
+            <thead>
+              <tr className="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
+                <TableHead>Mã hóa đơn</TableHead>
+                <TableHead>Loại</TableHead>
+                <TableHead>Tháng</TableHead>
+                <TableHead>Chi tiết</TableHead>
+                <TableHead>Số tiền</TableHead>
+                <TableHead>Hạn thanh toán</TableHead>
+                <TableHead>Đã thanh toán lúc</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead className="text-right">Thao tác</TableHead>
+              </tr>
+            </thead>
+
+            <tbody>
+              {paginatedInvoices.map((invoice) => (
+                <InvoiceTableRow
+                  key={invoice._id}
+                  invoice={invoice}
+                  payingId={payingId}
+                  onPay={handlePayInvoice}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-col items-center justify-between gap-4 border-t border-slate-100 pt-5 sm:flex-row">
+        <Pagination
+          current={currentPage}
+          total={filteredInvoices.length}
+          pageSize={pageSize}
+          showSizeChanger
+          pageSizeOptions={["5", "10", "20", "50"]}
+          showLessItems
+          onChange={(page, size) => {
+            setCurrentPage(page);
+            setPageSize(size);
+          }}
+        />
+      </div>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Sidebar />
@@ -201,60 +255,7 @@ function MyInvoices() {
             </div>
 
             <div className="p-4 sm:p-6">
-              {loading ? (
-                <LoadingState />
-              ) : filteredInvoices.length === 0 ? (
-                <EmptyState statusFilter={statusFilter} />
-              ) : (
-                <>
-                  <div className="overflow-hidden rounded-2xl border border-slate-200">
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[1050px] text-left">
-                        <thead>
-                          <tr className="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
-                            <TableHead>Mã hóa đơn</TableHead>
-                            <TableHead>Loại</TableHead>
-                            <TableHead>Chi tiết</TableHead>
-                            <TableHead>Số tiền</TableHead>
-                            <TableHead>Hạn thanh toán</TableHead>
-                            <TableHead>Đã thanh toán lúc</TableHead>
-                            <TableHead>Trạng thái</TableHead>
-                            <TableHead className="text-right">
-                              Thao tác
-                            </TableHead>
-                          </tr>
-                        </thead>
-
-                        <tbody>
-                          {paginatedInvoices.map((invoice) => (
-                            <InvoiceTableRow
-                              key={invoice._id}
-                              invoice={invoice}
-                              payingId={payingId}
-                              onPay={handlePayInvoice}
-                            />
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex flex-col items-center justify-between gap-4 border-t border-slate-100 pt-5 sm:flex-row">
-                    <Pagination
-                      current={currentPage}
-                      total={filteredInvoices.length}
-                      pageSize={pageSize}
-                      showSizeChanger
-                      pageSizeOptions={["5", "10", "20", "50"]}
-                      showLessItems
-                      onChange={(page, size) => {
-                        setCurrentPage(page);
-                        setPageSize(size);
-                      }}
-                    />
-                  </div>
-                </>
-              )}
+              {invoiceTableContent}
             </div>
           </section>
         </div>
@@ -279,6 +280,10 @@ function InvoiceTableRow({ invoice, payingId, onPay }) {
 
       <TableCell>
         <InvoiceTypeBadge type={invoice.type} />
+      </TableCell>
+
+      <TableCell>
+        <InvoiceBillingMonth invoice={invoice} />
       </TableCell>
 
       <TableCell>
@@ -368,6 +373,16 @@ function InvoiceTypeBadge({ type }) {
       {isRoomFee ? "Tiền phòng" : "Điện nước"}
     </span>
   );
+}
+
+function InvoiceBillingMonth({ invoice }) {
+  if (invoice.type !== "utility") {
+    return <span className="text-sm font-semibold text-slate-400">—</span>;
+  }
+
+  const monthLabel = getBillingMonthLabel(invoice.billingMonth, invoice.semester);
+
+  return <span className="text-sm font-black text-slate-700">{monthLabel}</span>;
 }
 
 function DateDisplay({ date, overdue = false }) {
@@ -682,6 +697,36 @@ function getItemIcon(name) {
   };
 
   return map[name] || <FaReceipt className={iconClassName} />;
+}
+
+function getBillingMonthLabel(billingMonth, semester) {
+  if (!billingMonth) {
+    return "—";
+  }
+
+  const monthNumber = Number(billingMonth);
+  if (Number.isNaN(monthNumber) || monthNumber < 1 || monthNumber > 12) {
+    return "Tháng không hợp lệ";
+  }
+
+  const monthNames = [
+    "Tháng 1",
+    "Tháng 2",
+    "Tháng 3",
+    "Tháng 4",
+    "Tháng 5",
+    "Tháng 6",
+    "Tháng 7",
+    "Tháng 8",
+    "Tháng 9",
+    "Tháng 10",
+    "Tháng 11",
+    "Tháng 12",
+  ];
+
+  const monthText = monthNames[monthNumber - 1];
+
+  return semester ? `${monthText} • ${semester}` : monthText;
 }
 
 export default MyInvoices;

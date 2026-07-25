@@ -36,12 +36,9 @@ function MyUtilities() {
     fetchUtilities();
   }, []);
 
-  const normalizedRecords = useMemo(() => {
-    return records.map(normalizeUtilityRecord).sort((a, b) => {
-      if (a.year !== b.year) return b.year - a.year;
-      return b.month - a.month;
-    });
-  }, [records]);
+const normalizedRecords = useMemo(() => {
+  return records.map(normalizeUtilityRecord);
+}, [records]);
 
   const semesterOptions = useMemo(() => {
     return [
