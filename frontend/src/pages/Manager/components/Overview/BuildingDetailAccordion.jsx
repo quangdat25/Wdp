@@ -171,7 +171,8 @@ export default function BuildingDetailAccordion({ buildingId, buildingName }) {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}>
           {rooms.map((room) => {
-            const cfg = statusConfig[room.status] || statusConfig.available;
+            const currentStatus = (room.status || "").toLowerCase();
+            const cfg = statusConfig[currentStatus] || statusConfig.available;
             const studentNames = (room.students || []).map((s) => s.fullName || "?").slice(0, 2);
             return (
               <button

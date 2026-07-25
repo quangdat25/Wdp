@@ -168,10 +168,10 @@ function AdminDashboard() {
 
         {/* KPI CARDS */}
         <section ref={cardsRef} style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24, marginBottom: 24 }}>
-          <KpiCard title="Tổng sinh viên" value={students.total.toLocaleString()} icon={<FaUsers />} color="#22C55E" trend="+2.4%" sparkline={SPARK_UP} />
-          <KpiCard title="Phòng đang ở" value={occupancy.occupiedRooms.toLocaleString()} icon={<FaBed />} color="#3B82F6" trend="+1.2%" sparkline={SPARK_UP} />
-          <KpiCard title="Phòng trống" value={occupancy.availableRooms.toLocaleString()} icon={<FaDoorOpen />} color="#F59E0B" trend="-0.5%" sparkline={SPARK_DOWN} isNegative />
-          <KpiCard title="Tổng tòa nhà" value={buildings.length} icon={<FaBuilding />} color="#8B5CF6" trend="Đang HĐ" sparkline={SPARK_UP} />
+          <KpiCard title="Tổng sinh viên" value={students.total.toLocaleString()} icon={<FaUsers />} color="#22C55E" />
+          <KpiCard title="Phòng đang ở" value={occupancy.occupiedRooms.toLocaleString()} icon={<FaBed />} color="#3B82F6" />
+          <KpiCard title="Phòng trống" value={occupancy.availableRooms.toLocaleString()} icon={<FaDoorOpen />} color="#F59E0B" />
+          <KpiCard title="Phòng bảo trì" value={occupancy.maintenanceRooms.toLocaleString()} icon={<FaWrench />} color="#EF4444" />
         </section>
 
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24, marginBottom: 24 }} ref={chartRef}>
@@ -194,22 +194,24 @@ function AdminDashboard() {
                 </div>
               </Card>
 
-              {/* Revenue Line Chart */}
-              <Card title="Biểu đồ doanh thu" subtitle="Hiệu suất doanh thu hàng tháng">
-                <div style={{ height: 200, position: "relative", paddingTop: 20 }}>
-                  <svg width="100%" height="160" viewBox="0 0 400 160" preserveAspectRatio="none">
-                    <path d="M0,160 L0,100 C50,80 80,120 120,90 C160,60 200,110 240,70 C280,30 320,60 360,20 L400,40 L400,160 Z" fill="url(#grad)" opacity="0.5" />
-                    <path data-anim d="M0,100 C50,80 80,120 120,90 C160,60 200,110 240,70 C280,30 320,60 360,20 L400,40" fill="none" stroke="#22C55E" strokeWidth="4" strokeLinecap="round" />
-                    <defs>
-                      <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#22C55E" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#22C55E" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-                    {['Th.1', 'Th.3', 'Th.5', 'Th.7', 'Th.9', 'Th.11'].map(m => <span key={m} style={{ fontSize: 11, color: "#9CA3AF" }}>{m}</span>)}
-                  </div>
+              {/* Revenue Chart */}
+              <Card title="Biểu đồ doanh thu" subtitle="Hiệu suất doanh thu 12 tháng qua">
+                <div style={{ height: 200, display: "flex", alignItems: "flex-end", justifyContent: "space-between", paddingTop: 20 }}>
+                  {(() => {
+                    const revList = data.revenueSeries || data.monthlyRevenue?.series || [];
+                    const maxVal = Math.max(...revList.map(r => r.value), 1);
+                    return revList.map((item, i) => {
+                      const heightPct = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
+                      return (
+                        <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flex: 1 }} title={`${item.label}: ${item.value.toLocaleString('vi-VN')} VNĐ`}>
+                          <div style={{ width: "100%", maxWidth: 24, height: 140, background: "#F6FAF7", borderRadius: 4, position: "relative" }}>
+                            <div data-anim style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: `${Math.max(item.value > 0 ? 10 : 4, heightPct)}%`, background: item.value > 0 ? "#16A34A" : "#D1D5DB", borderRadius: 4 }} />
+                          </div>
+                          <span style={{ fontSize: 11, color: "#9CA3AF" }}>{item.label}</span>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               </Card>
             </div>
@@ -237,7 +239,31 @@ function AdminDashboard() {
                         <span style={{ color: "#6B7280" }}>{b.total - b.occupied} Giường trống</span>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ color: "#9CA3AF" }}>Trạng thái:</span>
-                          <span style={{ display: "inline-block", background: b.rate >= 90 ? "#FEE2E2" : "#DCFCE7", color: b.rate >= 90 ? "#DC2626" : "#16A34A", padding: "2px 8px", borderRadius: 12, fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>{b.rate >= 90 ? "Đã đầy" : "Bình thường"}</span>
+                          {(() => {
+                            let statusText = "Bình thường";
+                            let statusBg = "#DCFCE7";
+                            let statusColor = "#16A34A";
+
+                            if (b.maintenanceRooms > 0) {
+                              statusText = `Bảo trì (${b.maintenanceRooms} phòng)`;
+                              statusBg = "#FEF3C7";
+                              statusColor = "#D97706";
+                            } else if (b.rate >= 90) {
+                              statusText = "Đã đầy";
+                              statusBg = "#FEE2E2";
+                              statusColor = "#DC2626";
+                            } else if (b.rate >= 75) {
+                              statusText = "Gần đầy";
+                              statusBg = "#FEF3C7";
+                              statusColor = "#D97706";
+                            }
+
+                            return (
+                              <span style={{ display: "inline-block", background: statusBg, color: statusColor, padding: "2px 8px", borderRadius: 12, fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>
+                                {statusText}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -528,15 +554,19 @@ function KpiCard({ title, value, icon, color, trend, sparkline, isNegative }) {
         <div style={{ width: 48, height: 48, borderRadius: 12, background: `${color}15`, color: color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
           {icon}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: isNegative ? "#EF4444" : "#22C55E", background: isNegative ? "#FEE2E2" : "#DCFCE7", padding: "4px 8px", borderRadius: 999 }}>
-          {isNegative ? <FaArrowDown size={10} /> : <FaArrowUp size={10} />} {trend}
-        </div>
+        {trend && (
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: isNegative ? "#EF4444" : "#22C55E", background: isNegative ? "#FEE2E2" : "#DCFCE7", padding: "4px 8px", borderRadius: 999 }}>
+            {isNegative ? <FaArrowDown size={10} /> : <FaArrowUp size={10} />} {trend}
+          </div>
+        )}
       </div>
       <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "#6B7280", marginBottom: 4 }}>{title}</p>
       <p style={{ margin: 0, fontSize: 32, fontWeight: 700, color: "#111827" }}>{value}</p>
-      <svg style={{ position: "absolute", bottom: -5, left: 0, width: "100%", height: 40 }} viewBox="0 0 40 20" preserveAspectRatio="none">
-        <path d={sparkline} fill="none" stroke={color} strokeWidth="2" opacity="0.2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      {sparkline && (
+        <svg style={{ position: "absolute", bottom: -5, left: 0, width: "100%", height: 40 }} viewBox="0 0 40 20" preserveAspectRatio="none">
+          <path d={sparkline} fill="none" stroke={color} strokeWidth="2" opacity="0.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
     </div>
   );
 }

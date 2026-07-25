@@ -302,6 +302,12 @@ function SemesterManagement() {
 
     if (!springValid || !summerValid || !fallValid) return false;
 
+    const springYear = new Date(yearForm.springStartDate).getFullYear();
+    if (springYear !== Number(yearForm.year)) {
+      showError(`Năm của ngày bắt đầu kỳ Spring (${springYear}) phải khớp với năm học đã chọn (${yearForm.year})`);
+      return false;
+    }
+
     if (new Date(yearForm.springStartDate) <= new Date()) {
       showError("Ngày bắt đầu kỳ Spring phải lớn hơn thời điểm hiện tại");
       return false;

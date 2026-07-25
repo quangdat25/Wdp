@@ -16,33 +16,24 @@ export default function KPISection({ data }) {
         value={totalStudents}
         icon={<FaUser />}
         color="#22C55E"
-        trend="+2%"
-        sparkline={SPARK_UP}
       />
       <KpiCard
         title="Giường có người"
         value={occupiedBeds}
         icon={<FaBed />}
         color="#16A34A"
-        trend="Ổn định"
-        sparkline={SPARK_FLAT}
       />
       <KpiCard
         title="Đơn chờ duyệt"
         value={pendingRequests}
         icon={<FaExclamationCircle />}
         color="#F59E0B"
-        trend="+8%"
-        sparkline={SPARK_UP}
-        isNegative={true}
       />
       <KpiCard
         title="Phòng đang bảo trì"
         value={maintenanceRooms}
         icon={<FaTools />}
         color="#EF4444"
-        trend="-5%"
-        sparkline={SPARK_DOWN}
       />
     </section>
   );
