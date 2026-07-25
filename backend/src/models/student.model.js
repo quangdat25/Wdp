@@ -1,60 +1,70 @@
 const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
-
-const studentSchema = new Schema(
+const User = require("./user.model");
+const parentSchema = new mongoose.Schema(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      unique: true,
-    },
-    studentCode: {
+    username: {
       type: String,
       required: true,
-      unique: true,
-      trim: true,
     },
-    gender: {
+
+    password: {
       type: String,
-      enum: ["Nam", "Nữ"],
-      required: true,
     },
-    dateOfBirth: {
-      type: Date,
-      required: true,
-    },
-    address: {
+    fullName: {
       type: String,
-      required: true,
-      trim: true,
+      default: "",
     },
-    major: {
+    phone: {
       type: String,
-      required: true,
-      trim: true,
+      default: "",
     },
-    academicYear: {
+    relationship: {
       type: String,
-      default: null,
-      trim: true,
+      default: "parent",
     },
-    roomId: {
-      type: Schema.Types.ObjectId,
-      ref: "Room",
-      default: null,
-    },
-    parentId: {
-      type: Schema.Types.ObjectId,
-      ref: "Parent",
-      default: null,
+
+    role: {
+      type: String,
+      default: "parent",
     },
   },
-  { timestamps: true }
+  { _id: false },
 );
-
-// --- Indexes ---
-studentSchema.index({ roomId: 1 });
-studentSchema.index({ parentId: 1 });
-
-module.exports = mongoose.model("Student", studentSchema);
+const studentSchema = new mongoose.Schema({
+  studentCode: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true,
+    trim: true,
+  },
+  phone: {
+    type: String,
+    default: "",
+  },
+  gender: {
+    type: String,
+    enum: ["male", "female", "other", ""],
+    default: "",
+  },
+  CFDScore: { type: Number, default: 100 },
+  dateOfBirth: Date,
+  major: {
+    type: String,
+    default: "",
+  },
+  address: {
+    type: String,
+    default: "",
+  },
+  buildingId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Building",
+  },
+  roomId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Room",
+  },
+  parent: parentSchema,
+});
+module.exports = User.discriminator("student", studentSchema);

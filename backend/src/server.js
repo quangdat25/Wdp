@@ -1,17 +1,22 @@
 const express = require("express");
+const mongoose = require("mongoose");
+const http = require("http");
 const app = express();
+const server = http.createServer(app);
 
 require("dotenv").config();
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
-
+const { initSocket } = require("./socket");
 // connect db
 const connectDB = require("./config/connectDB");
 const routes = require("./routes/index.routes");
 
 const port = process.env.PORT || 3000;
-
+const autoDeleteExpiredBookings = require("./config/bookingExpiration.job");
+const paymentReminder = require("./config/paymentReminder.job");
+const updateInvoiceOverdueJob = require("./config/updateStatusInvoice.job");
 app.use(bodyParser.json());
 app.use(
   bodyParser.urlencoded({
@@ -25,8 +30,6 @@ app.use(
     credentials: true,
   }),
 );
-// abc
-connectDB();
 
 app.get("/", (req, res) => {
   return res.json({
@@ -36,9 +39,13 @@ app.get("/", (req, res) => {
 });
 
 app.get("/healthz", (req, res) => {
-  return res.status(200).json({
-    success: true,
-    message: "Server is running",
+  const isDbConnected = mongoose.connection.readyState === 1;
+  return res.status(isDbConnected ? 200 : 500).json({
+    success: isDbConnected,
+    message: isDbConnected
+      ? "Server and Database are healthy"
+      : "Database is not connected",
+    databaseState: mongoose.connection.readyState,
   });
 });
 
@@ -49,6 +56,16 @@ app.use((err, req, res, next) => {
   res.status(status).json({ message: err.message });
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+const startServer = async () => {
+  await connectDB();
+
+  initSocket(server);
+  autoDeleteExpiredBookings();
+  paymentReminder();
+  updateInvoiceOverdueJob();
+  server.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+};
+
+startServer();

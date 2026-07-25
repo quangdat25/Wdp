@@ -7,8 +7,9 @@ const DormManager = require("./dormManager.model");
 const SecurityStaff = require("./securityStaff.model");
 const CleaningStaff = require("./cleaningStaff.model");
 const MaintenanceStaff = require("./maintenanceStaff.model");
-const Room = require("./room.model");
-
+const Room = require("./room.models");
+const Building = require("./building.model");
+const Semester = require("./semester.model");
 module.exports = {
   User,
   Student,
@@ -19,4 +20,6 @@ module.exports = {
   CleaningStaff,
   MaintenanceStaff,
   Room,
+  Building,
+  Semester,
 };

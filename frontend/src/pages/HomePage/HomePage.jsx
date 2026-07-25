@@ -1,21 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import './HomePage.css';
+import configApi from '../../api/systemConfigService'; // Đổi lại đường dẫn nếu file configApi nằm chỗ khác
 
 /* Placeholder images */
 const HERO_SLIDES = [
   {
-    img: '/public/img/707454477_1400714095420183_1797950806403973180_n.jpg',
+    img: '/img/707454477_1400714095420183_1797950806403973180_n.jpg',
     title: 'KTX ĐẠI HỌC FPT',
     subtitle: 'Không gian sống xanh',
   },
   {
-   img: '/public/img/anh3.jpg',
+    img: '/img/anh3.jpg',
     title: 'KTX ĐẠI HỌC FPT',
     subtitle: 'Tiện nghi – Hiện đại',
   },
   {
-    img: '/public/img/4248_150A1A42-2FD3-4037-ABB0-04D05B060259.jpg',
+    img: '/img/4248_150A1A42-2FD3-4037-ABB0-04D05B060259.jpg',
     title: 'KTX ĐẠI HỌC FPT',
     subtitle: 'Ngôi nhà thứ hai của bạn',
   },
@@ -23,6 +24,8 @@ const HERO_SLIDES = [
 
 function HomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [activeConfig, setActiveConfig] = useState(null);
+  const [configLoading, setConfigLoading] = useState(true);
 
   const nextSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
@@ -31,6 +34,72 @@ function HomePage() {
   const prevSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
   }, []);
+
+  const scrollToSection = (e, sectionId) => {
+    e.preventDefault();
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+
+  useEffect(() => {
+    const fetchActiveConfig = async () => {
+      try {
+        const result = await configApi.getActiveConfig();
+
+        // Hỗ trợ cả response dạng { data: {...} } và trả thẳng object config
+        setActiveConfig(result?.data ?? result);
+      } catch (error) {
+        console.error('Không thể tải cấu hình đang hoạt động:', error);
+        setActiveConfig(null);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+
+    fetchActiveConfig();
+  }, []);
+
+  const formatCurrency = (value) => {
+    const numberValue = Number(value);
+
+    if (!Number.isFinite(numberValue)) {
+      return 'Đang cập nhật';
+    }
+
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0,
+    }).format(numberValue);
+  };
+
+  // Đổi tên field bên dưới nếu schema Config của bạn sử dụng tên khác
+  const roomPrice =
+    activeConfig?.roomPrice ??
+    activeConfig?.dormitoryPrice ??
+    activeConfig?.pricePerSemester;
+
+  const electricityPrice =
+    activeConfig?.electricityPrice ??
+    activeConfig?.electricPrice ??
+    activeConfig?.electricityUnitPrice;
+
+  const waterPrice =
+    activeConfig?.waterPrice ??
+    activeConfig?.waterUnitPrice;
+
+  const freeElectricity =
+    activeConfig?.freeElectricity ??
+    activeConfig?.electricityQuota ??
+    activeConfig?.electricityFreeLimit;
+
+  const freeWater =
+    activeConfig?.freeWater ??
+    activeConfig?.waterQuota ??
+    activeConfig?.waterFreeLimit;
 
   /* Auto-play slider */
   useEffect(() => {
@@ -94,29 +163,29 @@ function HomePage() {
       <section className="quick-links" id="quick-links-section">
         <div className="container">
           <div className="quick-links__grid">
-            <Link to="/info" className="quick-link-card" id="quick-link-info">
+            <a href="#dorm-info-section" onClick={(e) => scrollToSection(e, 'dorm-info-section')} className="quick-link-card" id="quick-link-info">
               <div className="quick-link-card__border"></div>
               <h3 className="quick-link-card__title">Thông tin KTX Đại học FPT</h3>
               <span className="quick-link-card__action">
                 Thông tin <span className="quick-link-card__arrow">→</span>
               </span>
-            </Link>
+            </a>
 
-            <Link to="/register" className="quick-link-card" id="quick-link-register">
+            <Link to="/login" className="quick-link-card" id="quick-link-login">
               <div className="quick-link-card__border"></div>
-              <h3 className="quick-link-card__title">Đăng ký sử dụng KTX</h3>
+              <h3 className="quick-link-card__title">Đăng nhập để sử dụng KTX</h3>
               <span className="quick-link-card__action">
                 Xem hướng dẫn <span className="quick-link-card__arrow">→</span>
               </span>
             </Link>
 
-            <Link to="/faq" className="quick-link-card" id="quick-link-faq">
+            <a href="#faq-section" onClick={(e) => scrollToSection(e, 'faq-section')} className="quick-link-card" id="quick-link-faq">
               <div className="quick-link-card__border"></div>
               <h3 className="quick-link-card__title">Các câu hỏi thường gặp</h3>
               <span className="quick-link-card__action">
                 FAQ <span className="quick-link-card__arrow">→</span>
               </span>
-            </Link>
+            </a>
           </div>
         </div>
       </section>
@@ -126,7 +195,7 @@ function HomePage() {
         <div className="container">
           <div className="info-channel__banner">
             <img
-               src="/public/img/background.jpg"
+              src="/img/background.jpg"
               alt="Kênh thông tin KTX"
               className="info-channel__img"
             />
@@ -151,20 +220,20 @@ function HomePage() {
           <div className="dorm-info__block">
             <div className="dorm-info__text">
               <p>
-                Trường Đại học FPT là một trong những ngôi trường nổi tiếng đào tạo đa ngành, 
-                với chất lượng đào tạo đạt chuẩn quốc tế. Trường không chỉ quan tâm đến chất lượng 
+                Trường Đại học FPT là một trong những ngôi trường nổi tiếng đào tạo đa ngành,
+                với chất lượng đào tạo đạt chuẩn quốc tế. Trường không chỉ quan tâm đến chất lượng
                 đào tạo, công tác tuyển sinh mà còn chăm lo cho đời sống sinh viên.
               </p>
               <p>
-                Bằng việc đầu tư, xây dựng khu <strong>Ký túc xá</strong> đầy đủ trang thiết bị cần thiết, 
-                không gian thoáng mát, sạch sẽ. Để đáp ứng nhu cầu và tạo không gian học tập, 
-                sinh hoạt thoải mái nhất cho sinh viên. <strong>KTX</strong> cũng được xem như ngôi nhà 
+                Bằng việc đầu tư, xây dựng khu <strong>Ký túc xá</strong> đầy đủ trang thiết bị cần thiết,
+                không gian thoáng mát, sạch sẽ. Để đáp ứng nhu cầu và tạo không gian học tập,
+                sinh hoạt thoải mái nhất cho sinh viên. <strong>KTX</strong> cũng được xem như ngôi nhà
                 thứ 2 của nhiều <strong>sinh viên</strong>.
               </p>
             </div>
             <div className="dorm-info__image">
               <img
-                src="/public/img/anh5.jpg"
+                src="/img/anh5.jpg"
                 alt="Tòa nhà KTX"
               />
             </div>
@@ -174,19 +243,19 @@ function HomePage() {
           <div className="dorm-info__block dorm-info__block--reverse">
             <div className="dorm-info__image">
               <img
-                src="/public/img/anh4.jpg"
+                src="/img/anh4.jpg"
                 alt="Khuôn viên KTX"
               />
             </div>
             <div className="dorm-info__text">
               <p>
-                <strong>Ký túc xá</strong> của trường Đại học FPT là chỗ ở lý tưởng dành cho sinh viên 
-                với đầy đủ tiện nghi như điều hòa, nóng lạnh, WiFi tốc độ cao, khu tự học, 
+                <strong>Ký túc xá</strong> của trường Đại học FPT là chỗ ở lý tưởng dành cho sinh viên
+                với đầy đủ tiện nghi như điều hòa, nóng lạnh, WiFi tốc độ cao, khu tự học,
                 phòng gym, sân thể thao và nhiều tiện ích khác.
               </p>
               <p>
-                Mỗi phòng ở được thiết kế khoa học, thoáng mát, đảm bảo không gian riêng tư 
-                cho mỗi sinh viên. Đội ngũ quản lý KTX luôn sẵn sàng hỗ trợ 24/7, 
+                Mỗi phòng ở được thiết kế khoa học, thoáng mát, đảm bảo không gian riêng tư
+                cho mỗi sinh viên. Đội ngũ quản lý KTX luôn sẵn sàng hỗ trợ 24/7,
                 tạo môi trường an toàn và thân thiện cho tất cả các bạn sinh viên.
               </p>
             </div>
@@ -194,13 +263,13 @@ function HomePage() {
         </div>
       </section>
 
-    
+
       {/* ======== DORM DETAIL DESCRIPTION ======== */}
       <section className="dorm-detail" id="dorm-detail-section">
         <div className="container">
           <div className="dorm-detail__image-wrapper">
             <img
-              src="/public/img/background.jpg"
+              src="/img/background.jpg"
               alt="Tổng quan ký túc xá Đại học FPT"
               className="dorm-detail__img"
             />
@@ -215,7 +284,7 @@ function HomePage() {
           </div>
         </div>
       </section>
-        {/* ======== FEATURES ======== */}
+      {/* ======== FEATURES ======== */}
       <section className="features" id="features-section">
         <div className="container">
           <h2 className="section-title" id="features-title">Tiện ích nổi bật</h2>
@@ -282,11 +351,26 @@ function HomePage() {
                 <li>Kỳ Fall: Tháng 9 – tháng 12</li>
               </ul>
 
-              <h4 className="faq-item__sub-title">Phụ trội Điện nước/kỳ</h4>
+              <h4 className="faq-item__sub-title">Chi phí ký túc xá</h4>
               <ul>
-                <li><strong>Định mức miễn phí:</strong> 200 số Điện & 12 số nước</li>
+                <li>
+                  <strong>Giá phòng:</strong>{' '}
+                  {configLoading ? 'Đang tải...' : formatCurrency(roomPrice)} / người / kỳ
+                </li>
+                <li>
+                  <strong>Định mức miễn phí:</strong>{' '}
+                  {freeElectricity ?? 'Đang cập nhật'} số điện &amp;{' '}
+                  {freeWater ?? 'Đang cập nhật'} số nước
+                </li>
                 <li><strong>Dùng vượt định mức:</strong> Nộp phí phụ trội</li>
-                <li><strong>Đơn giá:</strong> 2,500đ/số điện, 10,000đ/số nước</li>
+                <li>
+                  <strong>Đơn giá điện:</strong>{' '}
+                  {configLoading ? 'Đang tải...' : `${formatCurrency(electricityPrice)}/số`}
+                </li>
+                <li>
+                  <strong>Đơn giá nước:</strong>{' '}
+                  {configLoading ? 'Đang tải...' : `${formatCurrency(waterPrice)} / người / tháng`}
+                </li>
               </ul>
 
               <h4 className="faq-item__sub-title">Thông tin phòng ở</h4>
