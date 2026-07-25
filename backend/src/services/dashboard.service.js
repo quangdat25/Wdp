@@ -108,9 +108,9 @@ class DashboardService {
       title: n.title || "Thông báo mới",
       time: n.createdAt
         ? new Date(n.createdAt).toLocaleTimeString("vi-VN", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })
+          hour: "2-digit",
+          minute: "2-digit",
+        })
         : "--:--",
       note: n.content
         ? n.content.length > 80
@@ -192,12 +192,12 @@ class DashboardService {
         recentActivities.length > 0
           ? recentActivities
           : [
-              {
-                title: "Chưa có hoạt động",
-                time: "--:--",
-                note: "Hệ thống chưa ghi nhận hoạt động nào.",
-              },
-            ],
+            {
+              title: "Chưa có hoạt động",
+              time: "--:--",
+              note: "Hệ thống chưa ghi nhận hoạt động nào.",
+            },
+          ],
       bookingRequests: formattedBookings,
       maintenanceQueue:
         maintenanceQueue.length > 0

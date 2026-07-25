@@ -449,3 +449,11 @@ ol {
     padding-right: 16px;
   }
 }
+
+/* =====================================================
+   SweetAlert2 Global Z-Index Safety
+   Ensure SweetAlert popups & alerts always show on top of all modals
+   ===================================================== */
+.swal2-container {
+  z-index: 99999 !important;
+}

@@ -1,4 +1,5 @@
   const express = require("express");
+  const mongoose = require("mongoose");
   const app = express();
 
   require("dotenv").config();
@@ -28,8 +29,6 @@
       credentials: true,
     }),
   );
-  // abc
-  connectDB();
 
   app.get("/", (req, res) => {
     return res.json({
@@ -39,9 +38,11 @@
   });
 
   app.get("/healthz", (req, res) => {
-    return res.status(200).json({
-      success: true,
-      message: "Server is running",
+    const isDbConnected = mongoose.connection.readyState === 1;
+    return res.status(isDbConnected ? 200 : 500).json({
+      success: isDbConnected,
+      message: isDbConnected ? "Server and Database are healthy" : "Database is not connected",
+      databaseState: mongoose.connection.readyState,
     });
   });
 
@@ -52,11 +53,17 @@
     res.status(status).json({ message: err.message });
   });
 
-  const server = app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-  });
+  const startServer = async () => {
+    await connectDB();
 
-  initSocket(server);
-  autoCheckInBookings();
-  autoCheckOutBookings();
-  autoDeleteExpiredBookings();
+    const server = app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
+
+    initSocket(server);
+    autoCheckInBookings();
+    autoCheckOutBookings();
+    autoDeleteExpiredBookings();
+  };
+
+  startServer();
