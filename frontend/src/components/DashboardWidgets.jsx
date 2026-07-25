@@ -162,29 +162,33 @@ export function KpiCard({ title, value, icon, color, trend, sparkline, isNegativ
           {icon}
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span
-          style={{
-            fontSize: "13px",
-            fontWeight: 600,
-            color: isNegative ? "#EF4444" : "#10B981",
-          }}
-        >
-          {trend}
-        </span>
-        {sparkline && (
-          <svg width="40" height="20" viewBox="0 0 40 20">
-            <path
-              d={sparkline}
-              fill="none"
-              stroke={isNegative ? "#EF4444" : "#10B981"}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
-      </div>
+      {(trend || sparkline) && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          {trend && (
+            <span
+              style={{
+                fontSize: "13px",
+                fontWeight: 600,
+                color: isNegative ? "#EF4444" : "#10B981",
+              }}
+            >
+              {trend}
+            </span>
+          )}
+          {sparkline && (
+            <svg width="40" height="20" viewBox="0 0 40 20">
+              <path
+                d={sparkline}
+                fill="none"
+                stroke={isNegative ? "#EF4444" : "#10B981"}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
+        </div>
+      )}
     </div>
   );
 }

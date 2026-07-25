@@ -41,7 +41,7 @@ import MyUtilities from "./pages/Student/MyUtilities";
 import MyRoom from "./pages/Student/MyRoom";
 import SystemConfigManagement from "./pages/Admin/SystemConfigManagement";
 import CheckInOutManagement from "./pages/Staff/SecurityTabs/CheckInOutManagement";
-
+import MyViolations from "./pages/Student/MyViolations";
 function App() {
   const location = useLocation();
   const isHomePage = location.pathname === "/";
@@ -105,6 +105,7 @@ function App() {
               <Route path="/parent/dashboard" element={<ParentDashboard />} />
               <Route path="/parent/student" element={<ParentStudentInfo />} />
               <Route path="/parent/payments" element={<ParentPayment />} />
+              <Route path="/parent/violations" element={<MyViolations />} />
             </Route>
 
             {/* Manager Routes */}

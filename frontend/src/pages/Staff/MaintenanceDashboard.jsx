@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import authService from "../../api/authService";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Headers";
+import { Pagination } from "antd";
 import { getStaffTickets, updateTicketStatus } from "../../api/ticketService";
 import "./MaintenanceDashboard.css";
 
@@ -18,6 +19,10 @@ function MaintenanceDashboard() {
   const [toast, setToast] = useState(null);
   const [resolutionText, setResolutionText] = useState("");
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -32,6 +37,7 @@ function MaintenanceDashboard() {
     } else {
       setActiveTab("Trang chủ");
     }
+    setCurrentPage(1);
   }, [location.pathname]);
 
   const fetchTasks = async (selectTaskId = null) => {
@@ -105,6 +111,11 @@ function MaintenanceDashboard() {
     }
     return s === filterStatus;
   });
+
+  const paginatedTasks = filteredTasks.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   return (
     <div
@@ -201,7 +212,10 @@ function MaintenanceDashboard() {
                 {/* Status selector select dropdown */}
                 <select
                   value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
+                  onChange={(e) => {
+                    setFilterStatus(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   style={{
                     padding: "6px 12px",
                     borderRadius: 8,
@@ -223,7 +237,7 @@ function MaintenanceDashboard() {
                     Không có sự cố nào khớp với điều kiện lọc.
                   </div>
                 ) : (
-                  filteredTasks.map((task) => {
+                  paginatedTasks.map((task) => {
                     const isSelected =
                       activeTask &&
                       ((activeTask._id && task._id && activeTask._id === task._id) ||
@@ -297,6 +311,26 @@ function MaintenanceDashboard() {
                   })
                 )}
               </div>
+
+              {filteredTasks.length > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    marginTop: 16,
+                    paddingTop: 12,
+                    borderTop: "1px solid #E2E8F0"
+                  }}
+                >
+                  <Pagination
+                    simple
+                    current={currentPage}
+                    total={filteredTasks.length}
+                    pageSize={pageSize}
+                    onChange={(page) => setCurrentPage(page)}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Right side detailed editor panel */}

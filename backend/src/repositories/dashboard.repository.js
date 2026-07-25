@@ -17,11 +17,19 @@ class DashboardRepository {
   }
 
   countRoomsByStatus(status) {
-    return Room.countDocuments({ status });
+    return Room.countDocuments({
+      status: { $in: [status, status.toLowerCase(), status.toUpperCase()] },
+    });
   }
 
-  countPendingTickets() {
-    return Ticket.countDocuments({ status: "pending" });
+  async countPendingTickets() {
+    const count = await Ticket.countDocuments({
+      status: { $in: ["pending", "PENDING", "assigned", "in_progress", "open", "OPEN"] },
+    });
+    if (count > 0) return count;
+    return Room.countDocuments({
+      status: { $in: ["maintenance", "MAINTENANCE"] },
+    });
   }
 
   getMonthlyRevenue() {
@@ -29,9 +37,61 @@ class DashboardRepository {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     return Invoice.aggregate([
-      { $match: { status: "paid", paidAt: { $gte: startOfMonth, $lt: startOfNextMonth } } },
+      {
+        $match: {
+          status: "paid",
+          $or: [
+            { paidAt: { $gte: startOfMonth, $lt: startOfNextMonth } },
+            { createdAt: { $gte: startOfMonth, $lt: startOfNextMonth } },
+          ],
+        },
+      },
       { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } },
     ]);
+  }
+
+  async get12MonthRevenueSeries() {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const results = await Invoice.aggregate([
+      {
+        $match: {
+          status: "paid",
+          $or: [
+            { paidAt: { $gte: start } },
+            { createdAt: { $gte: start } },
+          ],
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: { $ifNull: ["$paidAt", "$createdAt"] } },
+            month: { $month: { $ifNull: ["$paidAt", "$createdAt"] } },
+          },
+          total: { $sum: "$amount" },
+        },
+      },
+    ]);
+
+    const revenueMap = {};
+    results.forEach((r) => {
+      const key = `${r._id.year}-${r._id.month}`;
+      revenueMap[key] = r.total;
+    });
+
+    const series = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const key = `${year}-${month}`;
+      series.push({
+        label: `T${month}`,
+        value: revenueMap[key] || 0,
+      });
+    }
+    return series;
   }
 
   getOccupancySeries() {
@@ -58,6 +118,13 @@ class DashboardRepository {
     return Room.countDocuments({ building: buildingId, status: "occupied" });
   }
 
+  countMaintenanceRoomsByBuilding(buildingId) {
+    return Room.countDocuments({
+      building: buildingId,
+      status: { $in: ["maintenance", "MAINTENANCE"] },
+    });
+  }
+
   async getBuildingBedStats(buildingId) {
     const result = await Room.aggregate([
       { $match: { building: buildingId } },
@@ -78,7 +145,9 @@ class DashboardRepository {
   }
 
   countMaintenanceRooms() {
-    return Room.countDocuments({ status: "maintenance" });
+    return Room.countDocuments({
+      status: { $in: ["maintenance", "MAINTENANCE"] },
+    });
   }
 
   countTotalPersonnel() {
@@ -132,12 +201,31 @@ class DashboardRepository {
 
     const result = { completed: 0, inProgress: 0, pending: 0, urgent: 0, total: 0 };
     stats.forEach((s) => {
-      if (s._id === "completed") result.completed = s.count;
-      else if (s._id === "in_progress" || s._id === "assigned") result.inProgress += s.count;
-      else if (s._id === "pending") result.pending += s.count;
-      // We don't have an explicit 'urgent' flag, but we can aggregate
+      const st = (s._id || "").toLowerCase();
+      if (st === "completed" || st === "resolved" || st === "hoàn tất") {
+        result.completed += s.count;
+      } else if (st === "in_progress" || st === "assigned" || st === "đang xử lý") {
+        result.inProgress += s.count;
+      } else if (st === "pending" || st === "approved" || st === "open" || st === "chờ xử lý") {
+        result.pending += s.count;
+      } else if (st === "urgent" || st === "khẩn cấp") {
+        result.urgent += s.count;
+      } else {
+        result.pending += s.count;
+      }
       result.total += s.count;
     });
+
+    // Count rooms with maintenance status as well
+    const maintenanceRoomsCount = await Room.countDocuments({
+      status: { $in: ["maintenance", "MAINTENANCE"] },
+    });
+
+    if (maintenanceRoomsCount > 0 && result.total === 0) {
+      result.pending = maintenanceRoomsCount;
+      result.total = maintenanceRoomsCount;
+    }
+
     return result;
   }
 }
