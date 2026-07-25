@@ -151,7 +151,7 @@ function App() {
                 }
               />
               <Route
-                path="/security/check-in-out/*"
+                path="staff/security/check-in-out/*"
                 element={
                   <ProtectedRoute
                     allowedRoles={["staff"]}
