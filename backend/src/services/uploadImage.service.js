@@ -28,6 +28,6 @@ exports.upload = async (file) => {
     throw createError(500, "Upload ảnh thất bại, không nhận được URL");
   }
 
-  // Trả thẳng URL giống logic cũ
+  // Trả thẳng URL 
   return imageUrl;
 };

@@ -11,6 +11,7 @@ import {
   assignStudentToRoom,
   removeStudentFromRoom,
   getAvailableStudents,
+  getRoomHistory,
 } from "../../api/roomService";
 import {
   FaBuilding,
@@ -24,6 +25,7 @@ import {
   FaSearch,
   FaUserPlus,
   FaUserMinus,
+  FaHistory,
 } from "react-icons/fa";
 import { Modal } from "antd";
 const statusConfig = {
@@ -64,6 +66,8 @@ function RoomManagement({ role = "admin" }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newBuildingName, setNewBuildingName] = useState("");
   const [newBuildingDesc, setNewBuildingDesc] = useState("");
+  const [newBuildingFloorCount, setNewBuildingFloorCount] = useState(5);
+  const [newBuildingRoomsPerFloor, setNewBuildingRoomsPerFloor] = useState(14);
   const [creating, setCreating] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
@@ -79,6 +83,12 @@ function RoomManagement({ role = "admin" }) {
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [removing, setRemoving] = useState(false);
+
+  // Room history states
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [roomHistory, setRoomHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
   const { confirm } = Modal;
   // Fetch buildings
   const fetchBuildings = useCallback(async () => {
@@ -153,16 +163,44 @@ function RoomManagement({ role = "admin" }) {
 
   // Create building
   const handleCreate = async () => {
-    if (!newBuildingName.trim()) return;
+    const floorCount = Number(newBuildingFloorCount);
+    const roomsPerFloor = Number(newBuildingRoomsPerFloor);
+
+    if (!newBuildingName.trim()) {
+      alert("Vui lòng nhập tên tòa nhà");
+      return;
+    }
+
+    if (!Number.isInteger(floorCount) || floorCount < 1 || floorCount > 20) {
+      alert("Số tầng phải là số nguyên từ 1 đến 20");
+      return;
+    }
+
+    if (
+      !Number.isInteger(roomsPerFloor) ||
+      roomsPerFloor < 1 ||
+      roomsPerFloor > 50
+    ) {
+      alert("Số phòng mỗi tầng phải là số nguyên từ 1 đến 50");
+      return;
+    }
+
     try {
       setCreating(true);
+
       await createBuilding({
         name: newBuildingName.trim(),
         description: newBuildingDesc.trim(),
+        totalFloors: floorCount,
+        totalRoomsPerFloor: roomsPerFloor,
       });
+
       setShowCreateModal(false);
       setNewBuildingName("");
       setNewBuildingDesc("");
+      setNewBuildingFloorCount(5);
+      setNewBuildingRoomsPerFloor(14);
+
       await fetchBuildings();
     } catch (error) {
       alert(error.response?.data?.message || "Lỗi tạo tòa nhà");
@@ -292,6 +330,84 @@ function RoomManagement({ role = "admin" }) {
         }
       },
     });
+  };
+
+  const normalizeRoomHistory = (payload) => {
+    const rawData = payload?.data ?? payload ?? [];
+
+    if (Array.isArray(rawData)) {
+      return rawData;
+    }
+
+    if (Array.isArray(rawData.history)) {
+      return rawData.history;
+    }
+
+    if (Array.isArray(rawData.semesters)) {
+      return rawData.semesters;
+    }
+
+    return [];
+  };
+
+  const handleOpenRoomHistory = async () => {
+    if (!selectedRoom?._id) return;
+
+    try {
+      setLoadingHistory(true);
+      setRoomHistory([]);
+      setShowHistoryModal(true);
+
+      const res = await getRoomHistory(selectedRoom._id);
+      setRoomHistory(normalizeRoomHistory(res));
+    } catch (error) {
+      console.error("Error fetching room history:", error);
+      setShowHistoryModal(false);
+      alert(
+        error.response?.data?.message ||
+          "Không thể tải lịch sử phòng",
+      );
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const closeRoomHistory = () => {
+    if (loadingHistory) return;
+    setShowHistoryModal(false);
+    setRoomHistory([]);
+  };
+
+  const getSemesterName = (item) =>
+    item.semester?.name ||
+    item.semesterName ||
+    item.semester ||
+    item.term ||
+    "Chưa xác định học kỳ";
+
+  const getHistoryStudents = (item) =>
+    item.students ||
+    item.bookings ||
+    item.residents ||
+    item.occupants ||
+    [];
+
+  const formatDate = (value) => {
+    if (!value) return "—";
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+
+    return new Intl.DateTimeFormat("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(date);
+  };
+
+  const getBuildingFloorCount = (building) => {
+    const count = Number(building?.totalFloors);
+    return Number.isInteger(count) && count > 0 ? count : 5;
   };
 
   // Select building
@@ -591,8 +707,17 @@ function RoomManagement({ role = "admin" }) {
                     />
                     Chọn tầng — Tòa {selectedBuilding.name}
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {[1, 2, 3, 4, 5].map((floor) => {
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {Array.from(
+                      { length: getBuildingFloorCount(selectedBuilding) },
+                      (_, index) => index + 1,
+                    ).map((floor) => {
                       const isActive = selectedFloor === floor;
                       return (
                         <button
@@ -848,7 +973,7 @@ function RoomManagement({ role = "admin" }) {
                       fontSize: 14,
                     }}
                   >
-                    Hệ thống sẽ tự động tạo 5 tầng × 14 phòng (70 phòng).
+                    Chọn số tầng và số phòng mỗi tầng cho tòa nhà.
                   </p>
                 </div>
                 <CloseButton
@@ -876,6 +1001,60 @@ function RoomManagement({ role = "admin" }) {
                   placeholder="Mô tả ngắn..."
                   style={inputStyle}
                 />
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 12,
+                    marginTop: 14,
+                  }}
+                >
+                  <div>
+                    <label style={labelStyle}>Số tầng *</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={newBuildingFloorCount}
+                      onChange={(e) =>
+                        setNewBuildingFloorCount(e.target.value)
+                      }
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Số phòng mỗi tầng *</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={newBuildingRoomsPerFloor}
+                      onChange={(e) =>
+                        setNewBuildingRoomsPerFloor(e.target.value)
+                      }
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    background: "#f0fdf4",
+                    border: "1px solid #bbf7d0",
+                    color: "#166534",
+                    fontSize: 13,
+                    fontWeight: 700,
+                  }}
+                >
+                  Tổng số phòng sẽ tạo:{" "}
+                  {Number(newBuildingFloorCount || 0) *
+                    Number(newBuildingRoomsPerFloor || 0)}
+                </div>
               </div>
 
               <div
@@ -895,7 +1074,14 @@ function RoomManagement({ role = "admin" }) {
                 </ActionButton>
                 <ActionButton
                   onClick={handleCreate}
-                  disabled={creating || !newBuildingName.trim()}
+                  disabled={
+                    creating ||
+                    !newBuildingName.trim() ||
+                    !Number.isInteger(Number(newBuildingFloorCount)) ||
+                    Number(newBuildingFloorCount) < 1 ||
+                    !Number.isInteger(Number(newBuildingRoomsPerFloor)) ||
+                    Number(newBuildingRoomsPerFloor) < 1
+                  }
                   variant="primary"
                 >
                   {creating ? "Đang tạo..." : "Tạo tòa nhà"}
@@ -1413,11 +1599,38 @@ function RoomManagement({ role = "admin" }) {
             <div
               style={{
                 display: "flex",
-                justifyContent: "flex-end",
+                justifyContent: "space-between",
+                alignItems: "center",
                 gap: 12,
                 marginTop: 24,
+                flexWrap: "wrap",
               }}
             >
+              <button
+                type="button"
+                onClick={handleOpenRoomHistory}
+                disabled={loadingHistory}
+                style={{
+                  height: 46,
+                  padding: "0 18px",
+                  borderRadius: 14,
+                  border: "1px solid #c4b5fd",
+                  background: "#f5f3ff",
+                  color: "#7c3aed",
+                  fontWeight: 800,
+                  fontSize: 14,
+                  cursor: loadingHistory ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                <FaHistory />
+                {loadingHistory ? "Đang tải..." : "Xem lịch sử phòng"}
+              </button>
+
+              <div style={{ display: "flex", gap: 12 }}>
               <ActionButton
                 onClick={() => setSelectedRoom(null)}
                 disabled={updatingRoom}
@@ -1431,6 +1644,233 @@ function RoomManagement({ role = "admin" }) {
                 variant="primary"
               >
                 {updatingRoom ? "Đang lưu..." : "Lưu thay đổi"}
+              </ActionButton>
+              </div>
+            </div>
+          </ModalCard>
+        </ModalOverlay>
+      )}
+
+      {/* Room History Modal */}
+      {showHistoryModal && (
+        <ModalOverlay onClose={closeRoomHistory}>
+          <ModalCard style={{ maxWidth: 900, width: "min(900px, 95vw)" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "start",
+                gap: 16,
+              }}
+            >
+              <div>
+                <h2 style={{ margin: 0, fontSize: 22, color: "#0f172a" }}>
+                  <FaHistory
+                    style={{
+                      marginRight: 10,
+                      color: "#7c3aed",
+                      fontSize: 18,
+                    }}
+                  />
+                  Lịch sử phòng {selectedRoom?.roomNumber}
+                </h2>
+                <p
+                  style={{
+                    margin: "6px 0 0",
+                    color: "#64748b",
+                    fontSize: 14,
+                  }}
+                >
+                  Danh sách sinh viên đã ở phòng theo từng học kỳ
+                </p>
+              </div>
+
+              <CloseButton onClick={closeRoomHistory} />
+            </div>
+
+            <div
+              style={{
+                marginTop: 20,
+                maxHeight: "65vh",
+                overflowY: "auto",
+                paddingRight: 4,
+              }}
+            >
+              {loadingHistory ? (
+                <div
+                  style={{
+                    padding: 40,
+                    textAlign: "center",
+                    color: "#64748b",
+                  }}
+                >
+                  Đang tải lịch sử phòng...
+                </div>
+              ) : roomHistory.length === 0 ? (
+                <div
+                  style={{
+                    padding: 36,
+                    textAlign: "center",
+                    color: "#94a3b8",
+                    background: "#f8fafc",
+                    border: "1px dashed #cbd5e1",
+                    borderRadius: 16,
+                  }}
+                >
+                  Phòng chưa có lịch sử ở các học kỳ trước
+                </div>
+              ) : (
+                roomHistory.map((semesterItem, semesterIndex) => {
+                  const students = getHistoryStudents(semesterItem);
+
+                  return (
+                    <div
+                      key={
+                        semesterItem._id ||
+                        semesterItem.semesterId ||
+                        `${getSemesterName(semesterItem)}-${semesterIndex}`
+                      }
+                      style={{
+                        marginBottom: 18,
+                        border: "1px solid #ddd6fe",
+                        borderRadius: 16,
+                        overflow: "hidden",
+                        background: "#fff",
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: "13px 16px",
+                          background:
+                            "linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%)",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: 12,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <strong style={{ color: "#6d28d9" }}>
+                          {getSemesterName(semesterItem)}
+                        </strong>
+
+                        <span
+                          style={{
+                            fontSize: 12,
+                            color: "#7c3aed",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {students.length} sinh viên
+                        </span>
+                      </div>
+
+                      {students.length === 0 ? (
+                        <div
+                          style={{
+                            padding: 18,
+                            color: "#94a3b8",
+                            textAlign: "center",
+                          }}
+                        >
+                          Không có sinh viên trong học kỳ này
+                        </div>
+                      ) : (
+                        <div style={{ overflowX: "auto" }}>
+                          <table
+                            style={{
+                              width: "100%",
+                              borderCollapse: "collapse",
+                              minWidth: 700,
+                            }}
+                          >
+                            <thead>
+                              <tr style={{ background: "#fafafa" }}>
+                                <th style={thStyle}>Giường</th>
+                                <th style={thStyle}>Mã sinh viên</th>
+                                <th style={thStyle}>Họ tên</th>
+                                <th style={thStyle}>Ngày vào</th>
+                                <th style={thStyle}>Ngày ra</th>
+                                <th style={thStyle}>Trạng thái</th>
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {students.map((entry, index) => {
+                                const student =
+                                  entry.studentId ||
+                                  entry.student ||
+                                  entry.userId ||
+                                  entry;
+
+                                return (
+                                  <tr
+                                    key={
+                                      entry._id ||
+                                      student?._id ||
+                                      `${semesterIndex}-${index}`
+                                    }
+                                    style={{
+                                      borderBottom: "1px solid #f1f5f9",
+                                    }}
+                                  >
+                                    <td style={tdStyle}>
+                                      {entry.bedNumber ?? student?.bedNumber ?? "—"}
+                                    </td>
+                                    <td style={tdStyle}>
+                                      {student?.studentCode ||
+                                        entry.studentCode ||
+                                        "N/A"}
+                                    </td>
+                                    <td style={tdStyle}>
+                                      {student?.fullName ||
+                                        entry.fullName ||
+                                        student?.name ||
+                                        "N/A"}
+                                    </td>
+                                    <td style={tdStyle}>
+                                      {formatDate(
+                                        entry.checkInDate ||
+                                          entry.startDate ||
+                                          entry.createdAt,
+                                      )}
+                                    </td>
+                                    <td style={tdStyle}>
+                                      {formatDate(
+                                        entry.checkOutDate ||
+                                          entry.endDate ||
+                                          entry.updatedAt,
+                                      )}
+                                    </td>
+                                    <td style={tdStyle}>
+                                      {entry.status || "—"}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                marginTop: 20,
+              }}
+            >
+              <ActionButton
+                onClick={closeRoomHistory}
+                disabled={loadingHistory}
+                variant="secondary"
+              >
+                Đóng
               </ActionButton>
             </div>
           </ModalCard>

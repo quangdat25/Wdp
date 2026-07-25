@@ -77,8 +77,12 @@ class BookingService {
       };
     }
 
-    const targetStart = isRenew ? currentSemester?.renewalStartDate : currentSemester?.bookingStartDate;
-    const targetEnd = isRenew ? currentSemester?.renewalEndDate : currentSemester?.bookingEndDate;
+    const targetStart = isRenew
+      ? currentSemester?.renewalStartDate
+      : currentSemester?.bookingStartDate;
+    const targetEnd = isRenew
+      ? currentSemester?.renewalEndDate
+      : currentSemester?.bookingEndDate;
     const timeTypeLabel = isRenew ? "gia hạn" : "đăng ký mới";
 
     if (!targetStart || !targetEnd) {
@@ -111,26 +115,7 @@ class BookingService {
       };
     }
 
-    const existingRoom =
-      await bookingRepository.findCurrentRoomByStudent(studentId);
 
-    if (existingRoom && !isRenew) {
-      const studentEntry = existingRoom.students.find(
-        (item) => item.student.toString() === studentId.toString(),
-      );
-
-      return {
-        statusCode: 400,
-        response: {
-          success: false,
-          eligible: false,
-          reason: "already_in_room",
-          message: `Bạn đang ở phòng ${existingRoom.displayName}${
-            studentEntry ? ` - Giường ${studentEntry.bedNumber}` : ""
-          }. Không thể đặt phòng mới.`,
-        },
-      };
-    }
 
     const existingBooking =
       await bookingRepository.findActiveBookingByStudentAndSemester(
@@ -484,18 +469,6 @@ class BookingService {
       };
     }
 
-    const existingRoom =
-      await bookingRepository.findCurrentRoomByStudent(studentId);
-
-    if (existingRoom && !renewedFrom) {
-      return {
-        statusCode: 400,
-        response: {
-          success: false,
-          message: `Bạn đang ở phòng ${existingRoom.displayName}. Không thể đặt thêm.`,
-        },
-      };
-    }
 
     const existingBooking =
       await bookingRepository.findActiveBookingByStudentAndSemester(
@@ -674,7 +647,7 @@ class BookingService {
         studentId,
         invoiceCode,
         type: "room_fee",
-        amount: room.price || 2000000,
+        amount: roomPrice,
         status: "unpaid",
         dueDate: paymentExpiresAt,
       });
@@ -959,8 +932,11 @@ class BookingService {
       };
     }
 
-    const roommates = await bookingRepository.findRoommatesByRoomAndSemester(roomId, semester);
-    
+    const roommates = await bookingRepository.findRoommatesByRoomAndSemester(
+      roomId,
+      semester,
+    );
+
     // Format to match the frontend expectations: array of { bedNumber, student }
     const formattedRoommates = roommates
       .filter((booking) => booking.studentId) // Ensure studentId is populated

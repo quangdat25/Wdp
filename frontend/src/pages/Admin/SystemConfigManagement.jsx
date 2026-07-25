@@ -61,6 +61,9 @@ function SystemConfigManagement() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const user = JSON.parse(localStorage.getItem("user")) || {};
+  const isReadOnly = user.role === "student" || user.role === "parent";
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -71,12 +74,21 @@ function SystemConfigManagement() {
     try {
       setLoading(true);
 
-      const response = await systemConfigService.getAllConfigs();
-      const data = Array.isArray(response)
-        ? response
-        : Array.isArray(response?.data)
-          ? response.data
-          : [];
+      let data = [];
+      if (isReadOnly) {
+        const response = await systemConfigService.getActiveConfig();
+        const activeConfigData = response?.data || response;
+        if (activeConfigData) {
+          data = [activeConfigData];
+        }
+      } else {
+        const response = await systemConfigService.getAllConfigs();
+        data = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+            ? response.data
+            : [];
+      }
 
       setConfigs(data);
     } catch (error) {
@@ -287,18 +299,21 @@ function SystemConfigManagement() {
           <div>
             <h1 style={pageTitleStyle}>Cấu hình hệ thống</h1>
             <p style={pageDescriptionStyle}>
-              Quản lý giá phòng, đơn giá điện và đơn giá nước. Mỗi thời điểm
-              chỉ có một cấu hình được kích hoạt.
+              {isReadOnly
+                ? "Xem thông tin giá phòng, đơn giá điện và đơn giá nước hiện tại đang được áp dụng."
+                : "Quản lý giá phòng, đơn giá điện và đơn giá nước. Mỗi thời điểm chỉ có một cấu hình được kích hoạt."}
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={openCreateModal}
-            style={primaryButtonStyle}
-          >
-            Thêm cấu hình
-          </button>
+          {!isReadOnly && (
+            <button
+              type="button"
+              onClick={openCreateModal}
+              style={primaryButtonStyle}
+            >
+              Thêm cấu hình
+            </button>
+          )}
         </section>
 
         {activeConfig && (
@@ -337,47 +352,49 @@ function SystemConfigManagement() {
           </section>
         )}
 
-        <section style={contentCardStyle}>
-          <div style={sectionHeaderStyle}>
-            <div>
-              <h2 style={sectionTitleStyle}>Danh sách cấu hình</h2>
-              <p style={sectionDescriptionStyle}>
-                Cấu hình đang hoạt động không được sửa hoặc xóa. Cấu hình chưa
-                hoạt động có thể chỉnh sửa và kích hoạt.
-              </p>
+        {!isReadOnly && (
+          <section style={contentCardStyle}>
+            <div style={sectionHeaderStyle}>
+              <div>
+                <h2 style={sectionTitleStyle}>Danh sách cấu hình</h2>
+                <p style={sectionDescriptionStyle}>
+                  Cấu hình đang hoạt động không được sửa hoặc xóa. Cấu hình chưa
+                  hoạt động có thể chỉnh sửa và kích hoạt.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={fetchConfigs}
+                disabled={loading}
+                style={{
+                  ...secondaryButtonStyle,
+                  ...(loading ? disabledButtonStyle : {}),
+                }}
+              >
+                {loading ? "Đang tải..." : "Làm mới"}
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={fetchConfigs}
-              disabled={loading}
-              style={{
-                ...secondaryButtonStyle,
-                ...(loading ? disabledButtonStyle : {}),
-              }}
-            >
-              {loading ? "Đang tải..." : "Làm mới"}
-            </button>
-          </div>
-
-          {loading ? (
-            <LoadingState />
-          ) : sortedConfigs.length === 0 ? (
-            <EmptyState onCreate={openCreateModal} />
-          ) : (
-            <div style={configListStyle}>
-              {sortedConfigs.map((config) => (
-                <ConfigCard
-                  key={config._id}
-                  config={config}
-                  onEdit={openEditModal}
-                  onActivate={handleActivateConfig}
-                  onDelete={handleDeleteConfig}
-                />
-              ))}
-            </div>
-          )}
-        </section>
+            {loading ? (
+              <LoadingState />
+            ) : sortedConfigs.length === 0 ? (
+              <EmptyState onCreate={openCreateModal} />
+            ) : (
+              <div style={configListStyle}>
+                {sortedConfigs.map((config) => (
+                  <ConfigCard
+                    key={config._id}
+                    config={config}
+                    onEdit={openEditModal}
+                    onActivate={handleActivateConfig}
+                    onDelete={handleDeleteConfig}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </main>
 
       {isCreateModalOpen && (

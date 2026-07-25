@@ -2,29 +2,19 @@ import { useState } from "react";
 import { useNews } from "../../hooks/useNews";
 import { formatRelativeTime } from "../../utils/date";
 import NewsDetailModal from "../../components/NewsDetailModal";
-import { Pagination } from "antd";
 
-// Trang danh sách bản tin đầy đủ cho module "news"
-function NewsPage() {
+function ParentNewsPage() {
   const { news, loading } = useNews();
   const [selected, setSelected] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
-  const paginatedNews = news.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
 
   return (
-    <div className="student-stack">
-      {/* Tiêu đề trang */}
-      <div className="student-panel" style={{ padding: "20px 24px" }}>
+    <div className="parent-stack">
+      <div className="parent-panel" style={{ padding: "20px 24px" }}>
         <h2
           style={{
             margin: 0,
             fontSize: 20,
-            color: "#0f1f35",
+            color: "#14532d",
             fontWeight: 800,
           }}
         >
@@ -34,7 +24,7 @@ function NewsPage() {
           style={{
             margin: "6px 0 0",
             fontSize: 13,
-            color: "#637386",
+            color: "#4b7a5e",
           }}
         >
           Toàn bộ bản tin từ Ban Quản Lý Ký túc xá
@@ -42,9 +32,9 @@ function NewsPage() {
       </div>
 
       {/* Danh sách thông báo (News) */}
-      <div className="student-panel">
+      <div className="parent-panel">
         {loading ? (
-          <div className="student-news-list">
+          <div className="parent-news-list">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
@@ -83,7 +73,7 @@ function NewsPage() {
             style={{
               padding: "48px 16px",
               textAlign: "center",
-              color: "#94A3B8",
+              color: "#6b9e7e",
             }}
           >
             <div style={{ fontSize: 40, marginBottom: 12 }}>📰</div>
@@ -92,52 +82,29 @@ function NewsPage() {
             </span>
           </div>
         ) : (
-          <>
-            <div className="student-news-list">
-              {paginatedNews.map((item) => (
-                <div
-                  key={item._id}
-                  className="student-news-item"
-                  onClick={() => setSelected(item)}
-                >
-                  <span
-                    className="student-news-item__dot"
-                    style={{
-                      background: item.isPinned ? "#dc2626" : "#16a34a",
-                    }}
-                  />
-                  <span className="student-news-item__text">
-                    {item.isPinned && "📌 "}
-                    {item.title}
-                  </span>
-                  <span className="student-news-item__date">
-                    {formatRelativeTime(item.createdAt)}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                marginTop: 20,
-                paddingBottom: 20,
-              }}
-            >
-              <Pagination
-                current={currentPage}
-                total={news.length}
-                pageSize={pageSize}
-                showSizeChanger
-                pageSizeOptions={["10", "15", "20"]}
-                onChange={(page, size) => {
-                  setCurrentPage(page);
-                  setPageSize(size);
-                }}
-              />
-            </div>
-          </>
+          <div className="parent-news-list">
+            {news.map((item) => (
+              <div
+                key={item._id}
+                className="parent-news-item"
+                onClick={() => setSelected(item)}
+              >
+                <span
+                  className="parent-news-item__dot"
+                  style={{
+                    background: item.isPinned ? "#dc2626" : "#16a34a",
+                  }}
+                />
+                <span className="parent-news-item__text">
+                  {item.isPinned && "📌 "}
+                  {item.title}
+                </span>
+                <span className="parent-news-item__date">
+                  {formatRelativeTime(item.createdAt)}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
@@ -149,4 +116,4 @@ function NewsPage() {
   );
 }
 
-export default NewsPage;
+export default ParentNewsPage;

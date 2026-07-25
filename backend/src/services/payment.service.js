@@ -159,10 +159,6 @@ class PaymentService {
     }
 
     if (vnp_ResponseCode !== "00") {
-      if (paymentType === "BOOKING") {
-        await paymentRepository.deleteBookingById(targetId);
-      }
-
       return this.paymentErrorUrl("PaymentFailed");
     }
 
