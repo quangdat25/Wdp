@@ -1,6 +1,8 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const http = require("http");
 const app = express();
+const server = http.createServer(app);
 
 require("dotenv").config();
 const bodyParser = require("body-parser");
@@ -59,4 +61,9 @@ const startServer = async () => {
   autoDeleteExpiredBookings();
   paymentReminder();
 
-}
+  server.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+};
+
+startServer();

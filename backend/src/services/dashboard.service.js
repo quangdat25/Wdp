@@ -20,6 +20,7 @@ class DashboardService {
       occData,
       bookingRequests,
       maintenanceStats,
+      revenueSeries,
     ] = await Promise.all([
       dashboardRepository.countStudents(),
       dashboardRepository.countAllRooms(),
@@ -37,6 +38,7 @@ class DashboardService {
       dashboardRepository.getOccupancySeries(),
       dashboardRepository.getBookingRequests(),
       dashboardRepository.getMaintenanceStats(),
+      dashboardRepository.get12MonthRevenueSeries(),
     ]);
 
     const [occTotalRooms, occOccupiedRooms, allActiveBookings] = await Promise.all([
@@ -45,8 +47,30 @@ class DashboardService {
       occData.allActiveBookings,
     ]);
 
+    // Building stats with occupancy per building
+    const buildingStats = await Promise.all(
+      buildings.map(async (b) => {
+        const stats = await dashboardRepository.getBuildingBedStats(b._id);
+        const maintenanceRooms = await dashboardRepository.countMaintenanceRoomsByBuilding(b._id);
+        const total = stats.totalBeds;
+        const occupied = stats.occupiedBeds;
+
+        return {
+          _id: b._id,
+          name: `Khu ${b.name}`,
+          occupied,
+          total,
+          available: total - occupied,
+          rate: total > 0 ? Number(((occupied / total) * 100).toFixed(1)) : 0,
+          maintenanceRooms,
+        };
+      }),
+    );
+
+    const totalBedsAll = buildingStats.reduce((sum, b) => sum + b.total, 0);
+    const occupiedBedsAll = buildingStats.reduce((sum, b) => sum + b.occupied, 0);
     const currentOccupancyRate =
-      occTotalRooms > 0 ? Math.round((occOccupiedRooms / occTotalRooms) * 100) : 0;
+      totalBedsAll > 0 ? Number(((occupiedBedsAll / totalBedsAll) * 100).toFixed(1)) : 0;
 
     // Build 12-month occupancy series from cumulative active bookings
     const now = new Date();
@@ -79,24 +103,6 @@ class DashboardService {
 
       occupancySeries.push({ label, value: rate });
     }
-
-    // Building stats with occupancy per building
-    const buildingStats = await Promise.all(
-      buildings.map(async (b) => {
-        const stats = await dashboardRepository.getBuildingBedStats(b._id);
-        const total = stats.totalBeds;
-        const occupied = stats.occupiedBeds;
-
-        return {
-          _id: b._id,
-          name: `Khu ${b.name}`,
-          occupied,
-          total,
-          available: total - occupied,
-          rate: total > 0 ? Math.round((occupied / total) * 100) : 0,
-        };
-      }),
-    );
 
     const monthlyRevenue =
       revenueResult.length > 0
@@ -179,7 +185,9 @@ class DashboardService {
       monthlyRevenue: {
         total: monthlyRevenue.total,
         count: monthlyRevenue.count,
+        series: revenueSeries,
       },
+      revenueSeries,
       occupancySeries,
       buildings: buildingStats,
       alerts: {

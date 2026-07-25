@@ -195,8 +195,9 @@ function OverviewScreen({ data, loading, setActiveModule }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
       <HeroCard
         occupancyRate={occupancy?.rate}
-        pendingRequests={alerts?.pendingBookings || 0}
-        pendingTickets={pendingTickets || 0}
+        totalBuildings={buildings?.length || 4}
+        occupiedBeds={kpiData.occupiedBeds}
+        totalBeds={buildings ? buildings.reduce((sum, b) => sum + (b.total || 0), 0) : 640}
       />
 
       <KPISection data={kpiData} />

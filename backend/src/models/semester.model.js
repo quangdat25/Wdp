@@ -69,8 +69,8 @@ const semesterSchema = new mongoose.Schema(
 
 const Semester = mongoose.model("Semester", semesterSchema);
 
-Semester.syncIndexes().catch((err) => {
-  console.error("Error syncing Semester indexes:", err.message);
-});
+// Semester.syncIndexes().catch((err) => {
+//   console.error("Error syncing Semester indexes:", err.message);
+// });
 
 module.exports = Semester;

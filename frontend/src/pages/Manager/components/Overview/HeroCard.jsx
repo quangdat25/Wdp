@@ -1,7 +1,7 @@
 import React from 'react';
 import { FaBuilding } from 'react-icons/fa';
 
-export default function HeroCard({ occupancyRate, pendingRequests, pendingTickets, healthStatus = "BÌNH THƯỜNG" }) {
+export default function HeroCard({ occupancyRate, totalBuildings, occupiedBeds, totalBeds }) {
   const rate = occupancyRate || 0;
   
   return (
@@ -31,29 +31,22 @@ export default function HeroCard({ occupancyRate, pendingRequests, pendingTicket
         </div>
 
         {/* Info */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <h3 style={{ fontSize: 24, fontWeight: 600, margin: 0 }}>Tổng Quan Vận Hành</h3>
-          <div style={{ display: "flex", gap: 32 }}>
-            <div>
-              <p style={{ margin: "0 0 4px", fontSize: 14, opacity: 0.8 }}>Yêu cầu chờ xử lý</p>
-              <p style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>{pendingRequests} Đơn phòng / {pendingTickets} Ticket bảo trì</p>
-            </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <h3 style={{ fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: "-0.5px" }}>Tổng Quan Vận Hành Ký Túc Xá</h3>
+          <p style={{ margin: 0, fontSize: 14, opacity: 0.9, fontWeight: 500 }}>
+            Hệ thống quản lý KTX FPT • Vận hành ổn định
+          </p>
+          <div style={{ display: "flex", gap: 16, marginTop: 4 }}>
+            <span style={{ background: "rgba(255,255,255,0.2)", padding: "6px 14px", borderRadius: 999, fontSize: 13, fontWeight: 600, backdropFilter: "blur(4px)" }}>
+              🏢 {totalBuildings || 4} Tòa nhà vận hành
+            </span>
+            <span style={{ background: "rgba(255,255,255,0.2)", padding: "6px 14px", borderRadius: 999, fontSize: 13, fontWeight: 600, backdropFilter: "blur(4px)" }}>
+              🛏️ {occupiedBeds || 50}/{totalBeds || 640} Giường có người
+            </span>
           </div>
         </div>
       </div>
 
-      <div style={{ zIndex: 1, background: "rgba(255,255,255,0.1)", backdropFilter: "blur(12px)", borderRadius: 16, padding: 24, border: "1px solid rgba(255,255,255,0.2)", textAlign: "center", minWidth: 200 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}>
-          <div style={{ position: "relative", display: "flex", width: 12, height: 12 }}>
-            <span style={{ position: "absolute", width: "100%", height: "100%", borderRadius: "50%", background: "#fff", opacity: 0.75, animation: "ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite" }} />
-            <span style={{ position: "relative", width: 12, height: 12, borderRadius: "50%", background: "#fff" }} />
-            <style>{`@keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }`}</style>
-          </div>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>Trạng thái hệ thống</p>
-        </div>
-        <p style={{ margin: 0, fontSize: 24, fontWeight: 800, textTransform: "uppercase" }}>{healthStatus}</p>
-        <p style={{ margin: "4px 0 0", fontSize: 10, opacity: 0.7, fontStyle: "italic" }}>Cập nhật: Vừa xong</p>
-      </div>
     </section>
   );
 }

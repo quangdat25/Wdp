@@ -6,12 +6,12 @@ export default function MaintenanceChart({ data }) {
 
   const { completed, inProgress, pending, urgent, total } = data;
   
-  // Calculate stroke-dasharrays based on percentages of a circle circumference (~251.2 for r=40)
+  const safeTotal = total || 0;
   const c = 2 * Math.PI * 40;
-  const pctCompleted = completed / total;
-  const pctInProgress = inProgress / total;
-  const pctPending = pending / total;
-  const pctUrgent = urgent / total;
+  const pctCompleted = safeTotal > 0 ? completed / safeTotal : 0;
+  const pctInProgress = safeTotal > 0 ? inProgress / safeTotal : 0;
+  const pctPending = safeTotal > 0 ? pending / safeTotal : 0;
+  const pctUrgent = safeTotal > 0 ? urgent / safeTotal : 0;
 
   const dashCompleted = `${pctCompleted * c} ${c}`;
   const dashInProgress = `${pctInProgress * c} ${c}`;
@@ -27,10 +27,16 @@ export default function MaintenanceChart({ data }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-around", height: 192, padding: "0 24px", marginTop: 24 }}>
         <div style={{ position: "relative", width: 128, height: 128 }}>
           <svg style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }} viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#22C55E" strokeWidth="12" strokeDasharray={dashCompleted} strokeDashoffset={0} />
-            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#3B82F6" strokeWidth="12" strokeDasharray={dashInProgress} strokeDashoffset={offInProgress} />
-            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#F59E0B" strokeWidth="12" strokeDasharray={dashPending} strokeDashoffset={offPending} />
-            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#EF4444" strokeWidth="12" strokeDasharray={dashUrgent} strokeDashoffset={offUrgent} />
+            {safeTotal === 0 ? (
+              <circle cx="50" cy="50" r="40" fill="transparent" stroke="#E5E7EB" strokeWidth="12" />
+            ) : (
+              <>
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#22C55E" strokeWidth="12" strokeDasharray={dashCompleted} strokeDashoffset={0} />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#3B82F6" strokeWidth="12" strokeDasharray={dashInProgress} strokeDashoffset={offInProgress} />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#F59E0B" strokeWidth="12" strokeDasharray={dashPending} strokeDashoffset={offPending} />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#EF4444" strokeWidth="12" strokeDasharray={dashUrgent} strokeDashoffset={offUrgent} />
+              </>
+            )}
           </svg>
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
             <span style={{ fontSize: 20, fontWeight: 700 }}>{total}</span>
