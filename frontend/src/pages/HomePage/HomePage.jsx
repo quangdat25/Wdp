@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import './HomePage.css';
+import configApi from '../../api/systemConfigService'; // Đổi lại đường dẫn nếu file configApi nằm chỗ khác
 
 /* Placeholder images */
 const HERO_SLIDES = [
@@ -23,6 +24,8 @@ const HERO_SLIDES = [
 
 function HomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [activeConfig, setActiveConfig] = useState(null);
+  const [configLoading, setConfigLoading] = useState(true);
 
   const nextSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
@@ -39,6 +42,64 @@ function HomePage() {
       element.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+
+  useEffect(() => {
+    const fetchActiveConfig = async () => {
+      try {
+        const result = await configApi.getActiveConfig();
+
+        // Hỗ trợ cả response dạng { data: {...} } và trả thẳng object config
+        setActiveConfig(result?.data ?? result);
+      } catch (error) {
+        console.error('Không thể tải cấu hình đang hoạt động:', error);
+        setActiveConfig(null);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+
+    fetchActiveConfig();
+  }, []);
+
+  const formatCurrency = (value) => {
+    const numberValue = Number(value);
+
+    if (!Number.isFinite(numberValue)) {
+      return 'Đang cập nhật';
+    }
+
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0,
+    }).format(numberValue);
+  };
+
+  // Đổi tên field bên dưới nếu schema Config của bạn sử dụng tên khác
+  const roomPrice =
+    activeConfig?.roomPrice ??
+    activeConfig?.dormitoryPrice ??
+    activeConfig?.pricePerSemester;
+
+  const electricityPrice =
+    activeConfig?.electricityPrice ??
+    activeConfig?.electricPrice ??
+    activeConfig?.electricityUnitPrice;
+
+  const waterPrice =
+    activeConfig?.waterPrice ??
+    activeConfig?.waterUnitPrice;
+
+  const freeElectricity =
+    activeConfig?.freeElectricity ??
+    activeConfig?.electricityQuota ??
+    activeConfig?.electricityFreeLimit;
+
+  const freeWater =
+    activeConfig?.freeWater ??
+    activeConfig?.waterQuota ??
+    activeConfig?.waterFreeLimit;
 
   /* Auto-play slider */
   useEffect(() => {
@@ -290,11 +351,26 @@ function HomePage() {
                 <li>Kỳ Fall: Tháng 9 – tháng 12</li>
               </ul>
 
-              <h4 className="faq-item__sub-title">Phụ trội Điện nước/kỳ</h4>
+              <h4 className="faq-item__sub-title">Chi phí ký túc xá</h4>
               <ul>
-                <li><strong>Định mức miễn phí:</strong> 200 số Điện & 12 số nước</li>
+                <li>
+                  <strong>Giá phòng:</strong>{' '}
+                  {configLoading ? 'Đang tải...' : formatCurrency(roomPrice)} / người / kỳ
+                </li>
+                <li>
+                  <strong>Định mức miễn phí:</strong>{' '}
+                  {freeElectricity ?? 'Đang cập nhật'} số điện &amp;{' '}
+                  {freeWater ?? 'Đang cập nhật'} số nước
+                </li>
                 <li><strong>Dùng vượt định mức:</strong> Nộp phí phụ trội</li>
-                <li><strong>Đơn giá:</strong> 2,500đ/số điện, 10,000đ/số nước</li>
+                <li>
+                  <strong>Đơn giá điện:</strong>{' '}
+                  {configLoading ? 'Đang tải...' : `${formatCurrency(electricityPrice)}/số`}
+                </li>
+                <li>
+                  <strong>Đơn giá nước:</strong>{' '}
+                  {configLoading ? 'Đang tải...' : `${formatCurrency(waterPrice)} / người / tháng`}
+                </li>
               </ul>
 
               <h4 className="faq-item__sub-title">Thông tin phòng ở</h4>

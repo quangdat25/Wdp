@@ -25,7 +25,7 @@ import BookingResult from "./pages/Student/BookingResult";
 import ParentDashboard from "./pages/Parent/ParentDashboard";
 import ParentStudentInfo from "./pages/Parent/ParentStudentInfo";
 import ParentPayment from "./pages/Parent/ParentPayment";
-
+import MyViolations from "./pages/Student/MyViolations";
 import CleanerDashboard from "./pages/Staff/CleanerDashboard";
 import MaintenanceDashboard from "./pages/Staff/MaintenanceDashboard";
 import SecurityDashboard from "./pages/Staff/SecurityDashboard";
@@ -97,6 +97,7 @@ function App() {
               />
               <Route path="/student/my-utilities" element={<MyUtilities />} />
               <Route path="/student/room" element={<MyRoom />} />
+              <Route path="/student/violations" element={<MyViolations />} />
             </Route>
 
             {/* Parent Routes */}
@@ -150,7 +151,7 @@ function App() {
                 }
               />
               <Route
-                path="/security/check-in-out/*"
+                path="/staff/security/check-in-out/*"
                 element={
                   <ProtectedRoute
                     allowedRoles={["staff"]}

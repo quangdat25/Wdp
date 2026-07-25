@@ -1,41 +1,52 @@
 const express = require("express");
 
 const systemConfigController = require("../controllers/systemConfig.controller");
-
 const { authenticate, authorize } = require("../middleware/authUser");
 
 const router = express.Router();
 
-router.use(authenticate);
 
-// Student hoặc các chức năng khác có thể đọc config active
 router.get("/active", systemConfigController.getActiveConfig);
 
-// Các API quản trị chỉ dành cho admin
-router.get("/", authorize("admin"), systemConfigController.getAllConfigs);
+
+router.get(
+  "/",
+  authenticate,
+  authorize("admin"),
+  systemConfigController.getAllConfigs,
+);
 
 router.get(
   "/:configId",
+  authenticate,
   authorize("admin"),
   systemConfigController.getConfigById,
 );
 
-router.post("/", authorize("admin"), systemConfigController.createConfig);
+router.post(
+  "/",
+  authenticate,
+  authorize("admin"),
+  systemConfigController.createConfig,
+);
 
 router.put(
   "/:configId",
+  authenticate,
   authorize("admin"),
   systemConfigController.updateConfig,
 );
 
 router.patch(
   "/:configId/activate",
+  authenticate,
   authorize("admin"),
   systemConfigController.activateConfig,
 );
 
 router.delete(
   "/:configId",
+  authenticate,
   authorize("admin"),
   systemConfigController.deleteConfig,
 );
